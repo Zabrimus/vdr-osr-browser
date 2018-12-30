@@ -77,8 +77,7 @@ Aktuell gibt es beim Aufruf der allerersten Seite im VDR das Problem, das der VD
 der VDR also die Seite nicht bekommt. Das kann man verhindern, indem man den OSR Browser startet und die
 gewünschte Skin-HTML Seite initial lädt.
 '''
-./osrcef
-./osrclient --url <Pfad zum Skin HTML>
+./osrcef --skinurl=<Pfad zur Skin Index Seite>
 '''
 und danach erst den VDR startet.
 

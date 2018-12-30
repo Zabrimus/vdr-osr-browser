@@ -43,10 +43,19 @@ void quit_handler(int sig) {
     CefQuitMessageLoop();
 }
 
+std::string *initUrl = nullptr;
+
 // Entry point function for all processes.
 int main(int argc, char *argv[]) {
     signal (SIGQUIT, quit_handler);
     signal(SIGINT, quit_handler);
+
+    // try to find --skinurl parameter
+    for (int i = 0; i < argc; ++i) {
+        if (strncmp(argv[i], "--skinurl=", 10) == 0) {
+            initUrl = new std::string(argv[i] + 10);
+        }
+    }
 
     CefMainArgs main_args(argc, argv);
 
@@ -91,8 +100,12 @@ int main(int argc, char *argv[]) {
     auto osrHandler = new OSRHandler(850, 600);
     CefRefPtr<BrowserClient> browserClient = new BrowserClient(osrHandler);
 
-    browser = CefBrowserHost::CreateBrowserSync(window_info, browserClient.get(), "", browserSettings, nullptr);
+    browser = CefBrowserHost::CreateBrowserSync(window_info, browserClient.get(), initUrl ? initUrl->c_str() : "", browserSettings, nullptr);
     browser->GetHost()->WasHidden(true);
+
+    if (initUrl) {
+        delete initUrl;
+    }
 
     BrowserControl browserControl(browser, osrHandler);
 

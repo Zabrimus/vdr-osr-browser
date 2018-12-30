@@ -30,9 +30,6 @@ BrowserControl::BrowserControl(CefRefPtr<CefBrowser> _browser, OSRHandler* osrHa
 BrowserControl::~BrowserControl() = default;
 
 void BrowserControl::LoadURL(const CefString& url) {
-    printf("Old Url: %s\n", browser->GetMainFrame()->GetURL().ToString().c_str());
-    printf("New Url: %s\n", url.ToString().c_str());
-
     if (browser->GetMainFrame()->GetURL().compare(url)) {
         browser->GetMainFrame()->LoadURL(url);
     }
