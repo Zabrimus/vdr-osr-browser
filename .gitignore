@@ -1,0 +1,5 @@
+*.o
+.idea
+Release
+compile_commands.json
+
