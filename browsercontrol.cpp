@@ -19,6 +19,8 @@
 
 #include "browsercontrol.h"
 
+#define DEBUG_JS
+
 BrowserControl::BrowserControl(CefRefPtr<CefBrowser> _browser, OSRHandler* osrHandler) {
     browser = _browser;
     handler = osrHandler;
@@ -92,6 +94,11 @@ void BrowserControl::Start(std::string socketUrl) {
                 browser->GetHost()->SetZoomLevel(cefLevel);
             } else if (strncmp("JS", buf, 2) == 0) {
                 CefString call(buf + 3);
+
+#ifdef DEBUG_JS
+                printf("%s\n\n", call.ToString().c_str());
+#endif
+
                 auto frame = browser->GetMainFrame();
                 frame->ExecuteJavaScript(call, frame->GetURL(), 0);
             } else if (strncmp("PING", buf, 4) == 0) {

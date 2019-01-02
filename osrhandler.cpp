@@ -17,6 +17,8 @@
 
 #include "osrhandler.h"
 
+#define SEND_FULL_PAGE
+
 OSRHandler::OSRHandler(int width, int height) {
     renderWidth = width;
     renderHeight = height;
@@ -47,6 +49,9 @@ void OSRHandler::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, c
 
     auto img = (uint32_t*)buffer;
 
+#ifndef SEND_FULL_PAGE
+    // send only dirty recs. But the VDR OSD update has some flaws and works not correctly.
+
     // send count of dirty recs
     auto countOfDirtyRecs = dirtyRects.size();
     bytes = nn_send (socketId, &countOfDirtyRecs, sizeof(countOfDirtyRecs), 0);
@@ -69,4 +74,40 @@ void OSRHandler::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, c
             bytes = nn_send(socketId, img + (width * j + x), 4 * w, 0);
         }
     }
+#else
+    // send the whole page as update
+
+    unsigned long countOfDirtyRecs = 1L;
+    bytes = nn_send (socketId, &countOfDirtyRecs, sizeof(countOfDirtyRecs), 0);
+
+    // send coordinates and size
+    auto x = 0;
+    auto y = 0;
+    auto w = width;
+    auto h = height;
+
+    bytes = nn_send (socketId, &x, sizeof(x), 0);
+    bytes = nn_send (socketId, &y, sizeof(y), 0);
+    bytes = nn_send (socketId, &w, sizeof(w), 0);
+    bytes = nn_send (socketId, &h, sizeof(h), 0);
+
+    // iterate overall dirty recs and send the size and buffer
+    for (unsigned long i = 0; i < countOfDirtyRecs; ++i) {
+        // send coordinates and size
+        auto x = dirtyRects[i].x;
+        auto y = dirtyRects[i].y;
+        auto h = height;
+        auto w = width;
+
+        bytes = nn_send (socketId, &x, sizeof(x), 0);
+        bytes = nn_send (socketId, &y, sizeof(y), 0);
+        bytes = nn_send (socketId, &w, sizeof(w), 0);
+        bytes = nn_send (socketId, &h, sizeof(h), 0);
+
+        // send buffer
+        for (auto j = 0; j < h; ++j) {
+            bytes = nn_send(socketId, img + (width * j + x), 4 * w, 0);
+        }
+    }
+#endif
 }
