@@ -18,6 +18,7 @@
 #include "osrhandler.h"
 
 #define SEND_FULL_PAGE
+// #define PRINT_OSD_SIZE
 
 OSRHandler::OSRHandler(int width, int height) {
     renderWidth = width;
@@ -64,6 +65,10 @@ void OSRHandler::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, c
         auto h = dirtyRects[i].height;
         auto w = dirtyRects[i].width;
 
+#ifdef PRINT_OSD_SIZE
+        printf("Dirty Rec OSD Size (x, y, w, h) = (%d, %d, %d, %d)\n", x, y, w, h);
+#endif
+
         bytes = nn_send (socketId, &x, sizeof(x), 0);
         bytes = nn_send (socketId, &y, sizeof(y), 0);
         bytes = nn_send (socketId, &w, sizeof(w), 0);
@@ -94,10 +99,14 @@ void OSRHandler::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, c
     // iterate overall dirty recs and send the size and buffer
     for (unsigned long i = 0; i < countOfDirtyRecs; ++i) {
         // send coordinates and size
-        auto x = dirtyRects[i].x;
-        auto y = dirtyRects[i].y;
+        auto x = 0;
+        auto y = 0;
         auto h = height;
         auto w = width;
+
+#ifdef PRINT_OSD_SIZE
+        printf("OSD Size (x, y, w, h) = (%d, %d, %d, %d)\n", x, y, w, h);
+#endif
 
         bytes = nn_send (socketId, &x, sizeof(x), 0);
         bytes = nn_send (socketId, &y, sizeof(y), 0);
