@@ -13,6 +13,7 @@
 #include <unistd.h>
 #include <iostream>
 #include <cmath>
+#include <X11/keysym.h>
 #include "include/cef_app.h"
 #include <nanomsg/nn.h>
 #include <nanomsg/reqrep.h>
@@ -103,6 +104,19 @@ void BrowserControl::Start(std::string socketUrl) {
                 frame->ExecuteJavaScript(call, frame->GetURL(), 0);
             } else if (strncmp("PING", buf, 4) == 0) {
                 // do nothing, only sends the response
+
+            /* TODO: Key Events
+            } else if (strncmp("KEY", buf, 3) == 0) {
+                printf("----- GOT KEY %s\n", buf);
+
+                CefKeyEvent event;
+                event.type = KEYEVENT_CHAR;
+                // event.character = XK_Right;
+                // event.native_key_code = XK_Right;
+                event.windows_key_code = 0x27;
+                browser->GetHost()->SendKeyEvent(event);
+            */
+
             } else {
                 successful = false;
             }
