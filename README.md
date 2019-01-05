@@ -23,7 +23,10 @@ make prepare
 
 Eine andere Variante ist das vollständige Neukompilieren des CEF mit den entsprechenden Compile-Flags. Allerdings
 wird dafür ein potenter Rechner, viel Hauptspeicher und Plattenspeicher benötigt und vor allen Dingen eine schnelle 
-Internetverbindung. Es werden ca. 13 GB heruntergeladen (+/- 1 GB).
+Internetverbindung. Es werden ca. 13 GB heruntergeladen (+/- 1 GB). Ein Core i7 mit 4/8 Kernen, 32 GB Ram und einer 
+1Gbit/s Netzanbindung braucht ca 4-5 Stunden für den allerersten Build.
+
+### Docker
 Im Verzeichnis docker befindet sich ein Dockerfile, das das CEF neu baut.  
 '''
 FROM debian:stable-backports
@@ -40,10 +43,13 @@ RUN apt update -qq && \
     export PATH=/root/cef-build/depot/depot_tools:$PATH && \
     export GN_DEFINES="is_official_build=true use_sysroot=true use_allocator=none symbol_level=1 proprietary_codecs=true ffmpeg_branding=Chrome" && \
     export CEF_ARCHIVE_FORMAT=tar.bz2 && \
-    (cd /root/cef-build && python cef-build/automate-git.py --download-dir=/root/cef-build/download --branch=/root/cef-build/cef-git --minimal-distrib --client-distrib --force-clean --x64-build --build-target=cefsimple --branch 3626 --no-debug-build)
+    (cd /root/cef-build && python automate-git.py --download-dir=/root/cef-build/download --branch=/root/cef-build/cef-git --minimal-distrib --client-distrib --force-clean --x64-build --build-target=cefsimple --branch 3626 --no-debug-build)
 
 CMD ["/bin/bash"]
 '''
+Allerdings bricht der Container beim Paketieren ab. Ich habe Docker verworfen und nutze stattdessen LXD, bei dem 
+wesentlich mehr Kontrolle über den Container möglich ist. Die Kommandos im Dockerfile habe ich exakt so im LXD Container 
+ausgeführt.
 
 ## Build
 Einmalig
@@ -94,7 +100,7 @@ Aktuell gibt es beim Aufruf der allerersten Seite im VDR das Problem, das der VD
 der VDR also die Seite nicht bekommt. Das kann man verhindern, indem man den OSR Browser startet und die
 gewünschte Skin-HTML Seite initial lädt.
 '''
-./osrcef --skinurl=<Pfad zur Skin Index Seite>
+./osrcef --skinurl="Pfad zur Skin Index Seite"
 '''
 und danach erst den VDR startet.
 

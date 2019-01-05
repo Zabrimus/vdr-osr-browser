@@ -12,6 +12,6 @@ RUN apt update -qq && \
     export PATH=/root/cef-build/depot/depot_tools:$PATH && \
     export GN_DEFINES="is_official_build=true use_sysroot=true use_allocator=none symbol_level=1 proprietary_codecs=true ffmpeg_branding=Chrome" && \
     export CEF_ARCHIVE_FORMAT=tar.bz2 && \
-    (cd /root/cef-build && python cef-build/automate-git.py --download-dir=/root/cef-build/download --branch=/root/cef-build/cef-git --minimal-distrib --client-distrib --force-clean --x64-build --build-target=cefsimple --branch 3626 --no-debug-build)
+    (cd /root/cef-build && python automate-git.py --download-dir=/root/cef-build/download --branch=/root/cef-build/cef-git --minimal-distrib --client-distrib --force-clean --x64-build --build-target=cefsimple --branch 3626 --no-debug-build)
 
 CMD ["/bin/bash"]
