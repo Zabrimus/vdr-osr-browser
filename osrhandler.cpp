@@ -74,7 +74,7 @@ void OSRHandler::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, c
             bytes = nn_send(socketId, &h, sizeof(h), 0);
 
             // send buffer
-            for (auto j = 0; j < h; ++j) {
+            for (auto j = y; j < y + h; ++j) {
                 bytes = nn_send(socketId, img + (width * j + x), 4 * w, 0);
             }
         }
