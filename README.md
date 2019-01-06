@@ -17,9 +17,9 @@ vorzubereiten. Die vorkompilierten Binaries finden sich auf http://opensource.sp
 Diese Variante hat den Nachteil, das verschiedene Codecs nicht verfügbar sind (z.B. H.264/265 und andere Audio Codes),
 damit ist ein hardware-beschleunigtes Rendering nicht immer verfügbar.
 Siehe z.B. auch https://github.com/Zabrimus/cef-makefile-sample
-'''
+```
 make prepare
-'''
+```
 
 Eine andere Variante ist das vollständige Neukompilieren des CEF mit den entsprechenden Compile-Flags. Allerdings
 wird dafür ein potenter Rechner, viel Hauptspeicher und Plattenspeicher benötigt und vor allen Dingen eine schnelle 
@@ -28,7 +28,7 @@ Internetverbindung. Es werden ca. 13 GB heruntergeladen (+/- 1 GB). Ein Core i7 
 
 ### Docker
 Im Verzeichnis docker befindet sich ein Dockerfile, das das CEF neu baut.  
-'''
+```
 FROM debian:stable-backports
 
 RUN apt update -qq && \
@@ -46,21 +46,21 @@ RUN apt update -qq && \
     (cd /root/cef-build && python automate-git.py --download-dir=/root/cef-build/download --branch=/root/cef-build/cef-git --minimal-distrib --client-distrib --force-clean --x64-build --build-target=cefsimple --branch 3626 --no-debug-build)
 
 CMD ["/bin/bash"]
-'''
+```
 Allerdings bricht der Container beim Paketieren ab. Ich habe Docker verworfen und nutze stattdessen LXD, bei dem 
 wesentlich mehr Kontrolle über den Container möglich ist. Die Kommandos im Dockerfile habe ich exakt so im LXD Container 
 ausgeführt.
 
 ## Build
 Einmalig
-'''
+```
 make prepare
-'''
+```
 
 Ein neues Build wird gemacht mit
-'''
+```
 make
-'''
+```
 
 Im Unterverzeichnis Release befinden sich dann die beiden Binaries osrcef und osrclient zusammen mit 3 Softlinks in
 das CEF Installationsverzeichnis. Die Softlinks sind absolut notwendig, da CEF leider verschiedene Dateien in genau
@@ -70,14 +70,14 @@ der OSR Browser nicht als VDR Plugin implementiert werden kann ohne den VDR selb
 
 ## Starten des Browsers
 Die einfachste Variante zum Start ist
-'''
+```
 ./osrcef
-'''
+```
 
 Ein Remote-Debugging mittels Chrome kann sinnvoll sein. Dazu müssen nur folgende Parameter verwendet werden
-'''
+```
 /osrcef --remote-debugging-port=9222 --user-data-dir=remote-profile
-'''
+```
 Und im Chrome die Seite http://localhost:9222 aufrufen. Man kann dann die Seite sehen, die gerendert wird und alle
 Möglichkeiten nutzen, die Chrome bietet.
 
@@ -86,22 +86,22 @@ Dies ist ein sehr einfach gehaltener Client, um Kommandos an den OSR Browser sen
 er zum Testen verwendet, kann aber auch sonst sinnvoll sein.
 
 ### Parameter
-'''
+```
 --url <url>     lädt die URL im OSR Browser
 --pause         Stoppt das Rendering
 --resume        Startet das Rendering
 --stream        Liest alle dirtyRecs (Bereiche der Seite, die sich verändert haben) und gibt eine Kurze Info aus.
 --js <cmd>      Ein Javascript Kommando im OSR Browser ausführen
 --connect       Ein einfacher Connect Test (Ping) an den OSR Browser
-'''
+```
 
 ## Best practice für ein noch bestehendes Problem
 Aktuell gibt es beim Aufruf der allerersten Seite im VDR das Problem, das der VDR schneller startet, als der OSR Browser,
 der VDR also die Seite nicht bekommt. Das kann man verhindern, indem man den OSR Browser startet und die
 gewünschte Skin-HTML Seite initial lädt.
-'''
+```
 ./osrcef --skinurl="Pfad zur Skin Index Seite"
-'''
+```
 und danach erst den VDR startet.
 
 ## Historie
