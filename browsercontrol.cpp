@@ -20,7 +20,7 @@
 
 #include "browsercontrol.h"
 
-#define DEBUG_JS
+// #define DEBUG_JS
 
 BrowserControl::BrowserControl(CefRefPtr<CefBrowser> _browser, OSRHandler* osrHandler) {
     browser = _browser;
