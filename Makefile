@@ -30,6 +30,11 @@ LDFLAGS += `pkg-config --libs cef`
 CFLAGS += `pkg-config --cflags nanomsg`
 LDFLAGS += `pkg-config --libs nanomsg`
 
+# libcurl
+CFLAGS += `pkg-config --cflags libcurl`
+LDFLAGS += `pkg-config --libs libcurl`
+
+
 all: prepareexe $(SOURCES) $(EXECUTABLE) $(EXECUTABLE2)
 
 $(EXECUTABLE): $(OBJECTS)

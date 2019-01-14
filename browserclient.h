@@ -19,14 +19,36 @@
 
 #include "osrhandler.h"
 
-class BrowserClient : public CefClient, public CefLoadHandler {
+class BrowserClient : public CefClient,
+                      public CefRequestHandler,
+                      public CefLoadHandler,
+                      public CefResourceHandler {
+
 private:
     CefRefPtr<CefRenderHandler> m_renderHandler;
 
+    std::string responseContent;
+    std::map<std::string, std::string> responseHeader;
+    size_t offset;
+
 public:
     explicit BrowserClient(OSRHandler *renderHandler);
-    CefRefPtr<CefRenderHandler> GetRenderHandler() override;
 
+    // getter for the different handler
+    CefRefPtr<CefRenderHandler> GetRenderHandler() override;
+    CefRefPtr<CefRequestHandler> GetRequestHandler() override;
+    CefRefPtr<CefResourceHandler> GetResourceHandler(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request) override;
+
+    // CefResourceHandler
+    bool ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr<CefCallback> callback) override;
+    void GetResponseHeaders(CefRefPtr<CefResponse> response, int64 &response_length, CefString &redirectUrl) override;
+    bool ReadResponse(void *data_out, int bytes_to_read, int &bytes_read, CefRefPtr<CefCallback> callback) override;
+
+    bool CanGetCookie(const CefCookie &cookie) override { return CefResourceHandler::CanGetCookie(cookie); }
+    bool CanSetCookie(const CefCookie &cookie) override { return CefResourceHandler::CanSetCookie(cookie); }
+    void Cancel() override { /* we do not cancel the request */ }
+
+    // CefLoadHandler
     void OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, int httpStatusCode) override;
     void OnLoadError(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, ErrorCode errorCode, const CefString &errorText, const CefString &failedUrl) override;
 
