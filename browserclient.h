@@ -27,17 +27,23 @@ class BrowserClient : public CefClient,
 private:
     CefRefPtr<CefRenderHandler> m_renderHandler;
 
+    bool hbbtv;
+
     std::string responseContent;
     std::map<std::string, std::string> responseHeader;
     size_t offset;
+    std::string redirectUrl;
 
 public:
-    explicit BrowserClient(OSRHandler *renderHandler);
+    explicit BrowserClient(OSRHandler *renderHandler, bool _hbbtv);
 
     // getter for the different handler
     CefRefPtr<CefRenderHandler> GetRenderHandler() override;
     CefRefPtr<CefRequestHandler> GetRequestHandler() override;
     CefRefPtr<CefResourceHandler> GetResourceHandler(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request) override;
+
+    // CefRequestHandler
+
 
     // CefResourceHandler
     bool ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr<CefCallback> callback) override;

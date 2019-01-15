@@ -30,6 +30,7 @@ public:
     void LoadUrl(std::string url, std::map<std::string, std::string>* header);
     std::map<std::string, std::string> GetResponseHeader() { return response_header; }
     std::string GetResponseContent() { return response_content; }
+    std::string GetRedirectUrl() { return redirect_url; }
 
 private:
     static size_t WriteContentCallback(void *contents, size_t size, size_t nmemb, void *userp);
@@ -37,6 +38,7 @@ private:
 
     static std::map<std::string, std::string> response_header;
     static std::string response_content;
+    std::string redirect_url;
 };
 
 std::map<std::string, std::string> HbbtvCurl::response_header;
@@ -71,9 +73,9 @@ void HbbtvCurl::LoadUrl(std::string url, std::map<std::string, std::string>* hea
     res = curl_easy_perform(curl_handle);
 
     if (res == CURLE_OK) {
-        char *redirect_url = nullptr;
-        curl_easy_getinfo(curl_handle, CURLINFO_REDIRECT_URL, &redirect_url);
-        if (redirect_url) {
+        char *redir_url = nullptr;
+        curl_easy_getinfo(curl_handle, CURLINFO_REDIRECT_URL, &redir_url);
+        if (redir_url) {
             // clear buffer
             memset(headerdata, 0, HEADERSIZE);
 
@@ -84,7 +86,8 @@ void HbbtvCurl::LoadUrl(std::string url, std::map<std::string, std::string>* hea
             response_header.clear();
 
             // reload url
-            curl_easy_setopt(curl_handle, CURLOPT_URL, redirect_url);
+            redirect_url = redir_url;
+            curl_easy_setopt(curl_handle, CURLOPT_URL, redir_url);
             curl_easy_perform(curl_handle);
         }
     }
@@ -136,8 +139,9 @@ size_t HbbtvCurl::WriteHeaderCallback(void *contents, size_t size, size_t nmemb,
 }
 
 
-BrowserClient::BrowserClient(OSRHandler *renderHandler) {
+BrowserClient::BrowserClient(OSRHandler *renderHandler, bool _hbbtv) {
     m_renderHandler = renderHandler;
+    hbbtv = _hbbtv;
 }
 
 
@@ -147,8 +151,61 @@ CefRefPtr<CefRenderHandler> BrowserClient::GetRenderHandler() {
     return m_renderHandler;
 }
 
+
+
 CefRefPtr<CefResourceHandler> BrowserClient::GetResourceHandler(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request) {
-    return this;
+    if (hbbtv) {
+        // test if the special handler is necesary
+        auto url = request->GetURL().ToString();
+
+        // filter http(s) requests
+        if (url.find("http", 0) == std::string::npos) {
+            // no http request -> use default handler
+            return CefRequestHandler::GetResourceHandler(browser, frame, request);
+        }
+
+        // filter known file types, this has to adapted accordingly
+        auto handle = (url.find("view-source:'", 0) == std::string::npos) &&
+                      (url.find(".json", 0) == std::string::npos) &&
+                      (url.find(".js", 0) == std::string::npos) &&
+                      (url.find(".css", 0) == std::string::npos) &&
+                      (url.find(".ico", 0) == std::string::npos) &&
+                      (url.find(".jpg", 0) == std::string::npos) &&
+                      (url.find(".png", 0 ) == std::string::npos) &&
+                      (url.find(".gif", 0) == std::string::npos) &&
+                      (url.find(".webp", 0) == std::string::npos) &&
+                      (url.find(".m3u8", 0) == std::string::npos) &&
+                      (url.find(".mpd", 0) == std::string::npos) &&
+                      (url.find(".ts", 0) == std::string::npos) &&
+                      (url.find(".mpg", 0) == std::string::npos) &&
+                      (url.find(".mp3", 0) == std::string::npos) &&
+                      (url.find(".mp4", 0) == std::string::npos) &&
+                      (url.find(".mov", 0) == std::string::npos) &&
+                      (url.find(".avi", 0) == std::string::npos) &&
+                      (url.find(".pdf", 0) == std::string::npos) &&
+                      (url.find(".ppt", 0) == std::string::npos) &&
+                      (url.find(".pptx", 0) == std::string::npos) &&
+                      (url.find(".xls", 0) == std::string::npos) &&
+                      (url.find(".xlsx", 0) == std::string::npos) &&
+                      (url.find(".doc", 0) == std::string::npos) &&
+                      (url.find(".docx", 0) == std::string::npos) &&
+                      (url.find(".zip", 0) == std::string::npos) &&
+                      (url.find(".rar", 0) == std::string::npos) &&
+                      (url.find(".woff2", 0) == std::string::npos) &&
+                      (url.find(".svg", 0) == std::string::npos) &&
+                      (url.find(".7z", 0) == std::string::npos);
+
+        if (!handle) {
+            // use default handler
+            return CefRequestHandler::GetResourceHandler(browser, frame, request);
+        } else {
+            // use special handler
+            return this;
+        }
+    } else {
+        // use default handler
+        return CefRequestHandler::GetResourceHandler(browser, frame, request);
+    }
 }
 
 CefRefPtr<CefRequestHandler> BrowserClient::GetRequestHandler() {
@@ -159,46 +216,40 @@ CefRefPtr<CefRequestHandler> BrowserClient::GetRequestHandler() {
 
 // CefLoadHandler
 void BrowserClient::OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, int httpStatusCode) {
-    std::cout << "BrowserClient::OnLoadEnd" << std::endl;
-
     CEF_REQUIRE_UI_THREAD();
-
-    fprintf(stderr, "Finished loading with code %d\n", httpStatusCode);
 }
 
 void BrowserClient::OnLoadError(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefLoadHandler::ErrorCode errorCode, const CefString &errorText, const CefString &failedUrl) {
-    std::cout << "BrowserClient::OnLoadError" << std::endl;
-
     CEF_REQUIRE_UI_THREAD();
 
     if (errorCode == ERR_ABORTED)
         return;
-
-    fprintf(stderr, "Error loading URL '%s' with (errorCode %d) %s\n", std::string(failedUrl).c_str(), errorCode, std::string(errorText).c_str());
 }
 
 
 
 // CefResourceHandler
 bool BrowserClient::ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr<CefCallback> callback) {
-    std::cout << "BrowserClient::ProcessRequest" << std::endl;
-
     {
         HbbtvCurl curl;
         curl.LoadUrl(request->GetURL().ToString(), nullptr);
 
         responseHeader = curl.GetResponseHeader();
         responseContent = curl.GetResponseContent();
+        redirectUrl = curl.GetRedirectUrl();
     }
 
     callback->Continue();
     return true;
-
-    // return false;
 }
 
-void BrowserClient::GetResponseHeaders(CefRefPtr<CefResponse> response, int64 &response_length, CefString &redirectUrl) {
-    std::cout << "BrowserClient::GetResponseHeaders" << std::endl;
+void BrowserClient::GetResponseHeaders(CefRefPtr<CefResponse> response, int64 &response_length, CefString &_redirectUrl) {
+    // reset offset
+    offset = 0;
+
+    if (redirectUrl.length() > 0) {
+        _redirectUrl.FromString(redirectUrl.c_str());
+    }
 
     std::string contentType = responseHeader["Content-Type"];
 
@@ -223,8 +274,6 @@ void BrowserClient::GetResponseHeaders(CefRefPtr<CefResponse> response, int64 &r
 }
 
 bool BrowserClient::ReadResponse(void *data_out, int bytes_to_read, int &bytes_read, CefRefPtr<CefCallback> callback) {
-    std::cout << "BrowserClient::ReadResponse" << std::endl;
-
     CEF_REQUIRE_IO_THREAD();
 
     bool has_data = false;
@@ -241,3 +290,170 @@ bool BrowserClient::ReadResponse(void *data_out, int bytes_to_read, int &bytes_r
 
     return has_data;
 }
+
+/*
+
+#include <algorithm>
+#include "include/wrapper/cef_helpers.h"
+#include "browserclient.h"
+#include "hbbtv_urlclient.h"
+
+BrowserClient::BrowserClient(OSRHandler *renderHandler, bool hbbtv) {
+    m_renderHandler = renderHandler;
+    isHbbtvClient = hbbtv;
+}
+
+CefRefPtr<CefRenderHandler> BrowserClient::GetRenderHandler() {
+    return m_renderHandler;
+}
+
+CefRefPtr<CefRequestHandler> BrowserClient::GetRequestHandler() {
+    return this;
+}
+
+CefRefPtr<CefLoadHandler> BrowserClient::GetLoadHandler() {
+    return this;
+}
+
+CefRequestHandler::ReturnValue BrowserClient::OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, CefRefPtr<CefRequestCallback> callback) {
+    if (isHbbtvClient) {
+        // Customize the request header
+        CefRequest::HeaderMap hdrMap;
+        request->GetHeaderMap(hdrMap);
+
+        // User-Agent
+        std::string newUserAgent("HbbTV/1.4.1 (+DRM;Samsung;SmartTV2015;T-HKM6DEUC-1490.3;;) OsrTvViewer");
+        hdrMap.erase("User-Agent");
+        hdrMap.insert(std::make_pair("User-Agent", newUserAgent.c_str()));
+        request->SetHeaderMap(hdrMap);
+    }
+
+    return RV_CONTINUE;
+}
+
+bool BrowserClient::OnResourceResponse(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, CefRefPtr<CefResponse> response) {
+    return false;
+}
+
+bool BrowserClient::OnBeforeBrowse(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, bool user_gesture, bool is_redirect) {
+    CEF_REQUIRE_UI_THREAD();
+
+    fprintf(stderr, "OnBeforeBrowse\n");
+
+    if (isHbbtvClient) {
+        auto url = request->GetURL().ToString();
+
+        // filter http(s) requests
+        if (url.find("http", 0) == std::string::npos) {
+            // no http request
+            return false;
+        }
+
+        // filter known file types, this has to adapted accordingly
+        auto ignore =
+                url.find("view-source:'",0) == std::string::npos ||
+                url.find(".json", 0) == std::string::npos ||
+                url.find(".js", 0) == std::string::npos ||
+                url.find(".css", 0) == std::string::npos ||
+                url.find(".ico", 0) == std::string::npos ||
+                url.find(".jpg", 0) == std::string::npos ||
+                url.find(".png", 0 ) == std::string::npos ||
+                url.find(".gif", 0) == std::string::npos ||
+                url.find(".webp", 0) == std::string::npos ||
+                url.find(".m3u8", 0) == std::string::npos ||
+                url.find(".mpd", 0) == std::string::npos ||
+                url.find(".ts", 0) == std::string::npos ||
+                url.find(".mpg", 0) == std::string::npos ||
+                url.find(".mp3", 0) == std::string::npos ||
+                url.find(".mp4", 0) == std::string::npos ||
+                url.find(".mov", 0) == std::string::npos ||
+                url.find(".avi", 0) == std::string::npos ||
+                url.find(".pdf", 0) == std::string::npos ||
+                url.find(".ppt", 0) == std::string::npos ||
+                url.find(".pptx", 0) == std::string::npos ||
+                url.find(".xls", 0) == std::string::npos ||
+                url.find(".xlsx", 0) == std::string::npos ||
+                url.find(".doc", 0) == std::string::npos ||
+                url.find(".docx", 0) == std::string::npos ||
+                url.find(".zip", 0) == std::string::npos ||
+                url.find(".rar", 0) == std::string::npos ||
+                url.find(".7z", 0) == std::string::npos;
+
+        printf("Return ignore.....%s\n", url.c_str());
+
+        // cancel request if not found and reload the URL in OnLoadError
+        return !ignore;
+    }
+
+    return CefRequestHandler::OnBeforeBrowse(browser, frame, request, user_gesture, is_redirect);
+}
+
+void BrowserClient::OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, int httpStatusCode) {
+    CEF_REQUIRE_UI_THREAD();
+    fprintf(stderr, "Finished loading with code %d\n", httpStatusCode);
+}
+
+void BrowserClient::OnLoadError(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefLoadHandler::ErrorCode errorCode, const CefString &errorText, const CefString &failedUrl) {
+    CEF_REQUIRE_UI_THREAD();
+
+    printf("In OnLoadError\n");
+
+    if (errorCode != ERR_ABORTED) {
+        fprintf(stderr, "Error loading URL '%s' with (errorCode %d) %s\n", std::string(failedUrl).c_str(), errorCode,
+                std::string(errorText).c_str());
+        return;
+    }
+
+    printf("Reload URL\n");
+
+    // reload URL
+    CefRefPtr<CefRequest> request = CefRequest::Create();
+    CefRefPtr<HbbtvUrlClient> client = new HbbtvUrlClient();
+    CefRefPtr<CefURLRequest> url_request = CefURLRequest::Create(request, client, nullptr);
+
+    printf("URL: %s\n", url_request->GetResponse()->GetURL().ToString().c_str());
+    printf("MIME: %s\n", url_request->GetResponse()->GetMimeType().ToString().c_str());
+    printf("Status: %d\n", url_request->GetResponse()->GetStatus());
+    printf("StatusText: %s\n", url_request->GetResponse()->GetStatusText().ToString().c_str());
+    printf("DOWNLOADED DATA: %s\n", client->GetDownloadedData().c_str());
+
+    // frame->LoadString(client->GetDownloadedData(), request->GetURL());
+}
+
+void BrowserClient::OnLoadingStateChange(CefRefPtr<CefBrowser> browser, bool isLoading, bool canGoBack, bool canGoForward) {
+    CefLoadHandler::OnLoadingStateChange(browser, isLoading, canGoBack, canGoForward);
+}
+
+void BrowserClient::OnLoadStart(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefLoadHandler::TransitionType transition_type) {
+    CefLoadHandler::OnLoadStart(browser, frame, transition_type);
+}
+
+
+
+CefRefPtr<CefResourceHandler> BrowserClient::GetResourceHandler(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request) {
+    return this;
+}
+
+void BrowserClient::GetResponseHeaders(CefRefPtr<CefResponse> response, int64 &response_length, CefString &redirectUrl) {
+    printf("GetResponseHeaders...");
+}
+
+bool BrowserClient::ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr<CefCallback> callback) {
+    return true;
+}
+
+bool BrowserClient::ReadResponse(void *data_out, int bytes_to_read, int &bytes_read, CefRefPtr<CefCallback> callback) {
+    return true;
+}
+
+bool BrowserClient::CanGetCookie(const CefCookie &cookie) {
+    return CefResourceHandler::CanGetCookie(cookie);
+}
+
+bool BrowserClient::CanSetCookie(const CefCookie &cookie) {
+    return CefResourceHandler::CanSetCookie(cookie);
+}
+
+void BrowserClient::Cancel() {
+}
+*/

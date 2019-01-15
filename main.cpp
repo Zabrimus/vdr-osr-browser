@@ -98,7 +98,7 @@ int main(int argc, char *argv[]) {
     window_info.SetAsWindowless(0);
 
     auto osrHandler = new OSRHandler(850, 600);
-    CefRefPtr<BrowserClient> browserClient = new BrowserClient(osrHandler);
+    CefRefPtr<BrowserClient> browserClient = new BrowserClient(osrHandler, true);
 
     browser = CefBrowserHost::CreateBrowserSync(window_info, browserClient.get(), initUrl ? initUrl->c_str() : "", browserSettings, nullptr);
     browser->GetHost()->WasHidden(true);
