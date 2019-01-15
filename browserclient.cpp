@@ -291,6 +291,22 @@ bool BrowserClient::ReadResponse(void *data_out, int bytes_to_read, int &bytes_r
     return has_data;
 }
 
+CefRequestHandler::ReturnValue BrowserClient::OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, CefRefPtr<CefRequestCallback> callback) {
+    if (hbbtv) {
+        // Customize the request header
+        CefRequest::HeaderMap hdrMap;
+        request->GetHeaderMap(hdrMap);
+
+        // User-Agent
+        std::string newUserAgent("HbbTV/1.4.1 (+DRM;Samsung;SmartTV2015;T-HKM6DEUC-1490.3;;) OsrTvViewer");
+        hdrMap.erase("User-Agent");
+        hdrMap.insert(std::make_pair("User-Agent", newUserAgent.c_str()));
+        request->SetHeaderMap(hdrMap);
+    }
+
+    return RV_CONTINUE;
+}
+
 /*
 
 #include <algorithm>
