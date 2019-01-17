@@ -19,6 +19,25 @@
 
 #include "osrhandler.h"
 
+class HbbtvCurl {
+public:
+    HbbtvCurl();
+    ~HbbtvCurl();
+
+    void LoadUrl(std::string url, std::map<std::string, std::string>* header);
+    std::map<std::string, std::string> GetResponseHeader() { return response_header; }
+    std::string GetResponseContent() { return response_content; }
+    std::string GetRedirectUrl() { return redirect_url; }
+
+private:
+    static size_t WriteContentCallback(void *contents, size_t size, size_t nmemb, void *userp);
+    static size_t WriteHeaderCallback(void *contents, size_t size, size_t nmemb, void *userp);
+
+    static std::map<std::string, std::string> response_header;
+    static std::string response_content;
+    std::string redirect_url;
+};
+
 class BrowserClient : public CefClient,
                       public CefRequestHandler,
                       public CefLoadHandler,
@@ -28,11 +47,14 @@ private:
     CefRefPtr<CefRenderHandler> m_renderHandler;
 
     bool hbbtv;
+    HbbtvCurl hbbtvCurl;
 
     std::string responseContent;
     std::map<std::string, std::string> responseHeader;
     size_t offset;
     std::string redirectUrl;
+
+    std::map<std::string, std::string> mimeTypes;
 
 public:
     explicit BrowserClient(OSRHandler *renderHandler, bool _hbbtv);
@@ -41,6 +63,7 @@ public:
     CefRefPtr<CefRenderHandler> GetRenderHandler() override;
     CefRefPtr<CefRequestHandler> GetRequestHandler() override;
     CefRefPtr<CefResourceHandler> GetResourceHandler(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request) override;
+    CefRefPtr<CefLoadHandler> GetLoadHandler() override;
 
     // CefRequestHandler
     ReturnValue OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, CefRefPtr<CefRequestCallback> callback) override;
@@ -55,6 +78,7 @@ public:
     void Cancel() override { /* we do not cancel the request */ }
 
     // CefLoadHandler
+    void OnLoadStart(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, TransitionType transition_type) override;
     void OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, int httpStatusCode) override;
     void OnLoadError(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, ErrorCode errorCode, const CefString &errorText, const CefString &failedUrl) override;
 
