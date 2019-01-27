@@ -49,8 +49,6 @@ private:
     CefRefPtr<CefRenderHandler> m_renderHandler;
 
     std::string exePath;
-
-    bool hbbtv;
     HbbtvCurl hbbtvCurl;
 
     std::string responseContent;
@@ -69,7 +67,7 @@ private:
     }
 
 public:
-    explicit BrowserClient(OSRHandler *renderHandler, bool _hbbtv);
+    explicit BrowserClient(OSRHandler *renderHandler);
 
     void setLoadingStart(bool loading);
 

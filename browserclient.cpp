@@ -184,9 +184,8 @@ size_t HbbtvCurl::WriteHeaderCallback(void *contents, size_t size, size_t nmemb,
 }
 
 
-BrowserClient::BrowserClient(OSRHandler *renderHandler, bool _hbbtv) {
+BrowserClient::BrowserClient(OSRHandler *renderHandler) {
     m_renderHandler = renderHandler;
-    hbbtv = _hbbtv;
 
     mimeTypes.insert(std::pair<std::string, std::string>("hbbtv", "application/vnd.hbbtv.xhtml+xml"));
     mimeTypes.insert(std::pair<std::string, std::string>("cehtml", "application/ce-html+xml"));
@@ -210,88 +209,82 @@ CefRefPtr<CefRenderHandler> BrowserClient::GetRenderHandler() {
 }
 
 CefRefPtr<CefResourceHandler> BrowserClient::GetResourceHandler(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request) {
-    if (hbbtv) {
-        // test if the special handler is necesary
-        auto url = request->GetURL().ToString();
+    // test if the special handler is necesary
+    auto url = request->GetURL().ToString();
 
-        // test at first internal requests
-        if (url.find("http://local_js/") != std::string::npos || url.find("http://local_css/") != std::string::npos) {
+    // test at first internal requests
+    if (url.find("http://local_js/") != std::string::npos || url.find("http://local_css/") != std::string::npos) {
+        DBG("Use cUrl Handler: %s\n", url.c_str());
+        return this;
+    }
+
+    // filter http(s) requests
+    if (url.find("http", 0) == std::string::npos) {
+        // no http request -> use default handler
+        DBG("Ignore Non-HTTP: %s\n", url.c_str());
+
+        return CefRequestHandler::GetResourceHandler(browser, frame, request);
+    }
+
+    // filter known file types, this has to adapted accordingly
+    auto handle = (url.find("view-source:'", 0) == std::string::npos) &&
+                  (url.find(".json", 0) == std::string::npos) &&
+                  (url.find(".js", 0) == std::string::npos) &&
+                  (url.find(".css", 0) == std::string::npos) &&
+                  (url.find(".ico", 0) == std::string::npos) &&
+                  (url.find(".jpg", 0) == std::string::npos) &&
+                  (url.find(".png", 0 ) == std::string::npos) &&
+                  (url.find(".gif", 0) == std::string::npos) &&
+                  (url.find(".webp", 0) == std::string::npos) &&
+                  (url.find(".m3u8", 0) == std::string::npos) &&
+                  (url.find(".mpd", 0) == std::string::npos) &&
+                  (url.find(".ts", 0) == std::string::npos) &&
+                  (url.find(".mpg", 0) == std::string::npos) &&
+                  (url.find(".mp3", 0) == std::string::npos) &&
+                  (url.find(".mp4", 0) == std::string::npos) &&
+                  (url.find(".mov", 0) == std::string::npos) &&
+                  (url.find(".avi", 0) == std::string::npos) &&
+                  (url.find(".pdf", 0) == std::string::npos) &&
+                  (url.find(".ppt", 0) == std::string::npos) &&
+                  (url.find(".pptx", 0) == std::string::npos) &&
+                  (url.find(".xls", 0) == std::string::npos) &&
+                  (url.find(".xlsx", 0) == std::string::npos) &&
+                  (url.find(".doc", 0) == std::string::npos) &&
+                  (url.find(".docx", 0) == std::string::npos) &&
+                  (url.find(".zip", 0) == std::string::npos) &&
+                  (url.find(".rar", 0) == std::string::npos) &&
+                  (url.find(".woff2", 0) == std::string::npos) &&
+                  (url.find(".svg", 0) == std::string::npos) &&
+                  (url.find(".ogg", 0) == std::string::npos) &&
+                  (url.find(".ogm", 0) == std::string::npos) &&
+                  (url.find(".ttf", 0) == std::string::npos) &&
+                  (url.find(".7z", 0) == std::string::npos);
+
+    if (!handle) {
+        // use default handler
+        DBG("Use default handler: %s\n", url.c_str());
+        return CefRequestHandler::GetResourceHandler(browser, frame, request);
+    } else {
+        // read the content type
+        std::string ct = hbbtvCurl.ReadContentType(url);
+
+        bool isHbbtvHtml = false;
+        for(auto const &item : mimeTypes) {
+            if (ct.find(item.second) != std::string::npos) {
+                isHbbtvHtml = true;
+                break;
+            }
+        }
+
+        if (isHbbtvHtml) {
+            // use special handler
             DBG("Use cUrl Handler: %s\n", url.c_str());
             return this;
-        }
-
-        // filter http(s) requests
-        if (url.find("http", 0) == std::string::npos) {
-            // no http request -> use default handler
-            DBG("Ignore Non-HTTP: %s\n", url.c_str());
-
-            return CefRequestHandler::GetResourceHandler(browser, frame, request);
-        }
-
-        // filter known file types, this has to adapted accordingly
-        auto handle = (url.find("view-source:'", 0) == std::string::npos) &&
-                      (url.find(".json", 0) == std::string::npos) &&
-                      (url.find(".js", 0) == std::string::npos) &&
-                      (url.find(".css", 0) == std::string::npos) &&
-                      (url.find(".ico", 0) == std::string::npos) &&
-                      (url.find(".jpg", 0) == std::string::npos) &&
-                      (url.find(".png", 0 ) == std::string::npos) &&
-                      (url.find(".gif", 0) == std::string::npos) &&
-                      (url.find(".webp", 0) == std::string::npos) &&
-                      (url.find(".m3u8", 0) == std::string::npos) &&
-                      (url.find(".mpd", 0) == std::string::npos) &&
-                      (url.find(".ts", 0) == std::string::npos) &&
-                      (url.find(".mpg", 0) == std::string::npos) &&
-                      (url.find(".mp3", 0) == std::string::npos) &&
-                      (url.find(".mp4", 0) == std::string::npos) &&
-                      (url.find(".mov", 0) == std::string::npos) &&
-                      (url.find(".avi", 0) == std::string::npos) &&
-                      (url.find(".pdf", 0) == std::string::npos) &&
-                      (url.find(".ppt", 0) == std::string::npos) &&
-                      (url.find(".pptx", 0) == std::string::npos) &&
-                      (url.find(".xls", 0) == std::string::npos) &&
-                      (url.find(".xlsx", 0) == std::string::npos) &&
-                      (url.find(".doc", 0) == std::string::npos) &&
-                      (url.find(".docx", 0) == std::string::npos) &&
-                      (url.find(".zip", 0) == std::string::npos) &&
-                      (url.find(".rar", 0) == std::string::npos) &&
-                      (url.find(".woff2", 0) == std::string::npos) &&
-                      (url.find(".svg", 0) == std::string::npos) &&
-                      (url.find(".ogg", 0) == std::string::npos) &&
-                      (url.find(".ogm", 0) == std::string::npos) &&
-                      (url.find(".ttf", 0) == std::string::npos) &&
-                      (url.find(".7z", 0) == std::string::npos);
-
-        if (!handle) {
+        } else {
             // use default handler
             DBG("Use default handler: %s\n", url.c_str());
             return CefRequestHandler::GetResourceHandler(browser, frame, request);
-        } else {
-            // read the content type
-            std::string ct = hbbtvCurl.ReadContentType(url);
-
-            bool isHbbtvHtml = false;
-            for(auto const &item : mimeTypes) {
-                if (ct.find(item.second) != std::string::npos) {
-                    isHbbtvHtml = true;
-                    break;
-                }
-            }
-
-            if (isHbbtvHtml) {
-                // use special handler
-                DBG("Use cUrl Handler: %s\n", url.c_str());
-                return this;
-            } else {
-                // use default handler
-                DBG("Use default handler: %s\n", url.c_str());
-                return CefRequestHandler::GetResourceHandler(browser, frame, request);
-            }
         }
-    } else {
-        // use default handler
-        DBG("Use default handler: %s\n", request->GetURL().ToString().c_str());
-        return CefRequestHandler::GetResourceHandler(browser, frame, request);
     }
 }
 
@@ -453,17 +446,15 @@ bool BrowserClient::ReadResponse(void *data_out, int bytes_to_read, int &bytes_r
 }
 
 CefRequestHandler::ReturnValue BrowserClient::OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, CefRefPtr<CefRequestCallback> callback) {
-    if (hbbtv) {
-        // Customize the request header
-        CefRequest::HeaderMap hdrMap;
-        request->GetHeaderMap(hdrMap);
+    // Customize the request header
+    CefRequest::HeaderMap hdrMap;
+    request->GetHeaderMap(hdrMap);
 
-        // User-Agent
-        std::string newUserAgent(USER_AGENT);
-        hdrMap.erase("User-Agent");
-        hdrMap.insert(std::make_pair("User-Agent", newUserAgent.c_str()));
-        request->SetHeaderMap(hdrMap);
-    }
+    // User-Agent
+    std::string newUserAgent(USER_AGENT);
+    hdrMap.erase("User-Agent");
+    hdrMap.insert(std::make_pair("User-Agent", newUserAgent.c_str()));
+    request->SetHeaderMap(hdrMap);
 
     return RV_CONTINUE;
 }
