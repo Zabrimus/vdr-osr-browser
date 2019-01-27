@@ -32,7 +32,7 @@
 /* global Application, oipfObjectFactory, oipfApplicationManager, oipfConfiguration, oipfCapabilities */
 
 (function(window) {
-    window.oipf = window.oipf || {};
+  window.oipf = window.oipf || {};
 
     // 7.1 Object factory API ------------------------------------------------------
 

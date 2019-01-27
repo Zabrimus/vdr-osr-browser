@@ -137,6 +137,26 @@ try {
 
 // Button keys emulator --------------------------------------------------------
 
+function doKeyPress(key) {
+    var oEvent = document.createEvent('KeyboardEvent');
+    Object.defineProperty(oEvent, 'keyCode', { // for Chrome based browser
+        get : function() { return this.keyCodeVal; }
+    });
+
+    Object.defineProperty(oEvent, 'which', {
+        get : function() { return this.keyCodeVal; }
+    });
+
+    if (oEvent.initKeyboardEvent) {
+        oEvent.initKeyboardEvent('keydown', true, true, document.defaultView, false, false, false, false, key, key);
+    } else {
+        oEvent.initKeyEvent('keydown', true, true, document.defaultView, false, false, false, false, key, 0);
+    }
+
+    oEvent.keyCodeVal = key;
+    document.activeElement.dispatchEvent(oEvent);
+}
+
 /*
 
 (function injectButtons(document) {
@@ -323,7 +343,7 @@ try {
 // OIPF objects mapping --------------------------------------------------------
 
 (function injectOipf(document) {
-    //console.log('Checking for OIPF objects ...');
+    console.log('Checking for OIPF objects ...');
     window.oipf = window.oipf || {};
 
     var int_objs = [];
@@ -623,4 +643,4 @@ try {
     }
 })(window.document);
 
-//console.log('DOM HbbTV emulator added.');
+console.log('DOM HbbTV emulator added.');

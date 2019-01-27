@@ -39,6 +39,51 @@ HbbtvCurl::~HbbtvCurl() {
     curl_global_cleanup();
 }
 
+std::string HbbtvCurl::ReadContentType(std::string url) {
+    char *headerdata = (char*)malloc(HEADERSIZE);
+    memset(headerdata, 0, HEADERSIZE);
+
+    CURL *curl_handle;
+    CURLcode res;
+
+    curl_handle = curl_easy_init();
+
+    curl_easy_setopt(curl_handle, CURLOPT_URL, url.c_str());
+    curl_easy_setopt(curl_handle, CURLOPT_NOPROGRESS, 1L);
+    curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, USER_AGENT);
+
+    curl_easy_setopt(curl_handle, CURLOPT_NOBODY, 1L);
+    curl_easy_setopt(curl_handle, CURLOPT_HEADERFUNCTION, WriteHeaderCallback);
+    curl_easy_setopt(curl_handle, CURLOPT_HEADERDATA, headerdata);
+
+    res = curl_easy_perform(curl_handle);
+
+    if (res == CURLE_OK) {
+        char *redir_url = nullptr;
+        curl_easy_getinfo(curl_handle, CURLINFO_REDIRECT_URL, &redir_url);
+        if (redir_url) {
+            // clear buffer
+            memset(headerdata, 0, HEADERSIZE);
+
+            response_header.clear();
+
+            // reload url
+            redirect_url = redir_url;
+            curl_easy_setopt(curl_handle, CURLOPT_URL, redir_url);
+            curl_easy_perform(curl_handle);
+        }
+    }
+
+    curl_easy_cleanup(curl_handle);
+
+    std::string contentType = response_header["Content-Type"];
+
+    response_header.clear();
+    free(headerdata);
+
+    return contentType;
+}
+
 void HbbtvCurl::LoadUrl(std::string url, std::map<std::string, std::string>* header) {
     struct MemoryStruct contentdata {
             (char*)malloc(1), 0
@@ -83,11 +128,15 @@ void HbbtvCurl::LoadUrl(std::string url, std::map<std::string, std::string>* hea
             curl_easy_setopt(curl_handle, CURLOPT_URL, redir_url);
             curl_easy_perform(curl_handle);
         }
+
+        DBG("Size %ld\n", contentdata.size);
+
+        response_content =  std::string(contentdata.memory, contentdata.size);
     }
 
-    response_content =  std::string(contentdata.memory);
+    // response_content =  std::string(contentdata.memory, contentdata.size);
 
-    DBG("Read content:\n %s\n", response_content.c_str());
+    // DBG("Read content:\n %s\n", response_content.c_str());
 
     curl_easy_cleanup(curl_handle);
 
@@ -129,7 +178,7 @@ size_t HbbtvCurl::WriteHeaderCallback(void *contents, size_t size, size_t nmemb,
         response_header.insert(std::pair<std::string, std::string>(key, val));
     }
 
-    DBG("Read Header: %s: %s\n", key.c_str(), val.c_str());
+    // DBG("Read Header: %s: %s\n", key.c_str(), val.c_str());
 
     return realsize;
 }
@@ -164,6 +213,12 @@ CefRefPtr<CefResourceHandler> BrowserClient::GetResourceHandler(CefRefPtr<CefBro
     if (hbbtv) {
         // test if the special handler is necesary
         auto url = request->GetURL().ToString();
+
+        // test at first internal requests
+        if (url.find("http://local_js/") != std::string::npos || url.find("http://local_css/") != std::string::npos) {
+            DBG("Use cUrl Handler: %s\n", url.c_str());
+            return this;
+        }
 
         // filter http(s) requests
         if (url.find("http", 0) == std::string::npos) {
@@ -212,12 +267,30 @@ CefRefPtr<CefResourceHandler> BrowserClient::GetResourceHandler(CefRefPtr<CefBro
             DBG("Use default handler: %s\n", url.c_str());
             return CefRequestHandler::GetResourceHandler(browser, frame, request);
         } else {
-            // use special handler
-            DBG("Use cUrl Handler: %s\n", url.c_str());
-            return this;
+            // read the content type
+            std::string ct = hbbtvCurl.ReadContentType(url);
+
+            bool isHbbtvHtml = false;
+            for(auto const &item : mimeTypes) {
+                if (ct.find(item.second) != std::string::npos) {
+                    isHbbtvHtml = true;
+                    break;
+                }
+            }
+
+            if (isHbbtvHtml) {
+                // use special handler
+                DBG("Use cUrl Handler: %s\n", url.c_str());
+                return this;
+            } else {
+                // use default handler
+                DBG("Use default handler: %s\n", url.c_str());
+                return CefRequestHandler::GetResourceHandler(browser, frame, request);
+            }
         }
     } else {
         // use default handler
+        DBG("Use default handler: %s\n", request->GetURL().ToString().c_str());
         return CefRequestHandler::GetResourceHandler(browser, frame, request);
     }
 }
@@ -238,7 +311,7 @@ void BrowserClient::OnLoadStart(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFram
     CefLoadHandler::OnLoadStart(browser, frame, transition_type);
 
     // inject Javascript
-    injectJs(browser, "http://local_js/hybridtvviewer/hbbtv", false, true);
+    injectJs(browser, "http://local_js/hybridtvviewer/hbbtv", true, true);
     injectJs(browser, "http://local_js/hybridtvviewer/hbbdom", true, true);
     injectJs(browser, "http://local_js/hybridtvviewer/first", true, true);
 
@@ -285,12 +358,7 @@ bool BrowserClient::ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr<CefC
             auto file = url.substr(js.length());
             auto _tmp = exePath;
             auto url = _tmp.append("/js/").append(file).append(".js");
-            DBG("--- Try loading EXE: %s\n", exePath.c_str());
-            DBG("--- Try loading JS: %s\n", url.c_str());
             responseContent = readFile(url);
-            // redirectUrl = nullptr;
-
-            DBG("Content: %s\n", responseContent.c_str());
 
             responseHeader.clear();
             responseHeader.insert(std::pair<std::string, std::string>("Content-Type", "application/javascript"));
@@ -301,7 +369,6 @@ bool BrowserClient::ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr<CefC
             url = _tmp.append("/css/").append(file).append(".css");
 
             responseContent = readFile(url);
-            // redirectUrl = nullptr;
 
             responseHeader.clear();
             responseHeader.insert(std::pair<std::string, std::string>("Content-Type", "text/css"));
@@ -322,6 +389,8 @@ bool BrowserClient::ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr<CefC
 }
 
 void BrowserClient::GetResponseHeaders(CefRefPtr<CefResponse> response, int64 &response_length, CefString &_redirectUrl) {
+    DBG("GetResponseHeaders length %ld\n", response_length);
+
     // reset offset
     offset = 0;
 
@@ -357,17 +426,23 @@ void BrowserClient::GetResponseHeaders(CefRefPtr<CefResponse> response, int64 &r
     }
 
     response_length = responseContent.length();
+    DBG("GetResponseHeaders length %ld\n", response_length);
 }
 
 bool BrowserClient::ReadResponse(void *data_out, int bytes_to_read, int &bytes_read, CefRefPtr<CefCallback> callback) {
+    DBG("ReadResponse length %d\n", bytes_to_read);
+
     CEF_REQUIRE_IO_THREAD();
 
     bool has_data = false;
     bytes_read = 0;
 
+    DBG("ReadResponse %d -> %d\n", bytes_to_read, bytes_read);
+    DBG("ReadResponse Size %ld \n", responseContent.length());
+
     if (offset < responseContent.length()) {
         int transfer_size = std::min(bytes_to_read, static_cast<int>(responseContent.length() - offset));
-        memcpy(data_out, responseContent.c_str() + offset, static_cast<size_t>(transfer_size));
+        memcpy(data_out, responseContent.data() + offset, static_cast<size_t>(transfer_size));
         offset += transfer_size;
 
         bytes_read = transfer_size;
@@ -397,13 +472,13 @@ void BrowserClient::setLoadingStart(bool loading) {
     loadingStart = loading;
 }
 
-void BrowserClient::injectJs(CefRefPtr<CefBrowser> browser, std::string url, bool async, bool headerStart) {
+void BrowserClient::injectJs(CefRefPtr<CefBrowser> browser, std::string url, bool defer, bool headerStart) {
     std::ostringstream stringStream;
 
     stringStream <<  "(function(d){var e=d.createElement('script');";
 
-    if (async) {
-        stringStream << "e.setAttribute('async','async');";
+    if (defer) {
+        stringStream << "e.setAttribute('defer','defer');";
     }
 
     stringStream << "e.setAttribute('type','text/javascript');e.setAttribute('src','" << url << "');";

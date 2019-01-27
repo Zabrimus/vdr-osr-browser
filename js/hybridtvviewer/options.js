@@ -136,7 +136,6 @@ function isCurrentTabInList(callback) {
 }
 
 window.onload = function() {
-
     function updatePageRendering(renderingUpdateCode) {
         chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
             var tab = tabs[0];

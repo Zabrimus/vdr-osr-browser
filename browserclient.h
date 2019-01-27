@@ -25,6 +25,7 @@ public:
     HbbtvCurl();
     ~HbbtvCurl();
 
+    std::string ReadContentType(std::string url);
     void LoadUrl(std::string url, std::map<std::string, std::string>* header);
     std::map<std::string, std::string> GetResponseHeader() { return response_header; }
     std::string GetResponseContent() { return response_content; }
