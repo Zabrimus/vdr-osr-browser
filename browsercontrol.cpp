@@ -22,9 +22,10 @@
 
 // #define DEBUG_JS
 
-BrowserControl::BrowserControl(CefRefPtr<CefBrowser> _browser, OSRHandler* osrHandler) {
+BrowserControl::BrowserControl(CefRefPtr<CefBrowser> _browser, OSRHandler* osrHandler, BrowserClient* client) {
     browser = _browser;
     handler = osrHandler;
+    browserClient = client;
 
     socketId = -1;
     endpointId = -1;
@@ -34,6 +35,7 @@ BrowserControl::~BrowserControl() = default;
 
 void BrowserControl::LoadURL(const CefString& url) {
     if (browser->GetMainFrame()->GetURL().compare(url)) {
+        browserClient->setLoadingStart(true);
         browser->GetMainFrame()->LoadURL(url);
     }
 }

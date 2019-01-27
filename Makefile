@@ -45,6 +45,7 @@ $(EXECUTABLE): $(OBJECTS)
 $(EXECUTABLE2): $(OBJECTS2)
 	$(CC) $(SOURCES2) -o $@ `pkg-config --cflags nanomsg` `pkg-config --libs nanomsg`
 	mv $(EXECUTABLE2) Release
+	cp -r js Release
 
 prepareexe:
 	mkdir -p Release && \

@@ -146,6 +146,13 @@ BrowserClient::BrowserClient(OSRHandler *renderHandler, bool _hbbtv) {
     mimeTypes.insert(std::pair<std::string, std::string>("atsc", "atsc-http-attributes"));
     // mimeTypes.insert(std::pair<std::string, std::string>("mheg", "application/x-mheg-5"));
     // mimeTypes.insert(std::pair<std::string, std::string>("aitx", "application/vnd.dvb.ait"));
+
+    {
+        char result[PATH_MAX];
+        ssize_t count = readlink("/proc/self/exe", result, PATH_MAX);
+        auto exe = std::string(result, static_cast<unsigned long>((count > 0) ? count : 0));
+        exePath = exe.substr(0, exe.find_last_of("/"));
+    }
 }
 
 // getter for the different handler
@@ -226,16 +233,24 @@ CefRefPtr<CefLoadHandler> BrowserClient::GetLoadHandler() {
 
 // CefLoadHandler
 void BrowserClient::OnLoadStart(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefLoadHandler::TransitionType transition_type) {
+    DBG("OnLoadStart: %s\n", frame->GetURL().ToString().c_str());
+
     CefLoadHandler::OnLoadStart(browser, frame, transition_type);
 
-    DBG("OnLoadStart: %s\n", frame->GetURL().ToString().c_str());
-}
+    // inject Javascript
+    injectJs(browser, "http://local_js/hybridtvviewer/hbbtv", false, true);
+    injectJs(browser, "http://local_js/hybridtvviewer/hbbdom", true, true);
+    injectJs(browser, "http://local_js/hybridtvviewer/first", true, true);
 
+    injectJs(browser, "https://cdn.dashjs.org/latest/dash.all.min.js", true, false);
+    injectJs(browser, "http://local_js/hybridtvviewer/hbbobj", true, false);
+}
 
 void BrowserClient::OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, int httpStatusCode) {
     CEF_REQUIRE_UI_THREAD();
 
-    DBG("OnLoadEnd: %s\n", frame->GetURL().ToString().c_str());
+    DBG("OnLoadEnd: %s --> %s\n", frame->GetURL().ToString().c_str(), loadingStart ? "is loading" : "finished loading");
+    loadingStart = false;
 }
 
 void BrowserClient::OnLoadError(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefLoadHandler::ErrorCode errorCode, const CefString &errorText, const CefString &failedUrl) {
@@ -251,12 +266,53 @@ bool BrowserClient::ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr<CefC
     {
         DBG("Start cUrl: %s\n", request->GetURL().ToString().c_str());
 
-        // HbbtvCurl curl;
-        hbbtvCurl.LoadUrl(request->GetURL().ToString(), nullptr);
+        auto js = std::string("http://local_js/");
+        auto css = std::string("http://local_css/");
 
-        responseHeader = hbbtvCurl.GetResponseHeader();
-        responseContent = hbbtvCurl.GetResponseContent();
-        redirectUrl = hbbtvCurl.GetRedirectUrl();
+        // distinguish between local files and remote files using cUrl
+        auto url = request->GetURL().ToString();
+        bool localJs = url.find(js) != std::string::npos;
+        bool localCss = url.find(css) != std::string::npos;
+
+        if (localJs || localCss) {
+            char result[ PATH_MAX ];
+            ssize_t count = readlink( "/proc/self/exe", result, PATH_MAX );
+            auto exe = std::string(result, static_cast<unsigned long>((count > 0) ? count : 0));
+
+        }
+
+        if (localJs) {
+            auto file = url.substr(js.length());
+            auto _tmp = exePath;
+            auto url = _tmp.append("/js/").append(file).append(".js");
+            DBG("--- Try loading EXE: %s\n", exePath.c_str());
+            DBG("--- Try loading JS: %s\n", url.c_str());
+            responseContent = readFile(url);
+            // redirectUrl = nullptr;
+
+            DBG("Content: %s\n", responseContent.c_str());
+
+            responseHeader.clear();
+            responseHeader.insert(std::pair<std::string, std::string>("Content-Type", "application/javascript"));
+            responseHeader.insert(std::pair<std::string, std::string>("Status", "200 OK"));
+        } else if (localCss) {
+            auto file = url.substr(css.length(), url.length());
+            auto _tmp = exePath;
+            url = _tmp.append("/css/").append(file).append(".css");
+
+            responseContent = readFile(url);
+            // redirectUrl = nullptr;
+
+            responseHeader.clear();
+            responseHeader.insert(std::pair<std::string, std::string>("Content-Type", "text/css"));
+            responseHeader.insert(std::pair<std::string, std::string>("Status", "200 OK"));
+        } else {
+            hbbtvCurl.LoadUrl(url, nullptr);
+
+            responseHeader = hbbtvCurl.GetResponseHeader();
+            responseContent = hbbtvCurl.GetResponseContent();
+            redirectUrl = hbbtvCurl.GetRedirectUrl();
+        }
 
         DBG("Finish cUrl: %s\n", request->GetURL().ToString().c_str());
     }
@@ -270,7 +326,7 @@ void BrowserClient::GetResponseHeaders(CefRefPtr<CefResponse> response, int64 &r
     offset = 0;
 
     if (redirectUrl.length() > 0) {
-        _redirectUrl.FromString(redirectUrl.c_str());
+        _redirectUrl.FromString(redirectUrl);
     }
 
     std::string contentType = responseHeader["Content-Type"];
@@ -335,4 +391,35 @@ CefRequestHandler::ReturnValue BrowserClient::OnBeforeResourceLoad(CefRefPtr<Cef
     }
 
     return RV_CONTINUE;
+}
+
+void BrowserClient::setLoadingStart(bool loading) {
+    loadingStart = loading;
+}
+
+void BrowserClient::injectJs(CefRefPtr<CefBrowser> browser, std::string url, bool async, bool headerStart) {
+    std::ostringstream stringStream;
+
+    stringStream <<  "(function(d){var e=d.createElement('script');";
+
+    if (async) {
+        stringStream << "e.setAttribute('async','async');";
+    }
+
+    stringStream << "e.setAttribute('type','text/javascript');e.setAttribute('src','" << url << "');";
+
+    if (headerStart) {
+        stringStream << "d.head.insertBefore(e, d.head.firstChild)";
+    } else {
+        stringStream << "d.head.appendChild(e)";
+    }
+
+    stringStream << "}(document));";
+
+    auto script = stringStream.str();
+
+    DBG("Inject JS: %s\n", script.c_str());
+
+    auto frame = browser->GetMainFrame();
+    frame->ExecuteJavaScript(script, frame->GetURL(), 0);
 }

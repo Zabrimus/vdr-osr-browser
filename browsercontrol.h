@@ -15,10 +15,11 @@
 
 #include "include/cef_app.h"
 #include "osrhandler.h"
+#include "browserclient.h"
 
 class BrowserControl {
 public:
-    explicit BrowserControl(CefRefPtr<CefBrowser> _browser, OSRHandler* osrHandler);
+    explicit BrowserControl(CefRefPtr<CefBrowser> _browser, OSRHandler* osrHandler, BrowserClient* client);
     ~BrowserControl();
 
     void LoadURL(const CefString& url);
@@ -32,6 +33,7 @@ public:
 private:
     CefRefPtr<CefBrowser> browser;
     OSRHandler* handler;
+    BrowserClient *browserClient;
 
     bool isRunning;
 

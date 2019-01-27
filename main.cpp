@@ -97,7 +97,8 @@ int main(int argc, char *argv[]) {
     CefWindowInfo window_info;
     window_info.SetAsWindowless(0);
 
-    auto osrHandler = new OSRHandler(850, 600);
+    // auto osrHandler = new OSRHandler(850, 600);
+    auto osrHandler = new OSRHandler(1920, 1080);
     CefRefPtr<BrowserClient> browserClient = new BrowserClient(osrHandler, true);
 
     browser = CefBrowserHost::CreateBrowserSync(window_info, browserClient.get(), initUrl ? initUrl->c_str() : "", browserSettings, nullptr);
@@ -107,7 +108,7 @@ int main(int argc, char *argv[]) {
         delete initUrl;
     }
 
-    BrowserControl browserControl(browser, osrHandler);
+    BrowserControl browserControl(browser, osrHandler, browserClient);
 
     {
         std::thread controlThread(startBrowserControl, browserControl);

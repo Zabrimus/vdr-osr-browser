@@ -13,6 +13,7 @@
 #ifndef BROWSERCLIENT_H
 #define BROWSERCLIENT_H
 
+#include <fstream>
 #include "include/cef_app.h"
 #include "include/cef_client.h"
 #include "include/cef_render_handler.h"
@@ -46,6 +47,8 @@ class BrowserClient : public CefClient,
 private:
     CefRefPtr<CefRenderHandler> m_renderHandler;
 
+    std::string exePath;
+
     bool hbbtv;
     HbbtvCurl hbbtvCurl;
 
@@ -56,8 +59,18 @@ private:
 
     std::map<std::string, std::string> mimeTypes;
 
+    bool loadingStart;
+
+    void injectJs(CefRefPtr<CefBrowser> browser, std::string url, bool sync, bool headerStart);
+
+    inline std::string readFile(const std::string path) {
+        std::ostringstream buf; std::ifstream input (path.c_str()); buf << input.rdbuf(); return buf.str();
+    }
+
 public:
     explicit BrowserClient(OSRHandler *renderHandler, bool _hbbtv);
+
+    void setLoadingStart(bool loading);
 
     // getter for the different handler
     CefRefPtr<CefRenderHandler> GetRenderHandler() override;
