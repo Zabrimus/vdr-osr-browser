@@ -107,18 +107,26 @@ void BrowserControl::Start(std::string socketUrl) {
             } else if (strncmp("PING", buf, 4) == 0) {
                 // do nothing, only sends the response
 
-            /* TODO: Key Events
-            } else if (strncmp("KEY", buf, 3) == 0) {
-                printf("----- GOT KEY %s\n", buf);
+                /* TODO: Key Events
+                } else if (strncmp("KEY", buf, 3) == 0) {
+                    printf("----- GOT KEY %s\n", buf);
 
-                CefKeyEvent event;
-                event.type = KEYEVENT_CHAR;
-                // event.character = XK_Right;
-                // event.native_key_code = XK_Right;
-                event.windows_key_code = 0x27;
-                browser->GetHost()->SendKeyEvent(event);
-            */
+                    CefKeyEvent event;
+                    event.type = KEYEVENT_CHAR;
+                    // event.character = XK_Right;
+                    // event.native_key_code = XK_Right;
+                    event.windows_key_code = 0x27;
+                    browser->GetHost()->SendKeyEvent(event);
+                */
+            } else if (strncmp("MODE", buf, 4) == 0) {
+                int mode = -1;
+                sscanf(buf + 4, "%d", &mode);
 
+                if (mode == 1) {
+                    browserClient->SetHtmlMode();
+                } else if (mode == 2) {
+                    browserClient->SetHbbtvMode();
+                }
             } else {
                 successful = false;
             }

@@ -58,6 +58,9 @@ private:
 
     std::map<std::string, std::string> mimeTypes;
 
+    // default HTML mode
+    int mode = 1;
+
     bool loadingStart;
 
     void injectJs(CefRefPtr<CefBrowser> browser, std::string url, bool sync, bool headerStart);
@@ -94,7 +97,11 @@ public:
     void OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, int httpStatusCode) override;
     void OnLoadError(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, ErrorCode errorCode, const CefString &errorText, const CefString &failedUrl) override;
 
-    IMPLEMENT_REFCOUNTING(BrowserClient);
+    //
+    void SetHtmlMode() { mode = 1; };
+    void SetHbbtvMode() { mode = 2; };
+
+IMPLEMENT_REFCOUNTING(BrowserClient);
 };
 
 #endif // BROWSERCLIENT_H

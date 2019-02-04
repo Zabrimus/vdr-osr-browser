@@ -97,7 +97,6 @@ int main(int argc, char *argv[]) {
     CefWindowInfo window_info;
     window_info.SetAsWindowless(0);
 
-    // auto osrHandler = new OSRHandler(850, 600);
     auto osrHandler = new OSRHandler(1920, 1080);
     CefRefPtr<BrowserClient> browserClient = new BrowserClient(osrHandler);
 

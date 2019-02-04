@@ -94,6 +94,7 @@ er zum Testen verwendet, kann aber auch sonst sinnvoll sein.
 --stream        Liest alle dirtyRecs (Bereiche der Seite, die sich verändert haben) und gibt eine Kurze Info aus.
 --js <cmd>      Ein Javascript Kommando im OSR Browser ausführen
 --connect       Ein einfacher Connect Test (Ping) an den OSR Browser
+--mode          1 = HTML, 2 = HbbTV
 ```
 
 ## Best practice für ein noch bestehendes Problem

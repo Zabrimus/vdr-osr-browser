@@ -30,6 +30,7 @@ public:
     void Start(std::string socketUrl);
     void Stop();
 
+
 private:
     CefRefPtr<CefBrowser> browser;
     OSRHandler* handler;

@@ -20,6 +20,7 @@
 
 std::string url;
 std::string call;
+std::string mode;
 
 char command;
 
@@ -31,13 +32,14 @@ void PrintHelp() {
               "--stop:        shutdown osrcef\n"
               "--stream:      read all dirty recs\n"
               "--js:          executed a javascript procedure\n"
-              "--connect:     ping the osr server\n";
+              "--connect:     ping the osr server\n"
+              "--mode:        1 = HTML, 2 = HbbTV\n";
     exit(1);
 }
 
 void ProcessArgs(int argc, char** argv)
 {
-    const char* const short_opts = "u:j:prqhc";
+    const char* const short_opts = "u:j:m:prqhc";
     const option long_opts[] = {
             {"url", required_argument, nullptr, 'u'},
             {"pause", no_argument, nullptr, 'p'},
@@ -47,6 +49,7 @@ void ProcessArgs(int argc, char** argv)
             {"stream", no_argument, nullptr, 's'},
             {"js", required_argument, nullptr, 'j'},
             {"help", no_argument, nullptr, 'h'},
+            {"mode", required_argument, nullptr, 'm'},
             {nullptr, no_argument, nullptr, 0}
     };
 
@@ -94,6 +97,12 @@ void ProcessArgs(int argc, char** argv)
                 // execute javascript
                 call = std::string(optarg);
                 command = 'j';
+                break;
+
+            case 'm':
+                // switch mode
+                mode = std::string(optarg);
+                command = 'm';
                 break;
 
             case 'h': // -h or --help
@@ -207,6 +216,13 @@ int main(int argc, char **argv)
             std::string cmd("JS ");
             cmd.append(call);
             sendCommand(socketId, cmd.c_str());
+            break;
+        }
+
+        case 'm': {
+            std::string modeCmd("MODE ");
+            modeCmd.append(mode);
+            sendCommand(socketId, modeCmd.c_str());
             break;
         }
 
