@@ -1,5 +1,5 @@
-CEF_VERSION_1   = 3.3578.1860.g36610bd
-CEF_VERSION_2   = Chromium 71.0.3578.80
+CEF_VERSION_1   = 79.1.36%2Bg90301bd%2Bchromium-79.0.3945.130
+CEF_VERSION_2   = Chromium 79.1.36+g90301bd
 CEF_INSTALL_DIR = /opt/cef
 
 # 64 bit

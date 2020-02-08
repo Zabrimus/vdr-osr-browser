@@ -49,6 +49,7 @@ function removeClass(element, className) {
     addClass(document.documentElement, 'tvViewer');
 })(window.document);
 
+
 // Android zoom option ---------------------------------------------------------
 
 if (navigator.userAgent.indexOf('Android') !== -1 && window.devicePixelRatio !== 1) {

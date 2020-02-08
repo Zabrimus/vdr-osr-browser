@@ -43,7 +43,8 @@ private:
 class BrowserClient : public CefClient,
                       public CefRequestHandler,
                       public CefLoadHandler,
-                      public CefResourceHandler {
+                      public CefResourceHandler,
+                      public CefResourceRequestHandler {
 
 private:
     CefRefPtr<CefRenderHandler> m_renderHandler;
@@ -81,15 +82,15 @@ public:
     CefRefPtr<CefLoadHandler> GetLoadHandler() override;
 
     // CefRequestHandler
-    ReturnValue OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, CefRefPtr<CefRequestCallback> callback) override;
+    CefResourceRequestHandler::ReturnValue OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, CefRefPtr<CefRequestCallback> callback) override;
 
     // CefResourceHandler
     bool ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr<CefCallback> callback) override;
     void GetResponseHeaders(CefRefPtr<CefResponse> response, int64 &response_length, CefString &redirectUrl) override;
     bool ReadResponse(void *data_out, int bytes_to_read, int &bytes_read, CefRefPtr<CefCallback> callback) override;
 
-    bool CanGetCookie(const CefCookie &cookie) override { return CefResourceHandler::CanGetCookie(cookie); }
-    bool CanSetCookie(const CefCookie &cookie) override { return CefResourceHandler::CanSetCookie(cookie); }
+    // bool CanGetCookie(const CefCookie &cookie) override { return CefResourceHandler::CanGetCookie(cookie); }
+    // bool CanSetCookie(const CefCookie &cookie) override { return CefResourceHandler::CanSetCookie(cookie); }
     void Cancel() override { /* we do not cancel the request */ }
 
     // CefLoadHandler

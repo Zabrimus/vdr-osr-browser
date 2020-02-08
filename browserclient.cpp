@@ -211,7 +211,7 @@ CefRefPtr<CefRenderHandler> BrowserClient::GetRenderHandler() {
 CefRefPtr<CefResourceHandler> BrowserClient::GetResourceHandler(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request) {
     if (mode == 1) {
         // HTML -> Default handler
-        return CefRequestHandler::GetResourceHandler(browser, frame, request);
+        return GetResourceHandler(browser, frame, request);
     } else if (mode == 2) {
         // HbbTV -> Possibly special handler otherwise default handler
 
@@ -229,7 +229,7 @@ CefRefPtr<CefResourceHandler> BrowserClient::GetResourceHandler(CefRefPtr<CefBro
             // no http request -> use default handler
             DBG("Ignore Non-HTTP: %s\n", url.c_str());
 
-            return CefRequestHandler::GetResourceHandler(browser, frame, request);
+            return GetResourceHandler(browser, frame, request);
         }
 
         // filter known file types, this has to adapted accordingly
@@ -269,7 +269,7 @@ CefRefPtr<CefResourceHandler> BrowserClient::GetResourceHandler(CefRefPtr<CefBro
         if (!handle) {
             // use default handler
             DBG("Use default handler: %s\n", url.c_str());
-            return CefRequestHandler::GetResourceHandler(browser, frame, request);
+            return GetResourceHandler(browser, frame, request);
         } else {
             // read the content type
             std::string ct = hbbtvCurl.ReadContentType(url);
@@ -289,13 +289,13 @@ CefRefPtr<CefResourceHandler> BrowserClient::GetResourceHandler(CefRefPtr<CefBro
             } else {
                 // use default handler
                 DBG("Use default handler: %s\n", url.c_str());
-                return CefRequestHandler::GetResourceHandler(browser, frame, request);
+                return GetResourceHandler(browser, frame, request);
             }
         }
     } else {
         // unknown mode
         DBG("Unknown mode: %d\n", mode);
-        return CefRequestHandler::GetResourceHandler(browser, frame, request);
+        return GetResourceHandler(browser, frame, request);
     }
 }
 
@@ -314,13 +314,16 @@ void BrowserClient::OnLoadStart(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFram
 
     CefLoadHandler::OnLoadStart(browser, frame, transition_type);
 
-    // inject Javascript
-    injectJs(browser, "http://local_js/hybridtvviewer/hbbtv", true, true);
-    injectJs(browser, "http://local_js/hybridtvviewer/hbbdom", true, true);
-    injectJs(browser, "http://local_js/hybridtvviewer/first", true, true);
+    if (mode == 2) {
+        // inject Javascript
+        injectJs(browser, "http://local_js/hybridtvviewer/hbbtv", true, true);
+        injectJs(browser, "http://local_js/hybridtvviewer/hbbdom", true, true);
+        injectJs(browser, "http://local_js/hybridtvviewer/first", true, true);
 
-    injectJs(browser, "https://cdn.dashjs.org/latest/dash.all.min.js", true, false);
-    injectJs(browser, "http://local_js/hybridtvviewer/hbbobj", true, false);
+        injectJs(browser, "https://cdn.dashjs.org/latest/dash.all.min.js", true, false);
+        injectJs(browser, "http://local_js/hybridtvviewer/hbbobj", true, false);
+        injectJs(browser, "http://local_js/cefhbbtv", true, false);
+    }
 }
 
 void BrowserClient::OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, int httpStatusCode) {
@@ -456,7 +459,7 @@ bool BrowserClient::ReadResponse(void *data_out, int bytes_to_read, int &bytes_r
     return has_data;
 }
 
-CefRequestHandler::ReturnValue BrowserClient::OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, CefRefPtr<CefRequestCallback> callback) {
+BrowserClient::ReturnValue BrowserClient::OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, CefRefPtr<CefRequestCallback> callback) {
     // Customize the request header
     CefRequest::HeaderMap hdrMap;
     request->GetHeaderMap(hdrMap);

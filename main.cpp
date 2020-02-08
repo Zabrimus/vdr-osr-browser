@@ -100,7 +100,8 @@ int main(int argc, char *argv[]) {
     auto osrHandler = new OSRHandler(1920, 1080);
     CefRefPtr<BrowserClient> browserClient = new BrowserClient(osrHandler);
 
-    browser = CefBrowserHost::CreateBrowserSync(window_info, browserClient.get(), initUrl ? initUrl->c_str() : "", browserSettings, nullptr);
+    browser = CefBrowserHost::CreateBrowserSync(window_info, browserClient.get(), initUrl ? initUrl->c_str() : "", browserSettings, nullptr, nullptr);
+
     browser->GetHost()->WasHidden(true);
 
     if (initUrl) {
