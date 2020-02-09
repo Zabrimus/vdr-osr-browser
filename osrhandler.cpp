@@ -103,7 +103,7 @@ void OSRHandler::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, c
         auto y = 0;
         auto h = height;
         auto w = width;
-
+f
 #ifdef PRINT_OSD_SIZE
         printf("OSD Size (x, y, w, h) = (%d, %d, %d, %d)\n", x, y, w, h);
 #endif

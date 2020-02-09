@@ -21,7 +21,8 @@ static bool DumpDebugData = true;
 #define DBG(a...) if (DumpDebugData) fprintf(stderr, a)
 
 #define HEADERSIZE (4 * 1024)
-#define USER_AGENT "HbbTV/1.4.1 (+DRM;Samsung;SmartTV2015;T-HKM6DEUC-1490.3;;) OsrTvViewer"
+// #define USER_AGENT "HbbTV/1.4.1 (+DRM;Samsung;SmartTV2015;T-HKM6DEUC-1490.3;;) OsrTvViewer"
+#define USER_AGENT "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.90 Safari/537.36"
 
 struct MemoryStruct {
     char *memory;
@@ -135,7 +136,6 @@ void HbbtvCurl::LoadUrl(std::string url, std::map<std::string, std::string>* hea
     }
 
     // response_content =  std::string(contentdata.memory, contentdata.size);
-
     // DBG("Read content:\n %s\n", response_content.c_str());
 
     curl_easy_cleanup(curl_handle);
@@ -178,8 +178,6 @@ size_t HbbtvCurl::WriteHeaderCallback(void *contents, size_t size, size_t nmemb,
         response_header.insert(std::pair<std::string, std::string>(key, val));
     }
 
-    // DBG("Read Header: %s: %s\n", key.c_str(), val.c_str());
-
     return realsize;
 }
 
@@ -208,10 +206,18 @@ CefRefPtr<CefRenderHandler> BrowserClient::GetRenderHandler() {
     return m_renderHandler;
 }
 
+CefRefPtr<CefResourceRequestHandler> BrowserClient::GetResourceRequestHandler(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, bool is_navigation, bool is_download, const CefString &request_initiator, bool &disable_default_handling) {
+    if (!is_navigation) {
+        return CefRequestHandler::GetResourceRequestHandler(browser, frame, request, is_navigation, is_download, request_initiator, disable_default_handling);
+    }
+
+    return this;
+}
+
 CefRefPtr<CefResourceHandler> BrowserClient::GetResourceHandler(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request) {
     if (mode == 1) {
         // HTML -> Default handler
-        return GetResourceHandler(browser, frame, request);
+        return CefResourceRequestHandler::GetResourceHandler(browser, frame, request);
     } else if (mode == 2) {
         // HbbTV -> Possibly special handler otherwise default handler
 
@@ -219,17 +225,14 @@ CefRefPtr<CefResourceHandler> BrowserClient::GetResourceHandler(CefRefPtr<CefBro
         auto url = request->GetURL().ToString();
 
         // test at first internal requests
-        if (url.find("http://local_js/") != std::string::npos || url.find("http://local_css/") != std::string::npos) {
-            DBG("Use cUrl Handler: %s\n", url.c_str());
+        if (url.find("https://local_js/") != std::string::npos || url.find("https://local_css/") != std::string::npos) {
             return this;
         }
 
         // filter http(s) requests
         if (url.find("http", 0) == std::string::npos) {
             // no http request -> use default handler
-            DBG("Ignore Non-HTTP: %s\n", url.c_str());
-
-            return GetResourceHandler(browser, frame, request);
+            return CefResourceRequestHandler::GetResourceHandler(browser, frame, request);
         }
 
         // filter known file types, this has to adapted accordingly
@@ -268,8 +271,7 @@ CefRefPtr<CefResourceHandler> BrowserClient::GetResourceHandler(CefRefPtr<CefBro
 
         if (!handle) {
             // use default handler
-            DBG("Use default handler: %s\n", url.c_str());
-            return GetResourceHandler(browser, frame, request);
+            return CefResourceRequestHandler::GetResourceHandler(browser, frame, request);
         } else {
             // read the content type
             std::string ct = hbbtvCurl.ReadContentType(url);
@@ -284,18 +286,15 @@ CefRefPtr<CefResourceHandler> BrowserClient::GetResourceHandler(CefRefPtr<CefBro
 
             if (isHbbtvHtml) {
                 // use special handler
-                DBG("Use cUrl Handler: %s\n", url.c_str());
                 return this;
             } else {
                 // use default handler
-                DBG("Use default handler: %s\n", url.c_str());
-                return GetResourceHandler(browser, frame, request);
+                return CefResourceRequestHandler::GetResourceHandler(browser, frame, request);
             }
         }
     } else {
         // unknown mode
-        DBG("Unknown mode: %d\n", mode);
-        return GetResourceHandler(browser, frame, request);
+        return CefResourceRequestHandler::GetResourceHandler(browser, frame, request);
     }
 }
 
@@ -307,29 +306,18 @@ CefRefPtr<CefLoadHandler> BrowserClient::GetLoadHandler() {
     return this;
 }
 
-
 // CefLoadHandler
 void BrowserClient::OnLoadStart(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefLoadHandler::TransitionType transition_type) {
-    DBG("OnLoadStart: %s\n", frame->GetURL().ToString().c_str());
-
     CefLoadHandler::OnLoadStart(browser, frame, transition_type);
 
     if (mode == 2) {
-        // inject Javascript
-        injectJs(browser, "http://local_js/hybridtvviewer/hbbtv", true, true);
-        injectJs(browser, "http://local_js/hybridtvviewer/hbbdom", true, true);
-        injectJs(browser, "http://local_js/hybridtvviewer/first", true, true);
-
-        injectJs(browser, "https://cdn.dashjs.org/latest/dash.all.min.js", true, false);
-        injectJs(browser, "http://local_js/hybridtvviewer/hbbobj", true, false);
-        injectJs(browser, "http://local_js/cefhbbtv", true, false);
+        // inject Javascript        // injectJs(browser, "https://local_js/hbbtv_polyfill", true, false);
+        injectJs(browser, "https://local_js/hbbtv_polyfill", true, true);
     }
 }
 
 void BrowserClient::OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, int httpStatusCode) {
     CEF_REQUIRE_UI_THREAD();
-
-    DBG("OnLoadEnd: %s --> %s\n", frame->GetURL().ToString().c_str(), loadingStart ? "is loading" : "finished loading");
     loadingStart = false;
 }
 
@@ -340,14 +328,11 @@ void BrowserClient::OnLoadError(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFram
         return;
 }
 
-
 // CefResourceHandler
 bool BrowserClient::ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr<CefCallback> callback) {
     {
-        DBG("Start cUrl: %s\n", request->GetURL().ToString().c_str());
-
-        auto js = std::string("http://local_js/");
-        auto css = std::string("http://local_css/");
+        auto js = std::string("https://local_js/");
+        auto css = std::string("https://local_css/");
 
         // distinguish between local files and remote files using cUrl
         auto url = request->GetURL().ToString();
@@ -387,8 +372,6 @@ bool BrowserClient::ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr<CefC
             responseContent = hbbtvCurl.GetResponseContent();
             redirectUrl = hbbtvCurl.GetRedirectUrl();
         }
-
-        DBG("Finish cUrl: %s\n", request->GetURL().ToString().c_str());
     }
 
     callback->Continue();
@@ -396,8 +379,6 @@ bool BrowserClient::ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr<CefC
 }
 
 void BrowserClient::GetResponseHeaders(CefRefPtr<CefResponse> response, int64 &response_length, CefString &_redirectUrl) {
-    DBG("GetResponseHeaders length %ld\n", response_length);
-
     // reset offset
     offset = 0;
 
@@ -433,19 +414,13 @@ void BrowserClient::GetResponseHeaders(CefRefPtr<CefResponse> response, int64 &r
     }
 
     response_length = responseContent.length();
-    DBG("GetResponseHeaders length %ld\n", response_length);
 }
 
 bool BrowserClient::ReadResponse(void *data_out, int bytes_to_read, int &bytes_read, CefRefPtr<CefCallback> callback) {
-    DBG("ReadResponse length %d\n", bytes_to_read);
-
     CEF_REQUIRE_IO_THREAD();
 
     bool has_data = false;
     bytes_read = 0;
-
-    DBG("ReadResponse %d -> %d\n", bytes_to_read, bytes_read);
-    DBG("ReadResponse Size %ld \n", responseContent.length());
 
     if (offset < responseContent.length()) {
         int transfer_size = std::min(bytes_to_read, static_cast<int>(responseContent.length() - offset));
@@ -497,9 +472,7 @@ void BrowserClient::injectJs(CefRefPtr<CefBrowser> browser, std::string url, boo
     stringStream << "}(document));";
 
     auto script = stringStream.str();
-
-    DBG("Inject JS: %s\n", script.c_str());
-
     auto frame = browser->GetMainFrame();
     frame->ExecuteJavaScript(script, frame->GetURL(), 0);
 }
+

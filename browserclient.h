@@ -78,6 +78,7 @@ public:
     // getter for the different handler
     CefRefPtr<CefRenderHandler> GetRenderHandler() override;
     CefRefPtr<CefRequestHandler> GetRequestHandler() override;
+    CefRefPtr<CefResourceRequestHandler> GetResourceRequestHandler(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, bool is_navigation, bool is_download, const CefString& request_initiator, bool& disable_default_handling) override;
     CefRefPtr<CefResourceHandler> GetResourceHandler(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request) override;
     CefRefPtr<CefLoadHandler> GetLoadHandler() override;
 
