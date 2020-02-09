@@ -207,6 +207,14 @@ CefRefPtr<CefRenderHandler> BrowserClient::GetRenderHandler() {
 }
 
 CefRefPtr<CefResourceRequestHandler> BrowserClient::GetResourceRequestHandler(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, bool is_navigation, bool is_download, const CefString &request_initiator, bool &disable_default_handling) {
+
+    auto url = request->GetURL().ToString();
+
+    // test at first for internal requests
+    if (url.find("https://local_js/") != std::string::npos || url.find("https://local_css/") != std::string::npos) {
+        return this;
+    }
+
     if (!is_navigation) {
         return CefRequestHandler::GetResourceRequestHandler(browser, frame, request, is_navigation, is_download, request_initiator, disable_default_handling);
     }
@@ -309,16 +317,18 @@ CefRefPtr<CefLoadHandler> BrowserClient::GetLoadHandler() {
 // CefLoadHandler
 void BrowserClient::OnLoadStart(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefLoadHandler::TransitionType transition_type) {
     CefLoadHandler::OnLoadStart(browser, frame, transition_type);
-
-    if (mode == 2) {
-        // inject Javascript        // injectJs(browser, "https://local_js/hbbtv_polyfill", true, false);
-        injectJs(browser, "https://local_js/hbbtv_polyfill", true, true);
-    }
 }
 
 void BrowserClient::OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, int httpStatusCode) {
+    fprintf(stderr, "ON LOAD END");
+
     CEF_REQUIRE_UI_THREAD();
     loadingStart = false;
+
+    if (mode == 2) {
+        // inject Javascript        // injectJs(browser, "https://local_js/hbbtv_polyfill", true, false);
+        injectJs(browser, "https://local_js/hbbtv_polyfill", true, false);
+    }
 }
 
 void BrowserClient::OnLoadError(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefLoadHandler::ErrorCode errorCode, const CefString &errorText, const CefString &failedUrl) {
@@ -330,6 +340,8 @@ void BrowserClient::OnLoadError(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFram
 
 // CefResourceHandler
 bool BrowserClient::ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr<CefCallback> callback) {
+    fprintf(stderr, "PROCESS REQUEST %s\n", request->GetURL().ToString().c_str());
+
     {
         auto js = std::string("https://local_js/");
         auto css = std::string("https://local_css/");

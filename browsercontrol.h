@@ -30,6 +30,7 @@ public:
     void Start(std::string socketUrl);
     void Stop();
 
+    void sendKeyEvent(const char* keyCode);
 
 private:
     CefRefPtr<CefBrowser> browser;
