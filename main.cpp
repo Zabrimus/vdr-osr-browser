@@ -18,11 +18,16 @@
 #include <thread>
 #include <csignal>
 
-#include "include/cef_app.h"
+// #include "include/cef_app.h"
+#include "main.h"
 
 #include "osrhandler.h"
 #include "browserclient.h"
 #include "browsercontrol.h"
+
+void MainApp::OnBeforeCommandLineProcessing(const CefString& process_type, CefRefPtr<CefCommandLine> command_line) {
+    command_line->AppendSwitchWithValue("autoplay-policy", "no-user-gesture-required");
+}
 
 CefRefPtr<CefBrowser> browser;
 
@@ -91,7 +96,9 @@ int main(int argc, char *argv[]) {
     }
     infile.close();
 
-    CefInitialize(main_args, settings, nullptr, nullptr);
+    CefRefPtr<MainApp> app(new MainApp);
+
+    CefInitialize(main_args, settings, app.get(), nullptr);
 
     CefBrowserSettings browserSettings;
     CefWindowInfo window_info;
@@ -99,7 +106,6 @@ int main(int argc, char *argv[]) {
 
     auto osrHandler = new OSRHandler(1920, 1080);
     CefRefPtr<BrowserClient> browserClient = new BrowserClient(osrHandler);
-
     browser = CefBrowserHost::CreateBrowserSync(window_info, browserClient.get(), initUrl ? initUrl->c_str() : "", browserSettings, nullptr, nullptr);
 
     browser->GetHost()->WasHidden(true);
