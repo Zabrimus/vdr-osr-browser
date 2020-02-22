@@ -24,17 +24,24 @@ EXECUTABLE  = osrcef
 EXECUTABLE2  = osrclient
 
 # CEF
-CFLAGS += `pkg-config --cflags cef`
-LDFLAGS += `pkg-config --libs cef`
+CFLAGS += $(shell pkg-config --cflags cef)
+LDFLAGS += $(shell pkg-config --libs cef)
 
 # nanomsg
-CFLAGS += `pkg-config --cflags nanomsg`
-LDFLAGS += `pkg-config --libs nanomsg`
+ifeq ($(shell pkg-config --exists libnanomsg && echo 1),1)
+NANOMSG_CFLAGS = $(shell pkg-config --cflags libnanomsg)
+NANOMSG_LDFLAGS = $(shell pkg-config --libs libnanomsg)
+else
+NANOMSG_CFLAGS = $(shell pkg-config --cflags nanomsg)
+NANOMSG_LDFLAGS = $(shell pkg-config --libs nanomsg)
+endif
+
+CFLAGS += $(NANOMSG_CFLAGS)
+LDFLAGS += $(NANOMSG_LDFLAGS)
 
 # libcurl
-CFLAGS += `pkg-config --cflags libcurl`
-LDFLAGS += `pkg-config --libs libcurl`
-
+CFLAGS += $(shell pkg-config --cflags libcurl)
+LDFLAGS += $(shell pkg-config --libs libcurl)
 
 all: prepareexe $(SOURCES) $(EXECUTABLE) $(EXECUTABLE2)
 
@@ -43,7 +50,7 @@ $(EXECUTABLE): $(OBJECTS)
 	mv $(EXECUTABLE) Release
 
 $(EXECUTABLE2): $(OBJECTS2)
-	$(CC) $(SOURCES2) -o $@ `pkg-config --cflags nanomsg` `pkg-config --libs nanomsg`
+	$(CC) $(SOURCES2) -o $@ $(NANOMSG_CFLAGS) $(NANOMSG_LDFLAGS)
 	mv $(EXECUTABLE2) Release
 	cp -r js Release
 
