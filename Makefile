@@ -27,30 +27,21 @@ EXECUTABLE2  = osrclient
 CFLAGS += $(shell pkg-config --cflags cef)
 LDFLAGS += $(shell pkg-config --libs cef)
 
-# nanomsg
-ifeq ($(shell pkg-config --exists libnanomsg && echo 1),1)
-NANOMSG_CFLAGS = $(shell pkg-config --cflags libnanomsg)
-NANOMSG_LDFLAGS = $(shell pkg-config --libs libnanomsg)
-else
-NANOMSG_CFLAGS = $(shell pkg-config --cflags nanomsg)
-NANOMSG_LDFLAGS = $(shell pkg-config --libs nanomsg)
-endif
-
-CFLAGS += $(NANOMSG_CFLAGS)
-LDFLAGS += $(NANOMSG_LDFLAGS)
-
 # libcurl
 CFLAGS += $(shell pkg-config --cflags libcurl)
 LDFLAGS += $(shell pkg-config --libs libcurl)
 
-all: prepareexe $(SOURCES) $(EXECUTABLE) $(EXECUTABLE2)
+# nng
+NNGFLAGS = thirdparty/nng-1.2.6/libnng.a -Ithirdparty/nng-1.2.6/include/nng/compat
+
+all: prepareexe buildnng $(SOURCES) $(EXECUTABLE) $(EXECUTABLE2)
 
 $(EXECUTABLE): $(OBJECTS)
-	$(CC) $(OBJECTS) -o $@ $(LDFLAGS)
+	$(CC) $(OBJECTS) -o $@ $(LDFLAGS) $(NNGFLAGS)
 	mv $(EXECUTABLE) Release
 
 $(EXECUTABLE2): $(OBJECTS2)
-	$(CC) $(SOURCES2) -o $@ $(NANOMSG_CFLAGS) $(NANOMSG_LDFLAGS)
+	$(CC) $(SOURCES2) -o $@ -pthread $(NNGFLAGS)
 	mv $(EXECUTABLE2) Release
 	cp -r js Release
 
@@ -65,6 +56,11 @@ prepareexe:
 	ln -s $(CEF_INSTALL_DIR)/lib/natives_blob.bin && \
 	ln -s $(CEF_INSTALL_DIR)/lib/v8_context_snapshot.bin
 
+buildnng:
+	cd thirdparty/nng-1.2.6 && \
+	cmake . && \
+	make
+
 .cpp.o:
 	$(CC) $(CFLAGS) $< -o $@
 
@@ -72,6 +68,8 @@ clean:
 	rm -f $(OBJECTS) $(EXECUTABLE)
 	rm -Rf cef_binary*
 	rm -Rf Release
+	cd thirdparty/nng-1.2.6 && \
+	make clean
 
 # download and install cef binary
 prepare:
