@@ -36,16 +36,16 @@
  
  # libcurl
  CFLAGS += $(shell pkg-config --cflags libcurl)
-@@ -34,6 +23,8 @@ LDFLAGS += $(shell pkg-config --libs lib
- # nng
- NNGFLAGS = thirdparty/nng-1.2.6/build/libnng.a -Ithirdparty/nng-1.2.6/include/nng/compat
+@@ -35,6 +24,8 @@ LDFLAGS += $(shell pkg-config --libs lib
+ NNGCFLAGS  = -Ithirdparty/nng-1.2.6/include/nng/compat
+ NNGLDFLAGS = thirdparty/nng-1.2.6/build/libnng.a
  
 +.PHONY: all buildnng prepareexe clean
 +
  all: prepareexe buildnng $(SOURCES) $(EXECUTABLE) $(EXECUTABLE2)
  
  $(EXECUTABLE): $(OBJECTS)
-@@ -48,45 +39,19 @@ $(EXECUTABLE2): $(OBJECTS2)
+@@ -49,45 +40,19 @@ $(EXECUTABLE2): $(OBJECTS2)
  prepareexe:
  	mkdir -p Release && \
  	cd Release && \
@@ -65,7 +65,7 @@
  	$(MAKE) -C thirdparty/nng-1.2.6/build
  
  .cpp.o:
- 	$(CC) $(CFLAGS) $< -o $@
+ 	$(CC) $(CFLAGS) $(NNGCFLAGS) $< -o $@
  
  clean:
 -	rm -f $(OBJECTS) $(EXECUTABLE)
