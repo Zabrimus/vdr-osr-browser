@@ -1,6 +1,6 @@
 --- vdr-osr-browser-0.0.1.orig/Makefile
 +++ vdr-osr-browser-0.0.1/Makefile
-@@ -1,38 +1,29 @@
+@@ -1,31 +1,20 @@
 -CEF_VERSION_1   = 79.1.36%2Bg90301bd%2Bchromium-79.0.3945.130
 -CEF_VERSION_2   = Chromium 79.1.36+g90301bd
 -CEF_INSTALL_DIR = /opt/cef
@@ -36,35 +36,33 @@
  
  # libcurl
  CFLAGS += $(shell pkg-config --cflags libcurl)
- LDFLAGS += $(shell pkg-config --libs libcurl)
- 
+@@ -34,6 +23,8 @@ LDFLAGS += $(shell pkg-config --libs lib
  # nng
--NNGFLAGS = thirdparty/nng-1.2.6/libnng.a -Ithirdparty/nng-1.2.6/include/nng/compat
-+NNGFLAGS = thirdparty/nng-1.2.6/build/libnng.a -Ithirdparty/nng-1.2.6/include/nng/compat
-+
-+.PHONY: all buildnng prepareexe clean
+ NNGFLAGS = thirdparty/nng-1.2.6/build/libnng.a -Ithirdparty/nng-1.2.6/include/nng/compat
  
++.PHONY: all buildnng prepareexe clean
++
  all: prepareexe buildnng $(SOURCES) $(EXECUTABLE) $(EXECUTABLE2)
  
-@@ -48,46 +39,19 @@ $(EXECUTABLE2): $(OBJECTS2)
+ $(EXECUTABLE): $(OBJECTS)
+@@ -48,45 +39,19 @@ $(EXECUTABLE2): $(OBJECTS2)
  prepareexe:
  	mkdir -p Release && \
  	cd Release && \
--	echo "resourcepath = $(CEF_INSTALL_DIR)/lib" > cef-osr-browser.config && \
--	echo "localespath = $(CEF_INSTALL_DIR)/lib/locales" >> cef-osr-browser.config && \
--	echo "frameworkpath  = $(CEF_INSTALL_DIR)/lib" >> cef-osr-browser.config && \
+-	echo "resourcepath = $(CEF_INSTALL_DIR)/lib" > vdr-osr-browser.config && \
+-	echo "localespath = $(CEF_INSTALL_DIR)/lib/locales" >> vdr-osr-browser.config && \
+-	echo "frameworkpath  = $(CEF_INSTALL_DIR)/lib" >> vdr-osr-browser.config && \
 -	rm -f icudtl.dat natives_blob.bin v8_context_snapshot.bin && \
 -	ln -s $(CEF_INSTALL_DIR)/lib/icudtl.dat && \
 -	ln -s $(CEF_INSTALL_DIR)/lib/natives_blob.bin && \
 -	ln -s $(CEF_INSTALL_DIR)/lib/v8_context_snapshot.bin
-+	echo "resourcepath = /usr/share/cef/Resources" > cef-osr-browser.config && \
-+	echo "localespath = /usr/share/cef/Resources/locales" >> cef-osr-browser.config 
++	echo "resourcepath = /usr/share/cef/Resources" > vdr-osr-browser.config && \
++	echo "localespath = /usr/share/cef/Resources/locales" >> vdr-osr-browser.config 
  
  buildnng:
--	cd thirdparty/nng-1.2.6 && \
--	cmake . && \
--	make
-+	$(MAKE) -C thirdparty/nng-1.2.6/build
+-	mkdir -p thirdparty/nng-1.2.6/build
+-	cd thirdparty/nng-1.2.6/build && cmake ..
+ 	$(MAKE) -C thirdparty/nng-1.2.6/build
  
  .cpp.o:
  	$(CC) $(CFLAGS) $< -o $@
@@ -74,9 +72,8 @@
 +	rm -f $(OBJECTS) $(EXECUTABLE) $(OBJECTS2) $(EXECUTABLE2)
  	rm -Rf cef_binary*
  	rm -Rf Release
--	cd thirdparty/nng-1.2.6 && \
--	make clean
--
+ 	rm -Rf thirdparty/nng-1.2.6/build
+ 
 -# download and install cef binary
 -prepare:
 -	mkdir -p $(CEF_INSTALL_DIR)/lib
@@ -93,8 +90,7 @@
 -	mv cef.pc /usr/local/lib/pkgconfig
 -	echo "$(CEF_INSTALL_DIR)/lib" > /etc/ld.so.conf.d/cef.conf
 -	ldconfig
-+	rm -Rf thirdparty/nng-1.2.6/build
- 
+-
  
 -debugremote: all
 -	cd Release && ./cefsimple --remote-debugging-port=9222 --user-data-dir=remote-profile
