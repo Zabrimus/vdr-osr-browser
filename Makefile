@@ -32,16 +32,17 @@ CFLAGS += $(shell pkg-config --cflags libcurl)
 LDFLAGS += $(shell pkg-config --libs libcurl)
 
 # nng
-NNGFLAGS = thirdparty/nng-1.2.6/build/libnng.a -Ithirdparty/nng-1.2.6/include/nng/compat
+NNGCFLAGS  = -Ithirdparty/nng-1.2.6/include/nng/compat
+NNGLDFLAGS = thirdparty/nng-1.2.6/build/libnng.a
 
 all: prepareexe buildnng $(SOURCES) $(EXECUTABLE) $(EXECUTABLE2)
 
 $(EXECUTABLE): $(OBJECTS)
-	$(CC) $(OBJECTS) -o $@ $(LDFLAGS) $(NNGFLAGS)
+	$(CC) $(OBJECTS) -o $@ $(LDFLAGS) $(NNGLDFLAGS)
 	mv $(EXECUTABLE) Release
 
 $(EXECUTABLE2): $(OBJECTS2)
-	$(CC) $(SOURCES2) -o $@ -pthread $(NNGFLAGS)
+	$(CC) $(SOURCES2) $(NNGCFLAGS) -o $@ -pthread $(NNGLDFLAGS)
 	mv $(EXECUTABLE2) Release
 	cp -r js Release
 
@@ -62,7 +63,7 @@ buildnng:
 	$(MAKE) -C thirdparty/nng-1.2.6/build
 
 .cpp.o:
-	$(CC) $(CFLAGS) $< -o $@
+	$(CC) $(CFLAGS) $(NNGCFLAGS) $< -o $@
 
 clean:
 	rm -f $(OBJECTS) $(EXECUTABLE)
