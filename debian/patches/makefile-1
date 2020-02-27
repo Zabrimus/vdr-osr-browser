@@ -45,7 +45,7 @@
  all: prepareexe buildnng $(SOURCES) $(EXECUTABLE) $(EXECUTABLE2)
  
  $(EXECUTABLE): $(OBJECTS)
-@@ -49,45 +40,19 @@ $(EXECUTABLE2): $(OBJECTS2)
+@@ -49,13 +40,8 @@ $(EXECUTABLE2): $(OBJECTS2)
  prepareexe:
  	mkdir -p Release && \
  	cd Release && \
@@ -60,11 +60,8 @@
 +	echo "localespath = /usr/share/cef/Resources/locales" >> vdr-osr-browser.config 
  
  buildnng:
--	mkdir -p thirdparty/nng-1.2.6/build
--	cd thirdparty/nng-1.2.6/build && cmake ..
- 	$(MAKE) -C thirdparty/nng-1.2.6/build
- 
- .cpp.o:
+ 	mkdir -p thirdparty/nng-1.2.6/build
+@@ -66,28 +52,8 @@ buildnng:
  	$(CC) $(CFLAGS) $(NNGCFLAGS) $< -o $@
  
  clean:
@@ -91,6 +88,6 @@
 -	echo "$(CEF_INSTALL_DIR)/lib" > /etc/ld.so.conf.d/cef.conf
 -	ldconfig
 -
- 
+-
 -debugremote: all
 -	cd Release && ./cefsimple --remote-debugging-port=9222 --user-data-dir=remote-profile
