@@ -3,7 +3,7 @@ Section: video
 Priority: optional
 Maintainer: Zabrimus <ppa@hannebauer.org>
 Build-Depends: debhelper (>= 9), dh-exec,
- libnanomsg-dev, libcurl4-openssl-dev, libcef-dev, pkg-config
+ libcurl4-openssl-dev, libcef-dev, pkg-config
 Standards-Version: 4.1.2
 Homepage: https://github.com/Zabrimus/cef-osr-browser
 
