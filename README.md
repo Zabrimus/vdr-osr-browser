@@ -72,17 +72,17 @@ der OSR Browser nicht als VDR Plugin implementiert werden kann ohne den VDR selb
 ## Starten des Browsers
 Die einfachste Variante zum Start ist
 ```
-./osrcef
+./vdrosrbrowser
 ```
 
 Ein Remote-Debugging mittels Chrome kann sinnvoll sein. Dazu müssen nur folgende Parameter verwendet werden
 ```
-/osrcef --remote-debugging-port=9222 --user-data-dir=remote-profile
+/vdrosrbrowser --remote-debugging-port=9222 --user-data-dir=remote-profile
 ```
 Und im Chrome die Seite http://localhost:9222 aufrufen. Man kann dann die Seite sehen, die gerendert wird und alle
 Möglichkeiten nutzen, die Chrome bietet.
 
-## osrclient
+## vdrosrclient
 Dies ist ein sehr einfach gehaltener Client, um Kommandos an den OSR Browser senden zu können. Hauptsächlich wird
 er zum Testen verwendet, kann aber auch sonst sinnvoll sein.
 
@@ -102,7 +102,7 @@ Aktuell gibt es beim Aufruf der allerersten Seite im VDR das Problem, das der VD
 der VDR also die Seite nicht bekommt. Das kann man verhindern, indem man den OSR Browser startet und die
 gewünschte Skin-HTML Seite initial lädt.
 ```
-./osrcef --skinurl="Pfad zur Skin Index Seite"
+./vdrosrbrowser --skinurl="Pfad zur Skin Index Seite"
 ```
 und danach erst den VDR startet.
 
