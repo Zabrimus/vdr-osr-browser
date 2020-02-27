@@ -1,0 +1,15 @@
+Source: vdr-osr-browser
+Section: video
+Priority: optional
+Maintainer: Zabrimus <ppa@hannebauer.org>
+Build-Depends: debhelper (>= 9), dh-exec,
+ libnanomsg-dev, libcurl4-openssl-dev, libcef-dev, pkg-config
+Standards-Version: 4.1.2
+Homepage: https://github.com/Zabrimus/cef-osr-browser
+
+Package: vdr-osr-browser
+Architecture: amd64
+Depends: ${shlibs:Depends}, ${misc:Depends}, libcef, libcurl3 | libcurl4 
+Description: Offscreen browser for VDR using CEF
+ <insert long description, indented with spaces>
+
