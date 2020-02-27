@@ -20,8 +20,8 @@ OBJECTS = $(SOURCES:.cpp=.o)
 SOURCES2 = osrclient.cpp
 OBJECTS2 = osrclient.cpp
 
-EXECUTABLE  = osrcef
-EXECUTABLE2  = osrclient
+EXECUTABLE  = vdrosrbrowser
+EXECUTABLE2  = vdrosrclient
 
 # CEF
 CFLAGS += $(shell pkg-config --cflags cef)
@@ -32,7 +32,7 @@ CFLAGS += $(shell pkg-config --cflags libcurl)
 LDFLAGS += $(shell pkg-config --libs libcurl)
 
 # nng
-NNGFLAGS = thirdparty/nng-1.2.6/libnng.a -Ithirdparty/nng-1.2.6/include/nng/compat
+NNGFLAGS = thirdparty/nng-1.2.6/build/libnng.a -Ithirdparty/nng-1.2.6/include/nng/compat
 
 all: prepareexe buildnng $(SOURCES) $(EXECUTABLE) $(EXECUTABLE2)
 
@@ -48,18 +48,18 @@ $(EXECUTABLE2): $(OBJECTS2)
 prepareexe:
 	mkdir -p Release && \
 	cd Release && \
-	echo "resourcepath = $(CEF_INSTALL_DIR)/lib" > cef-osr-browser.config && \
-	echo "localespath = $(CEF_INSTALL_DIR)/lib/locales" >> cef-osr-browser.config && \
-	echo "frameworkpath  = $(CEF_INSTALL_DIR)/lib" >> cef-osr-browser.config && \
+	echo "resourcepath = $(CEF_INSTALL_DIR)/lib" > vdr-osr-browser.config && \
+	echo "localespath = $(CEF_INSTALL_DIR)/lib/locales" >> vdr-osr-browser.config && \
+	echo "frameworkpath  = $(CEF_INSTALL_DIR)/lib" >> vdr-osr-browser.config && \
 	rm -f icudtl.dat natives_blob.bin v8_context_snapshot.bin && \
 	ln -s $(CEF_INSTALL_DIR)/lib/icudtl.dat && \
 	ln -s $(CEF_INSTALL_DIR)/lib/natives_blob.bin && \
 	ln -s $(CEF_INSTALL_DIR)/lib/v8_context_snapshot.bin
 
 buildnng:
-	cd thirdparty/nng-1.2.6 && \
-	cmake . && \
-	make
+	mkdir -p thirdparty/nng-1.2.6/build
+	cd thirdparty/nng-1.2.6/build && cmake ..
+	$(MAKE) -C thirdparty/nng-1.2.6/build
 
 .cpp.o:
 	$(CC) $(CFLAGS) $< -o $@
@@ -68,8 +68,7 @@ clean:
 	rm -f $(OBJECTS) $(EXECUTABLE)
 	rm -Rf cef_binary*
 	rm -Rf Release
-	cd thirdparty/nng-1.2.6 && \
-	make clean
+	rm -Rf thirdparty/nng-1.2.6/build
 
 # download and install cef binary
 prepare:

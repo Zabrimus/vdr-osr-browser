@@ -77,7 +77,7 @@ int main(int argc, char *argv[]) {
     // read configuration and set CEF global settings
     std::string exepath = getexepath();
 
-    std::ifstream infile(exepath.substr(0, exepath.find_last_of("/")) + "/cef-osr-browser.config");
+    std::ifstream infile(exepath.substr(0, exepath.find_last_of("/")) + "/vdr-osr-browser.config");
     if (infile.is_open()) {
         std::string key;
         std::string value;
