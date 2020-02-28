@@ -51,6 +51,7 @@ private:
 
     std::string exePath;
     HbbtvCurl hbbtvCurl;
+    bool debugMode;
 
     std::string responseContent;
     std::map<std::string, std::string> responseHeader;
@@ -71,7 +72,7 @@ private:
     }
 
 public:
-    explicit BrowserClient(OSRHandler *renderHandler);
+    explicit BrowserClient(OSRHandler *renderHandler, bool debug);
 
     void setLoadingStart(bool loading);
 

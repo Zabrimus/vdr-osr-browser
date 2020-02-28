@@ -52,7 +52,7 @@ Die einfachste Variante zum Start ist
 
 Ein Remote-Debugging mittels Chrome kann sinnvoll sein. Dazu müssen nur folgende Parameter verwendet werden
 ```
-/vdrosrbrowser --remote-debugging-port=9222 --user-data-dir=remote-profile
+/vdrosrbrowser --debug --remote-debugging-port=9222 --user-data-dir=remote-profile
 ```
 Und im Chrome die Seite http://localhost:9222 aufrufen. Man kann dann die Seite sehen, die gerendert wird und alle
 Möglichkeiten nutzen, die Chrome bietet.

@@ -55,10 +55,14 @@ int main(int argc, char *argv[]) {
     signal (SIGQUIT, quit_handler);
     signal(SIGINT, quit_handler);
 
-    // try to find --skinurl parameter
+    bool debugmode = false;
+
+    // try to find some parameters
     for (int i = 0; i < argc; ++i) {
         if (strncmp(argv[i], "--skinurl=", 10) == 0) {
             initUrl = new std::string(argv[i] + 10);
+        } else if (strncmp(argv[i], "--debug", 7) == 0) {
+            debugmode = true;
         }
     }
 
@@ -105,7 +109,7 @@ int main(int argc, char *argv[]) {
     window_info.SetAsWindowless(0);
 
     auto osrHandler = new OSRHandler(1920, 1080);
-    CefRefPtr<BrowserClient> browserClient = new BrowserClient(osrHandler);
+    CefRefPtr<BrowserClient> browserClient = new BrowserClient(osrHandler, debugmode);
     browser = CefBrowserHost::CreateBrowserSync(window_info, browserClient.get(), initUrl ? initUrl->c_str() : "", browserSettings, nullptr, nullptr);
 
     browser->GetHost()->WasHidden(true);

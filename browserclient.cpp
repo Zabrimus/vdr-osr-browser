@@ -183,8 +183,9 @@ size_t HbbtvCurl::WriteHeaderCallback(void *contents, size_t size, size_t nmemb,
 }
 
 
-BrowserClient::BrowserClient(OSRHandler *renderHandler) {
+BrowserClient::BrowserClient(OSRHandler *renderHandler, bool debug) {
     m_renderHandler = renderHandler;
+    debugMode = debug;
 
     mimeTypes.insert(std::pair<std::string, std::string>("hbbtv", "application/vnd.hbbtv.xhtml+xml"));
     mimeTypes.insert(std::pair<std::string, std::string>("cehtml", "application/ce-html+xml"));
@@ -327,8 +328,12 @@ void BrowserClient::OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame>
     loadingStart = false;
 
     if (mode == 2) {
-        // inject Javascript        // injectJs(browser, "https://local_js/hbbtv_polyfill", true, false);
-        injectJs(browser, "https://local_js/hbbtv_polyfill", true, false);
+        // inject Javascript
+        if (debugMode) {
+            injectJs(browser, "https://local_js/hbbtv_polyfill_debug", true, false);
+        } else {
+            injectJs(browser, "https://local_js/hbbtv_polyfill", true, false);
+        }
     }
 }
 
