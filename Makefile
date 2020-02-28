@@ -1,12 +1,8 @@
-CEF_VERSION_1   = 79.1.36%2Bg90301bd%2Bchromium-79.0.3945.130
-CEF_VERSION_2   = Chromium 79.1.36+g90301bd
+CEF_VERSION   = 80.0.4+g74f7b0c+chromium-80.0.3987.122
 CEF_INSTALL_DIR = /opt/cef
 
 # 64 bit
-CEF_BUILD = http://opensource.spotify.com/cefbuilds/cef_binary_$(CEF_VERSION_1)_linux64_minimal.tar.bz2
-
-# 32 bit
-# CEF_BUILD = http://opensource.spotify.com/cefbuilds/cef_binary_$(CEF_VERSION_1)_linux32_minimal.tar.bz2
+CEF_BUILD = http://opensource.spotify.com/cefbuilds/cef_binary_$(CEF_VERSION)_linux64_minimal.tar.bz2
 
 CC = g++
 #CFLAGS = -c -O3  -Wall -std=c++11
@@ -23,9 +19,16 @@ OBJECTS2 = osrclient.cpp
 EXECUTABLE  = vdrosrbrowser
 EXECUTABLE2  = vdrosrclient
 
-# CEF
-CFLAGS += $(shell pkg-config --cflags cef)
-LDFLAGS += $(shell pkg-config --libs cef)
+# CEF (debian packaged or self-installed version)
+ifeq (exists, $(shell test -e /usr/include/x86_64-linux-gnu/cef/cef_app.h && echo exists))
+	PACKAGED_CEF = 1
+	CFLAGS += -I/usr/include/x86_64-linux-gnu/cef/
+	LDFLAGS += -lcef -lcef_dll_wrapper -lX11
+else
+	PACKAGED_CEF = 0
+	CFLAGS += $(shell pkg-config --cflags cef)
+	LDFLAGS += $(shell pkg-config --libs cef)
+endif
 
 # libcurl
 CFLAGS += $(shell pkg-config --cflags libcurl)
@@ -47,7 +50,12 @@ $(EXECUTABLE2): $(OBJECTS2)
 	cp -r js Release
 
 prepareexe:
-	mkdir -p Release && \
+	mkdir -p Release
+ifeq ($(PACKAGED_CEF),1)
+	cd Release && \
+	echo "resourcepath = /usr/share/cef/Resources" > vdr-osr-browser.config && \
+	echo "localespath = /usr/share/cef/Resources/locales" >> vdr-osr-browser.config
+else
 	cd Release && \
 	echo "resourcepath = $(CEF_INSTALL_DIR)/lib" > vdr-osr-browser.config && \
 	echo "localespath = $(CEF_INSTALL_DIR)/lib/locales" >> vdr-osr-browser.config && \
@@ -56,11 +64,12 @@ prepareexe:
 	ln -s $(CEF_INSTALL_DIR)/lib/icudtl.dat && \
 	ln -s $(CEF_INSTALL_DIR)/lib/natives_blob.bin && \
 	ln -s $(CEF_INSTALL_DIR)/lib/v8_context_snapshot.bin
+endif
 
 buildnng:
 	mkdir -p thirdparty/nng-1.2.6/build
 	cd thirdparty/nng-1.2.6/build && cmake ..
-	$(MAKE) -C thirdparty/nng-1.2.6/build
+	$(MAKE) -C thirdparty/nng-1.2.6/build -j 6
 
 .cpp.o:
 	$(CC) $(CFLAGS) $(NNGCFLAGS) $< -o $@
