@@ -2,20 +2,33 @@
 #define BROWSER_MAIN_H
 
 #include "include/cef_app.h"
+#include "include/wrapper/cef_message_router.h"
 
-class MainApp : public CefApp, public CefBrowserProcessHandler {
- public:
-  MainApp() {};
+class MainApp : public CefApp,
+                public CefBrowserProcessHandler,
+                public CefRenderProcessHandler {
+public:
+    MainApp();
+    ~MainApp();
 
-  CefRefPtr<CefBrowserProcessHandler> GetBrowserProcessHandler() override {
-    return this;
-  }
+    CefRefPtr<CefBrowserProcessHandler> GetBrowserProcessHandler() override {
+        return this;
+    }
 
-  // CefBrowserProcessHandler:
-  void OnBeforeCommandLineProcessing(const CefString& process_type, CefRefPtr< CefCommandLine > command_line ) override;
+    CefRefPtr<CefRenderProcessHandler> GetRenderProcessHandler() override {
+        return this;
+    }
 
- private:
-  IMPLEMENT_REFCOUNTING(MainApp);
+    // CefBrowserProcessHandler:
+    void OnBeforeCommandLineProcessing(const CefString& process_type, CefRefPtr< CefCommandLine > command_line) override;
+    void OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefV8Context> context) override;
+    void OnContextReleased(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefV8Context> context) override;
+    bool OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefProcessId source_process, CefRefPtr<CefProcessMessage> message) override;
+
+private:
+    CefRefPtr<CefMessageRouterRendererSide> renderer_side_router;
+
+    IMPLEMENT_REFCOUNTING(MainApp);
 };
 
 #endif // BROWSER_MAIN_H

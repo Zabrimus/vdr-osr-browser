@@ -17,6 +17,7 @@
 #include "include/cef_app.h"
 #include "include/cef_client.h"
 #include "include/cef_render_handler.h"
+#include "include/wrapper/cef_message_router.h"
 
 #include "osrhandler.h"
 
@@ -40,18 +41,41 @@ private:
     std::string redirect_url;
 };
 
+class JavascriptHandler : public CefMessageRouterBrowserSide::Handler {
+public:
+    JavascriptHandler();
+    ~JavascriptHandler();
+
+    bool OnQuery(CefRefPtr<CefBrowser> browser,
+                         CefRefPtr<CefFrame> frame,
+                         int64 query_id,
+                         const CefString& request,
+                         bool persistent,
+                         CefRefPtr<Callback> callback) override;
+
+    void OnQueryCanceled(CefRefPtr<CefBrowser> browser,
+                                 CefRefPtr<CefFrame> frame,
+                                 int64 query_id) override;
+
+
+};
+
 class BrowserClient : public CefClient,
                       public CefRequestHandler,
                       public CefLoadHandler,
                       public CefResourceHandler,
-                      public CefResourceRequestHandler {
+                      public CefResourceRequestHandler,
+                      public CefLifeSpanHandler {
 
 private:
     CefRefPtr<CefRenderHandler> m_renderHandler;
+    CefRefPtr<CefMessageRouterBrowserSide> browser_side_router;
 
     std::string exePath;
     HbbtvCurl hbbtvCurl;
     bool debugMode;
+
+    JavascriptHandler *handler;
 
     std::string responseContent;
     std::map<std::string, std::string> responseHeader;
@@ -73,18 +97,26 @@ private:
 
 public:
     explicit BrowserClient(OSRHandler *renderHandler, bool debug);
+    ~BrowserClient();
 
     void setLoadingStart(bool loading);
 
     // getter for the different handler
+    CefRefPtr<CefRequestHandler> GetRequestHandler() override { return this; }
+    CefRefPtr<CefLoadHandler> GetLoadHandler() override { return this; }
+    CefRefPtr<CefLifeSpanHandler> GetLifeSpanHandler() override { return this; }
+
     CefRefPtr<CefRenderHandler> GetRenderHandler() override;
-    CefRefPtr<CefRequestHandler> GetRequestHandler() override;
     CefRefPtr<CefResourceRequestHandler> GetResourceRequestHandler(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, bool is_navigation, bool is_download, const CefString& request_initiator, bool& disable_default_handling) override;
     CefRefPtr<CefResourceHandler> GetResourceHandler(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request) override;
-    CefRefPtr<CefLoadHandler> GetLoadHandler() override;
+
+    // CefClient
+    bool OnProcessMessageReceived(CefRefPtr< CefBrowser > browser, CefRefPtr< CefFrame > frame, CefProcessId source_process, CefRefPtr< CefProcessMessage > message) override;
 
     // CefRequestHandler
     CefResourceRequestHandler::ReturnValue OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, CefRefPtr<CefRequestCallback> callback) override;
+    bool OnBeforeBrowse(CefRefPtr< CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, bool user_gesture, bool is_redirect ) override;
+    void OnRenderProcessTerminated(CefRefPtr<CefBrowser> browser, CefRequestHandler::TerminationStatus status) override;
 
     // CefResourceHandler
     bool ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr<CefCallback> callback) override;
@@ -100,7 +132,11 @@ public:
     void OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, int httpStatusCode) override;
     void OnLoadError(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, ErrorCode errorCode, const CefString &errorText, const CefString &failedUrl) override;
 
+    // CefLifeSpanHandler
+    void OnBeforeClose(CefRefPtr< CefBrowser > browser) override;
+
     //
+    void initJavascriptCallback();
     void SetHtmlMode() { mode = 1; };
     void SetHbbtvMode() { mode = 2; };
 

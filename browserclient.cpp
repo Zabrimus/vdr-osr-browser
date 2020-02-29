@@ -182,6 +182,40 @@ size_t HbbtvCurl::WriteHeaderCallback(void *contents, size_t size, size_t nmemb,
     return realsize;
 }
 
+JavascriptHandler::JavascriptHandler() {
+
+}
+
+JavascriptHandler::~JavascriptHandler() {
+
+}
+
+bool JavascriptHandler::OnQuery(CefRefPtr<CefBrowser> browser,
+             CefRefPtr<CefFrame> frame,
+             int64 query_id,
+             const CefString& request,
+             bool persistent,
+             CefRefPtr<Callback> callback) {
+
+    // process the javascript callback
+
+    // TODO: Implement something useful
+    fprintf(stderr, "--- Javascript called me: %s\n", request.ToString().c_str());
+
+    if (request == "HelloCefQuery") {
+        callback->Success("HelloCefQuery Ok");
+        return true;
+    } else if (request == "GiveMeMoney") {
+        callback->Failure(404, "There are none thus query!");
+        return true;
+    }
+
+    return false; // give other handler chance
+}
+
+void JavascriptHandler::OnQueryCanceled(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, int64 query_id) {
+    // TODO: cancel our async query task...
+}
 
 BrowserClient::BrowserClient(OSRHandler *renderHandler, bool debug) {
     m_renderHandler = renderHandler;
@@ -201,6 +235,11 @@ BrowserClient::BrowserClient(OSRHandler *renderHandler, bool debug) {
         auto exe = std::string(result, static_cast<unsigned long>((count > 0) ? count : 0));
         exePath = exe.substr(0, exe.find_last_of("/"));
     }
+}
+
+BrowserClient::~BrowserClient() {
+    browser_side_router->RemoveHandler(handler);
+    delete handler;
 }
 
 // getter for the different handler
@@ -308,13 +347,6 @@ CefRefPtr<CefResourceHandler> BrowserClient::GetResourceHandler(CefRefPtr<CefBro
     }
 }
 
-CefRefPtr<CefRequestHandler> BrowserClient::GetRequestHandler() {
-    return this;
-}
-
-CefRefPtr<CefLoadHandler> BrowserClient::GetLoadHandler() {
-    return this;
-}
 
 // CefLoadHandler
 void BrowserClient::OnLoadStart(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefLoadHandler::TransitionType transition_type) {
@@ -322,7 +354,7 @@ void BrowserClient::OnLoadStart(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFram
 }
 
 void BrowserClient::OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, int httpStatusCode) {
-    fprintf(stderr, "ON LOAD END");
+    fprintf(stderr, "ON LOAD END\n");
 
     CEF_REQUIRE_UI_THREAD();
     loadingStart = false;
@@ -338,6 +370,12 @@ void BrowserClient::OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame>
         // set zoom level: 150% means Full HD 1920 x 1080 px
         auto frame = browser->GetMainFrame();
         frame->ExecuteJavaScript("document.body.style.setProperty('zoom', '150%');", frame->GetURL(), 0);
+
+
+        // TEST
+        frame->ExecuteJavaScript("var request_id = window.cefQuery({ request: 'HelloCefQuery', persistent: false, onSuccess: function(response) {}, onFailure: function(error_code, error_message) {} }); window.cefQueryCancel(request_id);", frame->GetURL(), 0);
+        frame->ExecuteJavaScript("var request_id = window.cefQuery({ request: 'GiveMeMoney', persistent: false, onSuccess: function(response) {}, onFailure: function(error_code, error_message) {} }); window.cefQueryCancel(request_id);", frame->GetURL(), 0);
+        // TEST
     }
 }
 
@@ -470,6 +508,24 @@ BrowserClient::ReturnValue BrowserClient::OnBeforeResourceLoad(CefRefPtr<CefBrow
     return RV_CONTINUE;
 }
 
+bool BrowserClient::OnBeforeBrowse( CefRefPtr< CefBrowser > browser, CefRefPtr< CefFrame > frame, CefRefPtr< CefRequest > request, bool user_gesture, bool is_redirect ) {
+    browser_side_router->OnBeforeBrowse(browser, frame);
+    return false;
+}
+
+void BrowserClient::OnRenderProcessTerminated(CefRefPtr<CefBrowser> browser, CefRequestHandler::TerminationStatus status) {
+    browser_side_router->OnRenderProcessTerminated(browser);
+}
+
+void BrowserClient::OnBeforeClose(CefRefPtr< CefBrowser > browser) {
+    CEF_REQUIRE_UI_THREAD();
+    browser_side_router->OnBeforeClose(browser);
+}
+
+bool BrowserClient::OnProcessMessageReceived(CefRefPtr< CefBrowser > browser, CefRefPtr< CefFrame > frame, CefProcessId source_process, CefRefPtr< CefProcessMessage > message) {
+    return browser_side_router->OnProcessMessageReceived(browser, frame, source_process, message);
+}
+
 void BrowserClient::setLoadingStart(bool loading) {
     loadingStart = loading;
 }
@@ -496,5 +552,17 @@ void BrowserClient::injectJs(CefRefPtr<CefBrowser> browser, std::string url, boo
     auto script = stringStream.str();
     auto frame = browser->GetMainFrame();
     frame->ExecuteJavaScript(script, frame->GetURL(), 0);
+}
+
+void BrowserClient::initJavascriptCallback() {
+    // register javascript callback
+    CefMessageRouterConfig config;
+    config.js_query_function = "cefQuery";
+    config.js_cancel_function = "cefQueryCancel";
+
+    handler = new JavascriptHandler();
+
+    browser_side_router = CefMessageRouterBrowserSide::Create(config);
+    browser_side_router->AddHandler(handler, true);
 }
 

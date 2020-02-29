@@ -25,8 +25,32 @@
 #include "browserclient.h"
 #include "browsercontrol.h"
 
+MainApp::MainApp() {
+    CefMessageRouterConfig config;
+    config.js_query_function = "cefQuery";
+    config.js_cancel_function = "cefQueryCancel";
+
+    renderer_side_router = CefMessageRouterRendererSide::Create(config);
+}
+
+MainApp::~MainApp() {
+
+}
+
 void MainApp::OnBeforeCommandLineProcessing(const CefString& process_type, CefRefPtr<CefCommandLine> command_line) {
     command_line->AppendSwitchWithValue("autoplay-policy", "no-user-gesture-required");
+}
+
+void MainApp::OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefV8Context> context) {
+    renderer_side_router->OnContextCreated(browser, frame, context);
+}
+
+void MainApp::OnContextReleased(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefV8Context> context) {
+    renderer_side_router->OnContextReleased(browser, frame, context);
+}
+
+bool MainApp::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefProcessId source_process, CefRefPtr<CefProcessMessage> message) {
+    return renderer_side_router->OnProcessMessageReceived(browser, frame, source_process, message);
 }
 
 CefRefPtr<CefBrowser> browser;
@@ -67,8 +91,9 @@ int main(int argc, char *argv[]) {
     }
 
     CefMainArgs main_args(argc, argv);
+    CefRefPtr<MainApp> app(new MainApp);
 
-    int exit_code = CefExecuteProcess(main_args, nullptr, nullptr);
+    int exit_code = CefExecuteProcess(main_args, app.get(), nullptr);
     if (exit_code >= 0) {
         return exit_code;
     }
@@ -100,8 +125,6 @@ int main(int argc, char *argv[]) {
     }
     infile.close();
 
-    CefRefPtr<MainApp> app(new MainApp);
-
     CefInitialize(main_args, settings, app.get(), nullptr);
 
     CefBrowserSettings browserSettings;
@@ -117,6 +140,8 @@ int main(int argc, char *argv[]) {
     if (initUrl) {
         delete initUrl;
     }
+
+    browserClient->initJavascriptCallback();
 
     BrowserControl browserControl(browser, osrHandler, browserClient);
 
