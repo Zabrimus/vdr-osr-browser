@@ -67,9 +67,11 @@ else
 endif
 
 buildnng:
+ifneq (exists, $(shell test -e thirdparty/nng-1.2.6/build/libnng.a && echo exists))
 	mkdir -p thirdparty/nng-1.2.6/build
 	cd thirdparty/nng-1.2.6/build && cmake ..
 	$(MAKE) -C thirdparty/nng-1.2.6/build -j 6
+endif
 
 .cpp.o:
 	$(CC) $(CFLAGS) $(NNGCFLAGS) $< -o $@
