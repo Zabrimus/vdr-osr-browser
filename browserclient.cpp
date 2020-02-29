@@ -334,6 +334,10 @@ void BrowserClient::OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame>
         } else {
             injectJs(browser, "https://local_js/hbbtv_polyfill", true, false);
         }
+
+        // set zoom level: 150% means Full HD 1920 x 1080 px
+        auto frame = browser->GetMainFrame();
+        frame->ExecuteJavaScript("document.body.style.setProperty('zoom', '150%');", frame->GetURL(), 0);
     }
 }
 
