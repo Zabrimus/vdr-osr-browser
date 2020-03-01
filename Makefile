@@ -73,11 +73,14 @@ ifneq (exists, $(shell test -e thirdparty/nng-1.2.6/build/libnng.a && echo exist
 	$(MAKE) -C thirdparty/nng-1.2.6/build -j 6
 endif
 
+-include $(OBJS:.o=.d)
+
 .cpp.o:
 	$(CC) $(CFLAGS) $(NNGCFLAGS) $< -o $@
+	$(CC) -MM $(CFLAGS) $(NNGCFLAGS) $*.cpp > $*.d
 
 clean:
-	rm -f $(OBJECTS) $(EXECUTABLE)
+	rm -f $(OBJECTS) $(EXECUTABLE) *.d
 	rm -Rf cef_binary*
 	rm -Rf Release
 	rm -Rf thirdparty/nng-1.2.6/build
