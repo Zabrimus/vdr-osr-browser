@@ -73,11 +73,11 @@ ifneq (exists, $(shell test -e thirdparty/nng-1.2.6/build/libnng.a && echo exist
 	$(MAKE) -C thirdparty/nng-1.2.6/build -j 6
 endif
 
--include $(OBJS:.o=.d)
-
 .cpp.o:
-	$(CC) $(CFLAGS) $(NNGCFLAGS) $< -o $@
-	$(CC) -MM $(CFLAGS) $(NNGCFLAGS) $*.cpp > $*.d
+	$(CC) $(CFLAGS) $(NNGCFLAGS) -MMD $< -o $@
+
+DEPS := $(OBJECTS:.o=.d)
+-include $(DEPS)
 
 clean:
 	rm -f $(OBJECTS) $(EXECUTABLE) *.d
@@ -101,7 +101,6 @@ prepare:
 	mv cef.pc /usr/local/lib/pkgconfig
 	echo "$(CEF_INSTALL_DIR)/lib" > /etc/ld.so.conf.d/cef.conf
 	ldconfig
-
 
 debugremote: all
 	cd Release && ./cefsimple --remote-debugging-port=9222 --user-data-dir=remote-profile
