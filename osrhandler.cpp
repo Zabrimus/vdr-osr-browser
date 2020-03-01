@@ -15,6 +15,7 @@
 #include <nanomsg/nn.h>
 #include <nanomsg/pipeline.h>
 
+#include "globals.h"
 #include "osrhandler.h"
 
 // #define SEND_FULL_PAGE
@@ -24,7 +25,7 @@ OSRHandler::OSRHandler(int width, int height) {
     renderWidth = width;
     renderHeight = height;
 
-    auto streamUrl = std::string("ipc:///tmp/vdrosr_stream.ipc");
+    auto streamUrl = std::string(VDR_STREAM_CHANNEL);
 
     // bind socket
     if ((socketId = nn_socket(AF_SP, NN_PUSH)) < 0) {
@@ -34,6 +35,10 @@ OSRHandler::OSRHandler(int width, int height) {
     if ((endpointId = nn_bind(socketId, streamUrl.c_str())) < 0) {
         fprintf(stderr, "unable to bind nanomsg socket to %s\n", streamUrl.c_str());
     }
+}
+
+OSRHandler::~OSRHandler() {
+    nn_close(socketId);
 }
 
 void OSRHandler::setRenderSize(int width, int height) {

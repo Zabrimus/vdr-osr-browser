@@ -57,7 +57,9 @@ public:
                                  CefRefPtr<CefFrame> frame,
                                  int64 query_id) override;
 
-
+private:
+    int socketId;
+    int endpointId;
 };
 
 class BrowserClient : public CefClient,

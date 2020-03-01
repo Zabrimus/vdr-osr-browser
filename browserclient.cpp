@@ -12,18 +12,18 @@
 
 #include <iostream>
 #include <map>
+#include <nanomsg/nn.h>
+#include <nanomsg/pipeline.h>
 #include <curl/curl.h>
 #include "browserclient.h"
 #include "include/wrapper/cef_helpers.h"
+#include "globals.h"
 
 // to enable much more debug data output to stderr, set this variable to true
 static bool DumpDebugData = true;
 #define DBG(a...) if (DumpDebugData) fprintf(stderr, a)
 
 #define HEADERSIZE (4 * 1024)
-#define USER_AGENT "HbbTV/1.4.1 (+DRM;Samsung;SmartTV2015;T-HKM6DEUC-1490.3;;) OsrTvViewer"
-// #define USER_AGENT "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.90 Safari/537.36"
-// #define USER_AGENT "Mozilla/5.0 (X11; U; Linux i686; en-US) AppleWebKit/533.4 (KHTML, like Gecko) Chrome/5.0.375.127 Large"
 
 struct MemoryStruct {
     char *memory;
@@ -183,11 +183,20 @@ size_t HbbtvCurl::WriteHeaderCallback(void *contents, size_t size, size_t nmemb,
 }
 
 JavascriptHandler::JavascriptHandler() {
+    auto streamUrl = std::string(VDR_STATUS_CHANNEL);
 
+    // bind socket
+    if ((socketId = nn_socket(AF_SP, NN_PUSH)) < 0) {
+        fprintf(stderr, "unable to create nanomsg socket\n");
+    }
+
+    if ((endpointId = nn_bind(socketId, streamUrl.c_str())) < 0) {
+        fprintf(stderr, "unable to bind nanomsg socket to %s\n", streamUrl.c_str());
+    }
 }
 
 JavascriptHandler::~JavascriptHandler() {
-
+    nn_close(socketId);
 }
 
 bool JavascriptHandler::OnQuery(CefRefPtr<CefBrowser> browser,
@@ -198,16 +207,19 @@ bool JavascriptHandler::OnQuery(CefRefPtr<CefBrowser> browser,
              CefRefPtr<Callback> callback) {
 
     // process the javascript callback
+    DBG("Javascript called me: %s\n", request.ToString().c_str());
 
-    // TODO: Implement something useful
-    fprintf(stderr, "--- Javascript called me: %s\n", request.ToString().c_str());
-
-    if (request == "HelloCefQuery") {
-        callback->Success("HelloCefQuery Ok");
+    if (strncmp(request.ToString().c_str(), "VDR:", 4) == 0) {
+        auto bytes = nn_send(socketId, request.ToString().c_str() + 4, strlen(request.ToString().c_str()) - 3, 0);
         return true;
-    } else if (request == "GiveMeMoney") {
-        callback->Failure(404, "There are none thus query!");
-        return true;
+    } else {
+        if (request == "HelloCefQuery") {
+            callback->Success("HelloCefQuery Ok");
+            return true;
+        } else if (request == "GiveMeMoney") {
+            callback->Failure(404, "There are none thus query!");
+            return true;
+        }
     }
 
     return false; // give other handler chance
@@ -371,10 +383,9 @@ void BrowserClient::OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame>
         auto frame = browser->GetMainFrame();
         frame->ExecuteJavaScript("document.body.style.setProperty('zoom', '150%');", frame->GetURL(), 0);
 
-
         // TEST
-        frame->ExecuteJavaScript("var request_id = window.cefQuery({ request: 'HelloCefQuery', persistent: false, onSuccess: function(response) {}, onFailure: function(error_code, error_message) {} }); window.cefQueryCancel(request_id);", frame->GetURL(), 0);
-        frame->ExecuteJavaScript("var request_id = window.cefQuery({ request: 'GiveMeMoney', persistent: false, onSuccess: function(response) {}, onFailure: function(error_code, error_message) {} }); window.cefQueryCancel(request_id);", frame->GetURL(), 0);
+        // frame->ExecuteJavaScript("var request_id = window.cefQuery({ request: 'HelloCefQuery', persistent: false, onSuccess: function(response) {}, onFailure: function(error_code, error_message) {} }); window.cefQueryCancel(request_id);", frame->GetURL(), 0);
+        // frame->ExecuteJavaScript("var request_id = window.cefQuery({ request: 'GiveMeMoney', persistent: false, onSuccess: function(response) {}, onFailure: function(error_code, error_message) {} }); window.cefQueryCancel(request_id);", frame->GetURL(), 0);
         // TEST
     }
 }

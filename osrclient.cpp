@@ -17,6 +17,7 @@
 #include <nanomsg/nn.h>
 #include <nanomsg/reqrep.h>
 #include <nanomsg/pipeline.h>
+#include "globals.h"
 
 std::string url;
 std::string call;
@@ -150,7 +151,7 @@ int main(int argc, char **argv)
         exit(1);
     }
 
-    if ((endpointId = nn_connect(socketId, "ipc:///tmp/vdrosr_command.ipc")) < 0) {
+    if ((endpointId = nn_connect(socketId, VDR_COMMAND_CHANNEL)) < 0) {
         fprintf(stderr, "Unable to connect to socket\n");
         exit(2);
     }
@@ -170,7 +171,7 @@ int main(int argc, char **argv)
         exit(1);
     }
 
-    if ((streamEndpointId = nn_connect(streamSocketId, "ipc:///tmp/vdrosr_stream.ipc")) < 0) {
+    if ((streamEndpointId = nn_connect(streamSocketId, VDR_STREAM_CHANNEL)) < 0) {
         fprintf(stderr, "Unable to connect to stream socket\n");
         exit(2);
     }

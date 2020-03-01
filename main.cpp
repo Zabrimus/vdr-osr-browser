@@ -18,9 +18,8 @@
 #include <thread>
 #include <csignal>
 
-// #include "include/cef_app.h"
+#include "globals.h"
 #include "main.h"
-
 #include "osrhandler.h"
 #include "browserclient.h"
 #include "browsercontrol.h"
@@ -63,7 +62,7 @@ std::string getexepath()
 }
 
 void startBrowserControl(BrowserControl ctrl) {
-    auto commandurl = std::string("ipc:///tmp/vdrosr_command.ipc");
+    auto commandurl = std::string(VDR_COMMAND_CHANNEL);
     ctrl.Start(commandurl);
     kill(getpid(), SIGINT);
 }

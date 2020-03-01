@@ -27,6 +27,7 @@ private:
 
 public:
     OSRHandler(int width, int height);
+    ~OSRHandler();
 
     void setRenderSize(int width, int height);
     void GetViewRect(CefRefPtr<CefBrowser> browser, CefRect &rect) override;
