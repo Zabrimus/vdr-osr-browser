@@ -269,7 +269,10 @@ CefRefPtr<CefResourceRequestHandler> BrowserClient::GetResourceRequestHandler(Ce
     }
 
     if (!is_navigation) {
+        injectJavascript = false;
         return CefRequestHandler::GetResourceRequestHandler(browser, frame, request, is_navigation, is_download, request_initiator, disable_default_handling);
+    } else {
+        injectJavascript = true;
     }
 
     return this;
@@ -371,7 +374,8 @@ void BrowserClient::OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame>
     CEF_REQUIRE_UI_THREAD();
     loadingStart = false;
 
-    if (mode == 2) {
+    if (mode == 2 && injectJavascript) {
+
         // inject Javascript
         if (debugMode) {
             injectJs(browser, "https://local_js/hbbtv_polyfill_debug", true, false);
@@ -379,15 +383,11 @@ void BrowserClient::OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame>
             injectJs(browser, "https://local_js/hbbtv_polyfill", true, false);
         }
 
-        // set zoom level: 150% means Full HD 1920 x 1080 px
-        auto frame = browser->GetMainFrame();
-        frame->ExecuteJavaScript("document.body.style.setProperty('zoom', '150%');", frame->GetURL(), 0);
-
-        // TEST
-        // frame->ExecuteJavaScript("var request_id = window.cefQuery({ request: 'HelloCefQuery', persistent: false, onSuccess: function(response) {}, onFailure: function(error_code, error_message) {} }); window.cefQueryCancel(request_id);", frame->GetURL(), 0);
-        // frame->ExecuteJavaScript("var request_id = window.cefQuery({ request: 'GiveMeMoney', persistent: false, onSuccess: function(response) {}, onFailure: function(error_code, error_message) {} }); window.cefQueryCancel(request_id);", frame->GetURL(), 0);
-        // TEST
+        injectJavascript = false;
     }
+
+    // set zoom level: 150% means Full HD 1920 x 1080 px
+    frame->ExecuteJavaScript("document.body.style.setProperty('zoom', '150%');", frame->GetURL(), 0);
 }
 
 void BrowserClient::OnLoadError(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefLoadHandler::ErrorCode errorCode, const CefString &errorText, const CefString &failedUrl) {

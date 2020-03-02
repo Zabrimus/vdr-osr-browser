@@ -76,6 +76,7 @@ private:
     std::string exePath;
     HbbtvCurl hbbtvCurl;
     bool debugMode;
+    bool injectJavascript;
 
     JavascriptHandler *handler;
 
