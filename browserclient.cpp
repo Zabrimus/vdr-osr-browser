@@ -263,6 +263,8 @@ CefRefPtr<CefResourceRequestHandler> BrowserClient::GetResourceRequestHandler(Ce
 
     auto url = request->GetURL().ToString();
 
+    DBG("-- Load: %s\n", request->GetURL().ToString().c_str());
+
     // test at first for internal requests
     if (url.find("https://local_js/") != std::string::npos || url.find("https://local_css/") != std::string::npos) {
         return this;
