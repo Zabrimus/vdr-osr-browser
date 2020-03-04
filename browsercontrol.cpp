@@ -73,8 +73,6 @@ void BrowserControl::Start(std::string socketUrl) {
         if (bytes > 0) {
             bool successful = true;
 
-            fprintf(stderr, "Command received.\n");
-
             if (strncmp("URL", buf, 3) == 0 && bytes >= 5) {
                 fprintf(stderr, "URL: %s\n", buf+4);
 

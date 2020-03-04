@@ -131,8 +131,6 @@ void HbbtvCurl::LoadUrl(std::string url, std::map<std::string, std::string>* hea
             curl_easy_perform(curl_handle);
         }
 
-        DBG("Size %ld\n", contentdata.size);
-
         response_content =  std::string(contentdata.memory, contentdata.size);
     }
 
@@ -232,6 +230,7 @@ void JavascriptHandler::OnQueryCanceled(CefRefPtr<CefBrowser> browser, CefRefPtr
 BrowserClient::BrowserClient(OSRHandler *renderHandler, bool debug) {
     m_renderHandler = renderHandler;
     debugMode = debug;
+    injectJavascript = true;
 
     mimeTypes.insert(std::pair<std::string, std::string>("hbbtv", "application/vnd.hbbtv.xhtml+xml"));
     mimeTypes.insert(std::pair<std::string, std::string>("cehtml", "application/ce-html+xml"));
@@ -263,7 +262,12 @@ CefRefPtr<CefResourceRequestHandler> BrowserClient::GetResourceRequestHandler(Ce
 
     auto url = request->GetURL().ToString();
 
-    DBG("-- Load: %s\n", request->GetURL().ToString().c_str());
+    // disable xiti and ioam
+    if (url.find(".xiti.com") != std::string::npos || url.find(".ioam.de") != std::string::npos) {
+        return this;
+    }
+
+    DBG("-- Load: %s\n", url.c_str());
 
     // test at first for internal requests
     if (url.find("https://local_js/") != std::string::npos || url.find("https://local_css/") != std::string::npos) {
@@ -378,14 +382,12 @@ void BrowserClient::OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame>
 
     if (mode == 2 && injectJavascript) {
 
-        // inject Javascript
+        // inject Javascripttram
         if (debugMode) {
             injectJs(browser, "https://local_js/hbbtv_polyfill_debug", true, false);
         } else {
             injectJs(browser, "https://local_js/hbbtv_polyfill", true, false);
         }
-
-        injectJavascript = false;
     }
 
     // set zoom level: 150% means Full HD 1920 x 1080 px
@@ -411,6 +413,10 @@ bool BrowserClient::ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr<CefC
         auto url = request->GetURL().ToString();
         bool localJs = url.find(js) != std::string::npos;
         bool localCss = url.find(css) != std::string::npos;
+
+        if (url.find(".xiti.com") != std::string::npos || url.find(".ioam.de") != std::string::npos) {
+            return false;
+        }
 
         if (localJs || localCss) {
             char result[ PATH_MAX ];
