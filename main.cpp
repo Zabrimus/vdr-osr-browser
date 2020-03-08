@@ -37,9 +37,7 @@ MainApp::~MainApp() {
 }
 
 void MainApp::OnBeforeCommandLineProcessing(const CefString& process_type, CefRefPtr<CefCommandLine> command_line) {
-    if (command_line->HasSwitch("autoplay")) {
-        command_line->AppendSwitchWithValue("autoplay-policy", "no-user-gesture-required");
-    }
+    command_line->AppendSwitchWithValue("autoplay-policy", "no-user-gesture-required");
 }
 
 void MainApp::OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefV8Context> context) {
