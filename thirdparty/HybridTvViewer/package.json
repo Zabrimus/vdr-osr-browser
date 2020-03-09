@@ -1,0 +1,15 @@
+{
+  "name": "hybridtv-dev-environment",
+  "version": "0.0.1",
+  "description": "Polyfill to add basic HbbTV functionality to a browser.",
+  "scripts": {
+    "build": "./node_modules/.bin/webpack --config webpack.config.js"
+  },
+  "devDependencies": {
+    "webpack": "^4.39.2",
+    "webpack-cli": "^3.3.6"
+  },
+  "dependencies": {
+    "dashjs": "^3.0.0"
+  }
+}

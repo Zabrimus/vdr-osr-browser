@@ -21,13 +21,15 @@
 
 #include "osrhandler.h"
 
+class BrowserControl;
+
 class HbbtvCurl {
 public:
     HbbtvCurl();
     ~HbbtvCurl();
 
-    std::string ReadContentType(std::string url);
-    void LoadUrl(std::string url, std::map<std::string, std::string>* header);
+    std::string ReadContentType(std::string url, CefRequest::HeaderMap headers);
+    void LoadUrl(std::string url, CefRequest::HeaderMap headers);
     std::map<std::string, std::string> GetResponseHeader() { return response_header; }
     std::string GetResponseContent() { return response_content; }
     std::string GetRedirectUrl() { return redirect_url; }
@@ -57,9 +59,13 @@ public:
                                  CefRefPtr<CefFrame> frame,
                                  int64 query_id) override;
 
+    void SetBrowserControl(BrowserControl *ctl) { this->browserControl = ctl; }
+
 private:
     int socketId;
     int endpointId;
+    BrowserControl *browserControl;
+
 };
 
 class BrowserClient : public CefClient,
@@ -92,7 +98,8 @@ private:
 
     bool loadingStart;
 
-    void injectJs(CefRefPtr<CefBrowser> browser, std::string url, bool sync, bool headerStart);
+    void injectJs(CefRefPtr<CefBrowser> browser, std::string url, bool sync, bool headerStart, std::string htmlid);
+    void injectJsModule(CefRefPtr<CefBrowser> browser, std::string url, std::string htmlid);
 
     inline std::string readFile(const std::string path) {
         std::ostringstream buf; std::ifstream input (path.c_str()); buf << input.rdbuf(); return buf.str();
@@ -103,6 +110,7 @@ public:
     ~BrowserClient();
 
     void setLoadingStart(bool loading);
+    void setBrowserControl(BrowserControl *ctl) { this->handler->SetBrowserControl(ctl); }
 
     // getter for the different handler
     CefRefPtr<CefRequestHandler> GetRequestHandler() override { return this; }

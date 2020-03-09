@@ -19,6 +19,7 @@
 #include <nanomsg/reqrep.h>
 
 #include "browsercontrol.h"
+#include "browserclient.h"
 
 // #define DEBUG_JS
 
@@ -27,11 +28,14 @@ BrowserControl::BrowserControl(CefRefPtr<CefBrowser> _browser, OSRHandler* osrHa
     handler = osrHandler;
     browserClient = client;
 
+    browserClient->setBrowserControl(this);
+
     socketId = -1;
     endpointId = -1;
 }
 
-BrowserControl::~BrowserControl() = default;
+BrowserControl::~BrowserControl() {
+};
 
 void BrowserControl::LoadURL(const CefString& url) {
     if (browser->GetMainFrame()->GetURL().compare(url)) {

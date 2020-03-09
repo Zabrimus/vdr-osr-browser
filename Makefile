@@ -1,3 +1,12 @@
+# useful make targets
+#
+# make or make all  (compile all source files and creates the Release folder containing all binaries)
+# make clean        (deletes all compiled files and the Release folder)
+# make prepare      (Downloads the Spotify build and install all files into /opt/cef, not needed if using libcef from ppa)
+# make preparejs    (prepares compilation of javascript files)
+# make buildjs		(compiles javascript files and install them in Release and js folder)
+# make cleanjs		(deletes all not needed files in thirdparty/HybridTvViewer)
+
 CEF_VERSION   = 80.0.4+g74f7b0c+chromium-80.0.3987.122
 CEF_INSTALL_DIR = /opt/cef
 
@@ -73,6 +82,21 @@ ifneq (exists, $(shell test -e thirdparty/nng-1.2.6/build/libnng.a && echo exist
 	$(MAKE) -C thirdparty/nng-1.2.6/build -j 6
 endif
 
+preparejs:
+	cd thirdparty/HybridTvViewer && npm i
+
+buildjs:
+	cd thirdparty/HybridTvViewer && npm run build
+	cp thirdparty/HybridTvViewer/build/* js
+ifeq (exists, $(shell test -e Release/js/hbbtv_polyfill.js && echo exists))
+	cp thirdparty/HybridTvViewer/build/* Release/js
+endif
+
+cleanjs:
+	rm -Rf thirdparty/HybridTvViewer/build
+	rm -Rf thirdparty/HybridTvViewer/node_modules
+	rm thirdparty/HybridTvViewer/package-lock.json
+
 .cpp.o:
 	$(CC) $(CFLAGS) $(NNGCFLAGS) -MMD $< -o $@
 
@@ -103,4 +127,5 @@ prepare:
 	ldconfig
 
 debugremote: all
-	cd Release && ./cefsimple --remote-debugging-port=9222 --user-data-dir=remote-profile
+	cd Release && gdbserver localhost:2345  ./vdrosrbrowser --debug --autoplay --remote-debugging-port=9222 --user-data-dir=remote-profile
+

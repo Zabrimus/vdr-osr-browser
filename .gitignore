@@ -2,4 +2,6 @@
 .idea
 Release
 compile_commands.json
-
+thirdparty/HybridTvViewer/build
+thirdparty/HybridTvViewer/node_modules
+thirdparty/HybridTvViewer/package-lock.json

@@ -18,6 +18,10 @@
 #include "browserclient.h"
 #include "include/wrapper/cef_helpers.h"
 #include "globals.h"
+#include "browsercontrol.h"
+
+// hbbtv library version (v1, v2 or v3)
+const int hbbtvLibraryVersion = 1;
 
 // to enable much more debug data output to stderr, set this variable to true
 static bool DumpDebugData = true;
@@ -41,9 +45,21 @@ HbbtvCurl::~HbbtvCurl() {
     curl_global_cleanup();
 }
 
-std::string HbbtvCurl::ReadContentType(std::string url) {
+std::string HbbtvCurl::ReadContentType(std::string url, CefRequest::HeaderMap headers) {
     char *headerdata = (char*)malloc(HEADERSIZE);
     memset(headerdata, 0, HEADERSIZE);
+
+    // set headers as requested
+    struct curl_slist *headerChunk = NULL;
+
+    for (auto itr = headers.begin(); itr != headers.end(); itr++) {
+        std::string headerLine;
+        headerLine.append(itr->first.ToString().c_str());
+        headerLine.append(":");
+        headerLine.append(itr->second.ToString().c_str());
+
+        headerChunk = curl_slist_append(headerChunk, headerLine.c_str());
+    }
 
     CURL *curl_handle;
     CURLcode res;
@@ -53,6 +69,7 @@ std::string HbbtvCurl::ReadContentType(std::string url) {
     curl_easy_setopt(curl_handle, CURLOPT_URL, url.c_str());
     curl_easy_setopt(curl_handle, CURLOPT_NOPROGRESS, 1L);
     curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, USER_AGENT);
+    curl_easy_setopt(curl_handle, CURLOPT_HTTPHEADER, headerChunk);
 
     curl_easy_setopt(curl_handle, CURLOPT_NOBODY, 1L);
     curl_easy_setopt(curl_handle, CURLOPT_HEADERFUNCTION, WriteHeaderCallback);
@@ -86,13 +103,29 @@ std::string HbbtvCurl::ReadContentType(std::string url) {
     return contentType;
 }
 
-void HbbtvCurl::LoadUrl(std::string url, std::map<std::string, std::string>* header) {
+void HbbtvCurl::LoadUrl(std::string url, CefRequest::HeaderMap headers) {
     struct MemoryStruct contentdata {
             (char*)malloc(1), 0
     };
 
     char *headerdata = (char*)malloc(HEADERSIZE);
     memset(headerdata, 0, HEADERSIZE);
+
+    // set headers as requested
+    struct curl_slist *headerChunk = NULL;
+
+
+    // DBG("Headers:\n");
+    for (auto itr = headers.begin(); itr != headers.end(); itr++) {
+        std::string headerLine;
+        headerLine.append(itr->first.ToString().c_str());
+        headerLine.append(":");
+        headerLine.append(itr->second.ToString().c_str());
+
+        // DBG("    - %s\n", headerLine.c_str());
+
+        headerChunk = curl_slist_append(headerChunk, headerLine.c_str());
+    }
 
     CURL *curl_handle;
     CURLcode res;
@@ -102,6 +135,7 @@ void HbbtvCurl::LoadUrl(std::string url, std::map<std::string, std::string>* hea
     curl_easy_setopt(curl_handle, CURLOPT_URL, url.c_str());
     curl_easy_setopt(curl_handle, CURLOPT_NOPROGRESS, 1L);
     curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, USER_AGENT);
+    curl_easy_setopt(curl_handle, CURLOPT_HTTPHEADER, headerChunk);
     // curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 1L);
 
     curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, WriteContentCallback);
@@ -211,11 +245,12 @@ bool JavascriptHandler::OnQuery(CefRefPtr<CefBrowser> browser,
         auto bytes = nn_send(socketId, request.ToString().c_str() + 4, strlen(request.ToString().c_str()) - 3, 0);
         return true;
     } else {
-        if (request == "HelloCefQuery") {
-            callback->Success("HelloCefQuery Ok");
-            return true;
-        } else if (request == "GiveMeMoney") {
-            callback->Failure(404, "There are none thus query!");
+        if (strncmp(request.ToString().c_str(), "PLAY_VIDEO:", 11) == 0) {
+            // disable update and signal VDR
+            browserControl->PauseRender();
+            auto bytes = nn_send(socketId, request.ToString().c_str(), strlen(request.ToString().c_str()) + 1, 0);
+
+            DBG("Play Video URL: %s\n", request.ToString().c_str() + 11);
             return true;
         }
     }
@@ -267,18 +302,27 @@ CefRefPtr<CefResourceRequestHandler> BrowserClient::GetResourceRequestHandler(Ce
         return this;
     }
 
-    DBG("-- Load: %s\n", url.c_str());
+    DBG("-- Load URL: %s, is_navigation=%s\n", url.c_str(), is_navigation ? "ja" : "nein");
 
     // test at first for internal requests
-    if (url.find("https://local_js/") != std::string::npos || url.find("https://local_css/") != std::string::npos) {
+    if (url.find("https://local_js/") != std::string::npos || url.find("http://local_js/") != std::string::npos ||
+        url.find("https://local_css/") != std::string::npos || url.find("http://local_css/") != std::string::npos) {
         return this;
     }
 
-    if (!is_navigation) {
-        injectJavascript = false;
-        return CefRequestHandler::GetResourceRequestHandler(browser, frame, request, is_navigation, is_download, request_initiator, disable_default_handling);
-    } else {
+    // TEST
+    // javascript
+    if (url.find(".js") != std::string::npos) {
+        return this;
+    }
+
+    bool isVideo = (url.find(".mp4") != std::string::npos) || (url.find(".mpd") != std::string::npos);
+
+    if (is_navigation && !isVideo) {
         injectJavascript = true;
+    } else {
+        return CefRequestHandler::GetResourceRequestHandler(browser, frame, request, is_navigation, is_download,
+                                                            request_initiator, disable_default_handling);
     }
 
     return this;
@@ -295,7 +339,8 @@ CefRefPtr<CefResourceHandler> BrowserClient::GetResourceHandler(CefRefPtr<CefBro
         auto url = request->GetURL().ToString();
 
         // test at first internal requests
-        if (url.find("https://local_js/") != std::string::npos || url.find("https://local_css/") != std::string::npos) {
+        if (url.find("https://local_js/") != std::string::npos || url.find("http://local_js/") != std::string::npos ||
+            url.find("https://local_css/") != std::string::npos || url.find("http://local_css/") != std::string::npos) {
             return this;
         }
 
@@ -343,8 +388,11 @@ CefRefPtr<CefResourceHandler> BrowserClient::GetResourceHandler(CefRefPtr<CefBro
             // use default handler
             return CefResourceRequestHandler::GetResourceHandler(browser, frame, request);
         } else {
+            CefRequest::HeaderMap headers;
+            request->GetHeaderMap(headers);
+
             // read the content type
-            std::string ct = hbbtvCurl.ReadContentType(url);
+            std::string ct = hbbtvCurl.ReadContentType(url, headers);
 
             bool isHbbtvHtml = false;
             for (auto const &item : mimeTypes) {
@@ -371,23 +419,22 @@ CefRefPtr<CefResourceHandler> BrowserClient::GetResourceHandler(CefRefPtr<CefBro
 
 // CefLoadHandler
 void BrowserClient::OnLoadStart(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefLoadHandler::TransitionType transition_type) {
+    DBG("ON LOAD START\n");
+
     CefLoadHandler::OnLoadStart(browser, frame, transition_type);
 }
 
 void BrowserClient::OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, int httpStatusCode) {
-    fprintf(stderr, "ON LOAD END\n");
+    DBG("ON LOAD END mode=%d, injectJavascript=%s\n", mode, injectJavascript ? "ja" : "nein");
 
     CEF_REQUIRE_UI_THREAD();
     loadingStart = false;
 
     if (mode == 2 && injectJavascript) {
-
-        // inject Javascripttram
-        if (debugMode) {
-            injectJs(browser, "https://local_js/hbbtv_polyfill_debug", true, false);
-        } else {
-            injectJs(browser, "https://local_js/hbbtv_polyfill", true, false);
-        }
+        // inject Javascript
+        DBG("Inject javascript\n");
+        injectJs(browser, "https://local_js/hbbtv_polyfill", true, false, "cef_hbbtvpolyfill");
+        injectJavascript = false;
     }
 
     // set zoom level: 150% means Full HD 1920 x 1080 px
@@ -403,7 +450,7 @@ void BrowserClient::OnLoadError(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFram
 
 // CefResourceHandler
 bool BrowserClient::ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr<CefCallback> callback) {
-    fprintf(stderr, "PROCESS REQUEST %s\n", request->GetURL().ToString().c_str());
+    DBG("PROCESS REQUEST %s\n", request->GetURL().ToString().c_str());
 
     {
         auto js = std::string("https://local_js/");
@@ -415,20 +462,28 @@ bool BrowserClient::ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr<CefC
         bool localCss = url.find(css) != std::string::npos;
 
         if (url.find(".xiti.com") != std::string::npos || url.find(".ioam.de") != std::string::npos) {
+            DBG("Disabled: %s\n", url.c_str());
             return false;
         }
+
+        DBG("Enabled: %s\n", url.c_str());
 
         if (localJs || localCss) {
             char result[ PATH_MAX ];
             ssize_t count = readlink( "/proc/self/exe", result, PATH_MAX );
             auto exe = std::string(result, static_cast<unsigned long>((count > 0) ? count : 0));
-
         }
 
         if (localJs) {
             auto file = url.substr(js.length());
             auto _tmp = exePath;
-            auto url = _tmp.append("/js/").append(file).append(".js");
+
+            auto url = _tmp.append("/js");
+            if (file.find(".js.map") != std::string::npos) {
+                url = url.append(file);
+            } else {
+                url = url.append(file).append(".js");
+            }
             responseContent = readFile(url);
 
             responseHeader.clear();
@@ -445,11 +500,21 @@ bool BrowserClient::ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr<CefC
             responseHeader.insert(std::pair<std::string, std::string>("Content-Type", "text/css"));
             responseHeader.insert(std::pair<std::string, std::string>("Status", "200 OK"));
         } else {
-            hbbtvCurl.LoadUrl(url, nullptr);
+            CefRequest::HeaderMap headers;
+            request->GetHeaderMap(headers);
+
+            hbbtvCurl.LoadUrl(url, headers);
 
             responseHeader = hbbtvCurl.GetResponseHeader();
             responseContent = hbbtvCurl.GetResponseContent();
             redirectUrl = hbbtvCurl.GetRedirectUrl();
+
+            /*
+            DBG("Response Headers:\n");
+            for (auto const& header : responseHeader) {
+                DBG("     - %s: %s\n", header.first.c_str(), header.second.c_str());
+            }
+            */
         }
     }
 
@@ -549,15 +614,17 @@ void BrowserClient::setLoadingStart(bool loading) {
     loadingStart = loading;
 }
 
-void BrowserClient::injectJs(CefRefPtr<CefBrowser> browser, std::string url, bool defer, bool headerStart) {
+void BrowserClient::injectJs(CefRefPtr<CefBrowser> browser, std::string url, bool defer, bool headerStart, std::string htmlid) {
     std::ostringstream stringStream;
 
-    stringStream <<  "(function(d){var e=d.createElement('script');";
+    stringStream <<  "(function(d){if (document.getElementById('";
+    stringStream <<  htmlid << "') == null) { var e=d.createElement('script');";
 
     if (defer) {
         stringStream << "e.setAttribute('defer','defer');";
     }
 
+    stringStream << "e.setAttribute('id','" << htmlid <<"');";
     stringStream << "e.setAttribute('type','text/javascript');e.setAttribute('src','" << url << "');";
 
     if (headerStart) {
@@ -566,12 +633,30 @@ void BrowserClient::injectJs(CefRefPtr<CefBrowser> browser, std::string url, boo
         stringStream << "d.head.appendChild(e)";
     }
 
-    stringStream << "}(document));";
+    stringStream << "}}(document));";
 
     auto script = stringStream.str();
     auto frame = browser->GetMainFrame();
     frame->ExecuteJavaScript(script, frame->GetURL(), 0);
 }
+
+void BrowserClient::injectJsModule(CefRefPtr<CefBrowser> browser, std::string url, std::string htmlid) {
+    std::ostringstream stringStream;
+
+    stringStream << "(function(d){if (document.getElementById('" << htmlid << "') == null) {";
+    stringStream << "var e=d.createElement('script');";
+    stringStream << "e.setAttribute('type','module');";
+    stringStream << "e.setAttribute('src','" << url <<"');";
+    stringStream << "e.setAttribute('id','" << htmlid <<"');";
+    // stringStream << "d.head.insertBefore(e, d.head.firstChild)";
+    stringStream << "d.head.appendChild(e)";
+    stringStream << "}}(document));";
+
+    auto script = stringStream.str();
+    auto frame = browser->GetMainFrame();
+    frame->ExecuteJavaScript(script, frame->GetURL(), 0);
+}
+
 
 void BrowserClient::initJavascriptCallback() {
     // register javascript callback
@@ -584,4 +669,3 @@ void BrowserClient::initJavascriptCallback() {
     browser_side_router = CefMessageRouterBrowserSide::Create(config);
     browser_side_router->AddHandler(handler, true);
 }
-
