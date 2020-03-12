@@ -135,6 +135,7 @@ int main(int argc, char *argv[]) {
     browser = CefBrowserHost::CreateBrowserSync(window_info, browserClient.get(), initUrl ? initUrl->c_str() : "", browserSettings, nullptr, nullptr);
 
     browser->GetHost()->WasHidden(true);
+    browser->GetHost()->SetAudioMuted(true);
 
     if (initUrl) {
         delete initUrl;

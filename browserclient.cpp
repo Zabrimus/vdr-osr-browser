@@ -20,9 +20,6 @@
 #include "globals.h"
 #include "browsercontrol.h"
 
-// hbbtv library version (v1, v2 or v3)
-const int hbbtvLibraryVersion = 1;
-
 // to enable much more debug data output to stderr, set this variable to true
 static bool DumpDebugData = true;
 #define DBG(a...) if (DumpDebugData) fprintf(stderr, a)
@@ -149,7 +146,7 @@ void HbbtvCurl::LoadUrl(std::string url, CefRequest::HeaderMap headers) {
     if (res == CURLE_OK) {
         char *redir_url = nullptr;
         curl_easy_getinfo(curl_handle, CURLINFO_REDIRECT_URL, &redir_url);
-        if (redir_url) {
+        while (res == CURLE_OK && redir_url) {
             // clear buffer
             memset(headerdata, 0, HEADERSIZE);
 
@@ -162,7 +159,8 @@ void HbbtvCurl::LoadUrl(std::string url, CefRequest::HeaderMap headers) {
             // reload url
             redirect_url = redir_url;
             curl_easy_setopt(curl_handle, CURLOPT_URL, redir_url);
-            curl_easy_perform(curl_handle);
+            res = curl_easy_perform(curl_handle);
+            curl_easy_getinfo(curl_handle, CURLINFO_REDIRECT_URL, &redir_url);
         }
 
         response_content =  std::string(contentdata.memory, contentdata.size);
@@ -247,7 +245,9 @@ bool JavascriptHandler::OnQuery(CefRefPtr<CefBrowser> browser,
     } else {
         if (strncmp(request.ToString().c_str(), "PLAY_VIDEO:", 11) == 0) {
             // disable update and signal VDR
-            browserControl->PauseRender();
+            // browserControl->BrowserStopLoad();
+            // browserControl->BrowserBack();
+            // browserControl->PauseRender();
             auto bytes = nn_send(socketId, request.ToString().c_str(), strlen(request.ToString().c_str()) + 1, 0);
 
             DBG("Play Video URL: %s\n", request.ToString().c_str() + 11);
@@ -302,23 +302,14 @@ CefRefPtr<CefResourceRequestHandler> BrowserClient::GetResourceRequestHandler(Ce
         return this;
     }
 
-    DBG("-- Load URL: %s, is_navigation=%s\n", url.c_str(), is_navigation ? "ja" : "nein");
+    // DBG("-- Load URL: %s, is_navigation=%s\n", url.c_str(), is_navigation ? "ja" : "nein");
 
     // test at first for internal requests
-    if (url.find("https://local_js/") != std::string::npos || url.find("http://local_js/") != std::string::npos ||
-        url.find("https://local_css/") != std::string::npos || url.find("http://local_css/") != std::string::npos) {
+    if ((url.find("https://local_js/") != std::string::npos) || (url.find("https://local_css/") != std::string::npos)) {
         return this;
     }
 
-    // TEST
-    // javascript
-    if (url.find(".js") != std::string::npos) {
-        return this;
-    }
-
-    bool isVideo = (url.find(".mp4") != std::string::npos) || (url.find(".mpd") != std::string::npos);
-
-    if (is_navigation && !isVideo) {
+    if (is_navigation) {
         injectJavascript = true;
     } else {
         return CefRequestHandler::GetResourceRequestHandler(browser, frame, request, is_navigation, is_download,
@@ -339,8 +330,7 @@ CefRefPtr<CefResourceHandler> BrowserClient::GetResourceHandler(CefRefPtr<CefBro
         auto url = request->GetURL().ToString();
 
         // test at first internal requests
-        if (url.find("https://local_js/") != std::string::npos || url.find("http://local_js/") != std::string::npos ||
-            url.find("https://local_css/") != std::string::npos || url.find("http://local_css/") != std::string::npos) {
+        if ((url.find("https://local_js/") != std::string::npos) || (url.find("https://local_css/") != std::string::npos)) {
             return this;
         }
 
@@ -433,7 +423,7 @@ void BrowserClient::OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame>
     if (mode == 2 && injectJavascript) {
         // inject Javascript
         DBG("Inject javascript\n");
-        injectJs(browser, "https://local_js/hbbtv_polyfill", true, false, "cef_hbbtvpolyfill");
+        injectJs(browser, "https://local_js/hbbtv_polyfill", false, false, "cef_hbbtvpolyfill");
         injectJavascript = false;
     }
 
@@ -462,11 +452,8 @@ bool BrowserClient::ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr<CefC
         bool localCss = url.find(css) != std::string::npos;
 
         if (url.find(".xiti.com") != std::string::npos || url.find(".ioam.de") != std::string::npos) {
-            DBG("Disabled: %s\n", url.c_str());
             return false;
         }
-
-        DBG("Enabled: %s\n", url.c_str());
 
         if (localJs || localCss) {
             char result[ PATH_MAX ];
@@ -478,12 +465,13 @@ bool BrowserClient::ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr<CefC
             auto file = url.substr(js.length());
             auto _tmp = exePath;
 
-            auto url = _tmp.append("/js");
+            auto url = _tmp.append("/js/");
             if (file.find(".js.map") != std::string::npos) {
                 url = url.append(file);
             } else {
                 url = url.append(file).append(".js");
             }
+
             responseContent = readFile(url);
 
             responseHeader.clear();

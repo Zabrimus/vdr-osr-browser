@@ -28597,7 +28597,6 @@ class OipfAVControlMapper {
     registerVideoPlayerEvents(objectElement, videoElement) {
         videoElement && videoElement.addEventListener && videoElement.addEventListener('playing', function () {
             _DEBUG_ && console.log('hbbtv-polyfill: )))))) play');
-            window.signalVdr("PLAY VIDEO");
 
             objectElement.playState = PLAY_STATES.playing;
             if (objectElement.onPlayStateChange) {
@@ -28612,7 +28611,6 @@ class OipfAVControlMapper {
 
         videoElement && videoElement.addEventListener && videoElement.addEventListener('pause', function () {
             _DEBUG_ && console.log('hbbtv-polyfill: pause');
-            window.signalVdr("PAUSE VIDEO");
 
             // ANSI CTA-2014-B
             // 5.7.1.f1 
@@ -28630,7 +28628,6 @@ class OipfAVControlMapper {
 
         videoElement && videoElement.addEventListener && videoElement.addEventListener('ended', function () {
             _DEBUG_ && console.log('hbbtv-polyfill: ended');
-            window.signalVdr("END VIDEO");
 
             objectElement.playState = 5;
             if (objectElement.onPlayStateChange) {
@@ -28645,7 +28642,6 @@ class OipfAVControlMapper {
 
         videoElement && videoElement.addEventListener && videoElement.addEventListener('error', function (e) {
             _DEBUG_ && console.log('hbbtv-polyfill: error', e.message, e);
-            window.signalVdr("ERROR VIDEO:" + JSON.stringify(e));
 
             objectElement.playState = PLAY_STATES.error;
             if (objectElement.onPlayStateChange) {
@@ -28673,7 +28669,6 @@ class OipfAVControlMapper {
             }
             objectElement.playPosition = pos;
             _DEBUG_ && console.log('hbbtv-polyfill: dispatchEvent PlayPositionChanged', pos);
-            window.signalVdr("POSITION VIDEO:" + pos);
             var playerEvent = new Event('PlayPositionChanged');
             playerEvent.position = pos;
             objectElement.dispatchEvent(playerEvent);
@@ -28684,7 +28679,6 @@ class OipfAVControlMapper {
             var playSpeed = videoElement.playbackRate;
 
             _DEBUG_ && console.log('hbbtv-polyfill: dispatchEvent PlaySpeedChanged', playSpeed);
-            window.signalVdr("SPEED VIDEO:" + playSpeed);
             var playerEvent = new Event('PlaySpeedChanged');
             playerEvent.speed = playSpeed;
             objectElement.dispatchEvent(playerEvent);
@@ -28694,7 +28688,6 @@ class OipfAVControlMapper {
         videoElement && videoElement.addEventListener && videoElement.addEventListener('seeked', function () {
             _DEBUG_ && console.log('hbbtv-polyfill: seeked');
             var pos = Math.floor(videoElement.currentTime * 1000);
-            window.signalVdr("SEEK VIDEO:" + pos);
             if (objectElement.onPlayPositionChanged) {
                 objectElement.playPosition = pos;
                 objectElement.PlayPositionChanged(pos);
@@ -28709,7 +28702,6 @@ class OipfAVControlMapper {
         videoElement && videoElement.addEventListener && videoElement.addEventListener('durationchange', function () {
             _DEBUG_ && console.log('hbbtv-polyfill: durationchanged');
             objectElement.playTime = videoElement.duration * 1000;
-            window.signalVdr("DURATION VIDEO:" + objectElement.playTime);
         }, false);
     }
 }
@@ -28734,7 +28726,22 @@ __webpack_require__.r(__webpack_exports__);
 
 
 // append play method to <object> tag
-HTMLObjectElement.prototype.play = () => { };
+HTMLObjectElement.prototype.play = () => {
+    try {
+        // get Video URL
+        var videoUrl =  document.getElementById('videocontainer').getElementsByTagName('object')[0].getAttribute('data');
+
+        // propagate Video URL
+        signalCef("PLAY_VIDEO:" + videoUrl);
+
+        // Stop playback
+        // FIXME: This is not a working solution. The playback does not really stop.
+        // document.dispatchEvent(new KeyboardEvent('keydown',{'keyCode':window.VK_STOP}));
+
+    } catch(err) {
+        console.error("No VideoURL found in videocontainer/object/data");
+    }
+};
 
 class VideoHandler {
     constructor() {
@@ -28811,7 +28818,6 @@ class VideoHandler {
         /*
            MutationObserver disabled to prevent all events, to be able to catch the video url.
         */
-        /* */
         this.mutationObserver = new MutationObserver(handleMutation);
         this.mutationObserver.observe(document.body, {
             'subtree': true,
@@ -28820,7 +28826,6 @@ class VideoHandler {
             'characterData': true,
             'attributeFilter': ["type"]
         });
-        /* */
     }
 }
 

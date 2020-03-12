@@ -52,6 +52,14 @@ void BrowserControl::ResumeRender() {
     browser->GetHost()->WasHidden(false);
 }
 
+void BrowserControl::BrowserBack() {
+    browser->GoBack();
+}
+
+void BrowserControl::BrowserStopLoad() {
+    browser->StopLoad();
+}
+
 void BrowserControl::Start(std::string socketUrl) {
     // bind socket
     if ((socketId = nn_socket(AF_SP, NN_REP)) < 0) {

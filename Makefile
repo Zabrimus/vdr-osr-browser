@@ -88,7 +88,7 @@ preparejs:
 buildjs:
 	cd thirdparty/HybridTvViewer && npm run build
 	cp thirdparty/HybridTvViewer/build/* js
-ifeq (exists, $(shell test -e Release/js/hbbtv_polyfill.js && echo exists))
+ifeq (exists, $(shell test -e Release/js/ && echo exists))
 	cp thirdparty/HybridTvViewer/build/* Release/js
 endif
 

@@ -30,6 +30,9 @@ public:
     void Start(std::string socketUrl);
     void Stop();
 
+    void BrowserBack();
+    void BrowserStopLoad();
+
     void sendKeyEvent(const char* keyCode);
 
 private:
