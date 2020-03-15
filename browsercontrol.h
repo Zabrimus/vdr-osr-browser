@@ -27,13 +27,15 @@ public:
     void PauseRender();
     void ResumeRender();
 
-    void Start(std::string socketUrl);
+    void Start();
     void Stop();
 
     void BrowserBack();
     void BrowserStopLoad();
 
     void sendKeyEvent(const char* keyCode);
+
+    void setStreamToFfmpeg(bool flag);
 
 private:
     CefRefPtr<CefBrowser> browser;

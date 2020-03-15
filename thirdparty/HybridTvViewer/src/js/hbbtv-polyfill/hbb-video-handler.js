@@ -2,22 +2,7 @@ import { OipfVideoBroadcastMapper } from "./video-broadcast-embedded-object";
 import { OipfAVControlMapper } from "./a-v-control-embedded-object";
 
 // append play method to <object> tag
-HTMLObjectElement.prototype.play = () => {
-    try {
-        // get Video URL
-        var videoUrl =  document.getElementById('videocontainer').getElementsByTagName('object')[0].getAttribute('data');
-
-        // propagate Video URL
-        signalCef("PLAY_VIDEO:" + videoUrl);
-
-        // Stop playback
-        // FIXME: This is not a working solution. The playback does not really stop.
-        // document.dispatchEvent(new KeyboardEvent('keydown',{'keyCode':window.VK_STOP}));
-
-    } catch(err) {
-        console.error("No VideoURL found in videocontainer/object/data");
-    }
-};
+HTMLObjectElement.prototype.play = () => {};
 
 export class VideoHandler {
     constructor() {

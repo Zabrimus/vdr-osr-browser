@@ -19,12 +19,15 @@
 #include "include/wrapper/cef_helpers.h"
 #include "globals.h"
 #include "browsercontrol.h"
+#include "globals.h"
 
 // to enable much more debug data output to stderr, set this variable to true
 static bool DumpDebugData = true;
 #define DBG(a...) if (DumpDebugData) fprintf(stderr, a)
 
 #define HEADERSIZE (4 * 1024)
+
+unsigned char CMD_STATUS = 1;
 
 struct MemoryStruct {
     char *memory;
@@ -213,20 +216,9 @@ size_t HbbtvCurl::WriteHeaderCallback(void *contents, size_t size, size_t nmemb,
 }
 
 JavascriptHandler::JavascriptHandler() {
-    auto streamUrl = std::string(VDR_STATUS_CHANNEL);
-
-    // bind socket
-    if ((socketId = nn_socket(AF_SP, NN_PUSH)) < 0) {
-        fprintf(stderr, "unable to create nanomsg socket\n");
-    }
-
-    if ((endpointId = nn_bind(socketId, streamUrl.c_str())) < 0) {
-        fprintf(stderr, "unable to bind nanomsg socket to %s\n", streamUrl.c_str());
-    }
 }
 
 JavascriptHandler::~JavascriptHandler() {
-    nn_close(socketId);
 }
 
 bool JavascriptHandler::OnQuery(CefRefPtr<CefBrowser> browser,
@@ -240,17 +232,32 @@ bool JavascriptHandler::OnQuery(CefRefPtr<CefBrowser> browser,
     DBG("Javascript called me: %s\n", request.ToString().c_str());
 
     if (strncmp(request.ToString().c_str(), "VDR:", 4) == 0) {
-        auto bytes = nn_send(socketId, request.ToString().c_str() + 4, strlen(request.ToString().c_str()) - 3, 0);
+        nn_send(Globals::GetToVdrSocket(), &CMD_STATUS, 1, 0);
+        nn_send(Globals::GetToVdrSocket(), request.ToString().c_str() + 4, strlen(request.ToString().c_str()) - 3, 0);
         return true;
     } else {
         if (strncmp(request.ToString().c_str(), "PLAY_VIDEO:", 11) == 0) {
-            // disable update and signal VDR
-            // browserControl->BrowserStopLoad();
-            // browserControl->BrowserBack();
-            // browserControl->PauseRender();
-            auto bytes = nn_send(socketId, request.ToString().c_str(), strlen(request.ToString().c_str()) + 1, 0);
+            DBG("Play video with duration: %s\n", request.ToString().c_str() + 11);
 
-            DBG("Play Video URL: %s\n", request.ToString().c_str() + 11);
+            nn_send(Globals::GetToVdrSocket(), &CMD_STATUS, 1, 0);
+            nn_send(Globals::GetToVdrSocket(), request.ToString().c_str(), strlen(request.ToString().c_str()) + 1, 0);
+
+            browserControl->setStreamToFfmpeg(true);
+            return true;
+        } else if (strncmp(request.ToString().c_str(), "PAUSE_VIDEO:", 11) == 0) {
+            DBG("Video streaming paused\n");
+
+            // TODO: Do something useful
+            return true;
+        } else if (strncmp(request.ToString().c_str(), "END_VIDEO:", 11) == 0) {
+            DBG("Video streaming ended\n");
+
+            browserControl->setStreamToFfmpeg(false);
+            return true;
+        } else if (strncmp(request.ToString().c_str(), "ERROR_VIDEO:", 11) == 0) {
+            DBG("Video playing throws an error\n");
+
+            // TODO: Do something useful
             return true;
         }
     }
@@ -307,6 +314,10 @@ CefRefPtr<CefResourceRequestHandler> BrowserClient::GetResourceRequestHandler(Ce
     // test at first for internal requests
     if ((url.find("https://local_js/") != std::string::npos) || (url.find("https://local_css/") != std::string::npos)) {
         return this;
+    }
+
+    if (url.find(".mp4", 0) != std::string::npos) {
+        DBG("Video URL: %s\n", url.c_str());
     }
 
     if (is_navigation) {

@@ -20,6 +20,7 @@
 
 #include "browsercontrol.h"
 #include "browserclient.h"
+#include "globals.h"
 
 // #define DEBUG_JS
 
@@ -60,25 +61,14 @@ void BrowserControl::BrowserStopLoad() {
     browser->StopLoad();
 }
 
-void BrowserControl::Start(std::string socketUrl) {
-    // bind socket
-    if ((socketId = nn_socket(AF_SP, NN_REP)) < 0) {
-        fprintf(stderr, "unable to create nanomsg socket\n");
-        exit(1);
-    }
-
-    if ((endpointId = nn_bind(socketId, socketUrl.c_str())) < 0) {
-        fprintf(stderr, "unable to bind nanomsg socket to %s\n", socketUrl.c_str());
-        exit(2);
-    }
-
+void BrowserControl::Start() {
     isRunning = true;
 
     while (isRunning) {
         char *buf = nullptr;
         int bytes;
 
-        if ((bytes = nn_recv(socketId, &buf, NN_MSG, 0)) < 0) {
+        if ((bytes = nn_recv(Globals::GetFromVdrSocket(), &buf, NN_MSG, 0)) < 0) {
             fprintf(stderr, "unable to read command from socket\n");
         }
 
@@ -138,12 +128,12 @@ void BrowserControl::Start(std::string socketUrl) {
             char *buffer;
             if (successful) {
                 asprintf(&buffer, "ok");
-                if ((bytes = nn_send(socketId, buffer, strlen(buffer) + 1, 0)) < 0) {
+                if ((bytes = nn_send(Globals::GetFromVdrSocket(), buffer, strlen(buffer) + 1, 0)) < 0) {
                     fprintf(stderr, "unable to send response\n");
                 }
             } else {
                 asprintf(&buffer, "unknown command '%s'\n", buf);
-                if ((bytes = nn_send(socketId, buffer, strlen(buffer) + 1, 0)) < 0) {
+                if ((bytes = nn_send(Globals::GetFromVdrSocket(), buffer, strlen(buffer) + 1, 0)) < 0) {
                     fprintf(stderr, "unable to send response\n");
                 }
             }
@@ -155,6 +145,10 @@ void BrowserControl::Start(std::string socketUrl) {
 
 void BrowserControl::Stop() {
     isRunning = false;
+}
+
+void BrowserControl::setStreamToFfmpeg(bool flag) {
+    handler->setStreamToFfmpeg(flag);
 }
 
 void BrowserControl::sendKeyEvent(const char* keyCode) {

@@ -23,6 +23,7 @@
 #include "osrhandler.h"
 #include "browserclient.h"
 #include "browsercontrol.h"
+#include "globals.h"
 
 MainApp::MainApp() {
     CefMessageRouterConfig config;
@@ -62,8 +63,7 @@ std::string getexepath()
 }
 
 void startBrowserControl(BrowserControl ctrl) {
-    auto commandurl = std::string(VDR_COMMAND_CHANNEL);
-    ctrl.Start(commandurl);
+    ctrl.Start();
     kill(getpid(), SIGINT);
 }
 
@@ -144,6 +144,8 @@ int main(int argc, char *argv[]) {
     browserClient->initJavascriptCallback();
 
     BrowserControl browserControl(browser, osrHandler, browserClient);
+
+    Globals *globals = new Globals();
 
     {
         std::thread controlThread(startBrowserControl, browserControl);

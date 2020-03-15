@@ -19,6 +19,10 @@
 #include <nanomsg/pipeline.h>
 #include "globals.h"
 
+
+#define TO_VDR_CHANNEL "ipc:///tmp/vdrosr_tovdr.ipc"
+#define FROM_VDR_CHANNEL "ipc:///tmp/vdrosr_tobrowser.ipc"
+
 std::string url;
 std::string call;
 std::string mode;
@@ -151,7 +155,7 @@ int main(int argc, char **argv)
         exit(1);
     }
 
-    if ((endpointId = nn_connect(socketId, VDR_COMMAND_CHANNEL)) < 0) {
+    if ((endpointId = nn_connect(socketId, FROM_VDR_CHANNEL)) < 0) {
         fprintf(stderr, "Unable to connect to socket\n");
         exit(2);
     }
@@ -171,7 +175,7 @@ int main(int argc, char **argv)
         exit(1);
     }
 
-    if ((streamEndpointId = nn_connect(streamSocketId, VDR_STREAM_CHANNEL)) < 0) {
+    if ((streamEndpointId = nn_connect(streamSocketId, TO_VDR_CHANNEL)) < 0) {
         fprintf(stderr, "Unable to connect to stream socket\n");
         exit(2);
     }
@@ -232,6 +236,14 @@ int main(int argc, char **argv)
             while (1) {
                 // read count of dirty rects
                 unsigned long dirtyRecs = 0;
+                unsigned char type;
+
+                if ((bytes = nn_recv(streamSocketId, &type, 1, 0)) > 0) {
+                    if (type != 2) {
+                        continue;
+                    }
+                }
+
                 if ((bytes = nn_recv(streamSocketId, &dirtyRecs, sizeof(dirtyRecs), 0)) > 0) {
                     printf("Dirty Recs: %lu\n", dirtyRecs);
                 } else {

@@ -224,6 +224,9 @@ export class OipfAVControlMapper {
         videoElement && videoElement.addEventListener && videoElement.addEventListener('playing', function () {
             _DEBUG_ && console.log('hbbtv-polyfill: )))))) play');
 
+            // propagate Video URL
+            signalCef("PLAY_VIDEO:" + objectElement.duration);
+
             objectElement.playState = PLAY_STATES.playing;
             if (objectElement.onPlayStateChange) {
                 objectElement.onPlayStateChange(objectElement.playState);
@@ -237,6 +240,8 @@ export class OipfAVControlMapper {
 
         videoElement && videoElement.addEventListener && videoElement.addEventListener('pause', function () {
             _DEBUG_ && console.log('hbbtv-polyfill: pause');
+
+            signalCef("PAUSE_VIDEO");
 
             // ANSI CTA-2014-B
             // 5.7.1.f1 
@@ -255,6 +260,8 @@ export class OipfAVControlMapper {
         videoElement && videoElement.addEventListener && videoElement.addEventListener('ended', function () {
             _DEBUG_ && console.log('hbbtv-polyfill: ended');
 
+            signalCef("END_VIDEO");
+
             objectElement.playState = 5;
             if (objectElement.onPlayStateChange) {
                 objectElement.onPlayStateChange(objectElement.playState);
@@ -268,6 +275,8 @@ export class OipfAVControlMapper {
 
         videoElement && videoElement.addEventListener && videoElement.addEventListener('error', function (e) {
             _DEBUG_ && console.log('hbbtv-polyfill: error', e.message, e);
+
+            signalCef("ERROR_VIDEO");
 
             objectElement.playState = PLAY_STATES.error;
             if (objectElement.onPlayStateChange) {

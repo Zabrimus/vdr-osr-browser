@@ -28598,6 +28598,9 @@ class OipfAVControlMapper {
         videoElement && videoElement.addEventListener && videoElement.addEventListener('playing', function () {
             _DEBUG_ && console.log('hbbtv-polyfill: )))))) play');
 
+            // propagate Video URL
+            signalCef("PLAY_VIDEO:" + objectElement.duration);
+
             objectElement.playState = PLAY_STATES.playing;
             if (objectElement.onPlayStateChange) {
                 objectElement.onPlayStateChange(objectElement.playState);
@@ -28611,6 +28614,8 @@ class OipfAVControlMapper {
 
         videoElement && videoElement.addEventListener && videoElement.addEventListener('pause', function () {
             _DEBUG_ && console.log('hbbtv-polyfill: pause');
+
+            signalCef("PAUSE_VIDEO");
 
             // ANSI CTA-2014-B
             // 5.7.1.f1 
@@ -28629,6 +28634,8 @@ class OipfAVControlMapper {
         videoElement && videoElement.addEventListener && videoElement.addEventListener('ended', function () {
             _DEBUG_ && console.log('hbbtv-polyfill: ended');
 
+            signalCef("END_VIDEO");
+
             objectElement.playState = 5;
             if (objectElement.onPlayStateChange) {
                 objectElement.onPlayStateChange(objectElement.playState);
@@ -28642,6 +28649,8 @@ class OipfAVControlMapper {
 
         videoElement && videoElement.addEventListener && videoElement.addEventListener('error', function (e) {
             _DEBUG_ && console.log('hbbtv-polyfill: error', e.message, e);
+
+            signalCef("ERROR_VIDEO");
 
             objectElement.playState = PLAY_STATES.error;
             if (objectElement.onPlayStateChange) {
@@ -28726,22 +28735,7 @@ __webpack_require__.r(__webpack_exports__);
 
 
 // append play method to <object> tag
-HTMLObjectElement.prototype.play = () => {
-    try {
-        // get Video URL
-        var videoUrl =  document.getElementById('videocontainer').getElementsByTagName('object')[0].getAttribute('data');
-
-        // propagate Video URL
-        signalCef("PLAY_VIDEO:" + videoUrl);
-
-        // Stop playback
-        // FIXME: This is not a working solution. The playback does not really stop.
-        // document.dispatchEvent(new KeyboardEvent('keydown',{'keyCode':window.VK_STOP}));
-
-    } catch(err) {
-        console.error("No VideoURL found in videocontainer/object/data");
-    }
-};
+HTMLObjectElement.prototype.play = () => {};
 
 class VideoHandler {
     constructor() {

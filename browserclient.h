@@ -62,8 +62,6 @@ public:
     void SetBrowserControl(BrowserControl *ctl) { this->browserControl = ctl; }
 
 private:
-    int socketId;
-    int endpointId;
     BrowserControl *browserControl;
 
 };
