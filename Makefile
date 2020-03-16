@@ -23,10 +23,14 @@ SOURCES = main.cpp osrhandler.cpp browserclient.cpp browsercontrol.cpp videotran
 OBJECTS = $(SOURCES:.cpp=.o)
 
 SOURCES2 = osrclient.cpp
-OBJECTS2 = osrclient.cpp
+OBJECTS2 = $(SOURCES2:.cpp=.o)
+
+SOURCES3 = osrclientvideo.cpp globals.cpp
+OBJECTS3 = $(SOURCES3:.cpp=.o)
 
 EXECUTABLE  = vdrosrbrowser
 EXECUTABLE2  = vdrosrclient
+EXECUTABLE3  = vdrosrvideo
 
 # CEF (debian packaged or self-installed version)
 ifeq (exists, $(shell test -e /usr/include/x86_64-linux-gnu/cef/cef_app.h && echo exists))
@@ -47,15 +51,20 @@ LDFLAGS += $(shell pkg-config --libs libcurl)
 NNGCFLAGS  = -Ithirdparty/nng-1.2.6/include/nng/compat
 NNGLDFLAGS = thirdparty/nng-1.2.6/build/libnng.a
 
-all: prepareexe buildnng $(SOURCES) $(EXECUTABLE) $(EXECUTABLE2)
+all: prepareexe buildnng $(SOURCES) $(EXECUTABLE) $(EXECUTABLE2) $(EXECUTABLE3)
 
 $(EXECUTABLE): $(OBJECTS)
 	$(CC) $(OBJECTS) -o $@ $(LDFLAGS) $(NNGLDFLAGS)
 	mv $(EXECUTABLE) Release
 
 $(EXECUTABLE2): $(OBJECTS2)
-	$(CC) $(SOURCES2) $(NNGCFLAGS) -o $@ -pthread $(NNGLDFLAGS)
+	$(CC) $(OBJECTS2) $(NNGCFLAGS) -o $@ -pthread $(NNGLDFLAGS)
 	mv $(EXECUTABLE2) Release
+	cp -r js Release
+
+$(EXECUTABLE3): $(OBJECTS3)
+	$(CC) $(OBJECTS3) $(NNGCFLAGS) -o $@ -pthread $(NNGLDFLAGS)
+	mv $(EXECUTABLE3) Release
 	cp -r js Release
 
 prepareexe:
