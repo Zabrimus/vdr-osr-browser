@@ -70,7 +70,10 @@ int main(int argc, char **argv)
 {
     ProcessArgs(argc, argv);
 
+    fprintf(stderr, "Create Globals...\n");
     Globals *globals = new Globals();
+
+    fprintf(stderr, "Open video file...\n");
 
     unsigned char buffer[18800];
     FILE *ptr;
@@ -80,6 +83,8 @@ int main(int argc, char **argv)
         fputs ("File error", stderr);
         exit (1);
     }
+
+    fprintf(stderr, "Send video command to VDR...\n");
 
     nn_send(Globals::GetToVdrSocket(), &CMD_STATUS, 1, 0);
     nn_send(Globals::GetToVdrSocket(), "PLAY_VIDEO:10", 14 , 0);
