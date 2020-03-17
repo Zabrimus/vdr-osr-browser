@@ -31,6 +31,8 @@
 */
 /** global Application, oipfObjectFactory, oipfApplicationManager, oipfConfiguration, oipfCapabilities */
 
+var _DEBUG_ = false;
+
 export const hbbtvFn = function () {
     window.oipf = window.oipf || {};
 
@@ -39,7 +41,7 @@ export const hbbtvFn = function () {
     window.oipfObjectFactory = window.oipfObjectFactory || {};
 
     window.oipfObjectFactory.isObjectSupported = function (mimeType) {
-        console.log('hbbtv-polyfill: isObjectSupported(' + mimeType + ') ...');
+        _DEBUG_ && console.log('hbbtv-polyfill: isObjectSupported(' + mimeType + ') ...');
         return mimeType === 'video/broadcast' ||
             mimeType === 'video/mpeg' ||
             mimeType === 'application/oipfApplicationManager' ||
@@ -50,14 +52,14 @@ export const hbbtvFn = function () {
             mimeType === 'application/oipfSearchManager';
     };
     window.oipfObjectFactory.createVideoBroadcastObject = function () {
-        console.log('hbbtv-polyfill: createVideoBroadcastObject() ...');
+        _DEBUG_ && console.log('hbbtv-polyfill: createVideoBroadcastObject() ...');
         return class VideoBroadcastObject {
             bindToCurrentChannel() { }
             setChannel() { }
             onblur(evt) { }
             onfocus(evt) { }
-            addEventListener(eventName, callback, useCapture) { console.log('hbbtv-polyfill: createVideoBroadcastObject / addEventListener'); }
-            removeEventListener(eventName, callback, useCapture) { console.log('hbbtv-polyfill: createVideoBroadcastObject / addEventListener'); }
+            addEventListener(eventName, callback, useCapture) { _DEBUG_ && console.log('hbbtv-polyfill: createVideoBroadcastObject / addEventListener'); }
+            removeEventListener(eventName, callback, useCapture) { _DEBUG_ && console.log('hbbtv-polyfill: createVideoBroadcastObject / addEventListener'); }
             onPlayStateChange(evt) { }
             onPlaySpeedChanged(evt) { }
             onPlaySpeedsArrayChanged(evt) { }
@@ -69,12 +71,12 @@ export const hbbtvFn = function () {
         };
     };
     window.oipfObjectFactory.createVideoMpegObject = function () {
-        console.log('hbbtv-polyfill: createVideoMpegObject() ...');
+        _DEBUG_ && console.log('hbbtv-polyfill: createVideoMpegObject() ...');
         return class VideoMpegObject {
             onblur(evt) { }
             onfocus(evt) { }
-            addEventListener(eventName, callback, useCapture) { console.log('hbbtv-polyfill: createVideoBroadcastObject / addEventListener'); }
-            removeEventListener(eventName, callback, useCapture) { console.log('hbbtv-polyfill: createVideoBroadcastObject / addEventListener'); }
+            addEventListener(eventName, callback, useCapture) { _DEBUG_ && console.log('hbbtv-polyfill: createVideoBroadcastObject / addEventListener'); }
+            removeEventListener(eventName, callback, useCapture) { _DEBUG_ && console.log('hbbtv-polyfill: createVideoBroadcastObject / addEventListener'); }
             onPlayStateChange(evt) { }
             onPlaySpeedChanged(evt) { }
             onPlaySpeedsArrayChanged(evt) { }

@@ -8,7 +8,8 @@
 // import dashjs file --> we want it sync so don't pull from cdn ->  downside is we need a copy in repo TODO: fetch latest in build process
 import { MediaPlayer } from "dashjs";
 
-var _DEBUG_ = true;
+var _DEBUG_ = false;
+
 const PLAY_STATES = {
     stopped: 0,
     playing: 1,
@@ -57,6 +58,7 @@ export class OipfAVControlMapper {
             this.dashPlayer = MediaPlayer().create();
             this.dashPlayer.initialize(this.videoElement, originalDataAttribute, true);
         } else {
+            signalCef("Dies ist das Video: " + originalDataAttribute);
             this.videoElement.src = originalDataAttribute; // copy object data url to html5 video tag src attribute ...
         }
 
