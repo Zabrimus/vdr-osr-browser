@@ -58,7 +58,7 @@ export class OipfAVControlMapper {
             this.dashPlayer = MediaPlayer().create();
             this.dashPlayer.initialize(this.videoElement, originalDataAttribute, true);
         } else {
-            signalCef("Dies ist das Video: " + originalDataAttribute);
+            signalCef("VIDEO_URL:" + originalDataAttribute);
             this.videoElement.src = originalDataAttribute; // copy object data url to html5 video tag src attribute ...
         }
 

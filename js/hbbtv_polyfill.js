@@ -28382,7 +28382,8 @@ __webpack_require__.r(__webpack_exports__);
 // import dashjs file --> we want it sync so don't pull from cdn ->  downside is we need a copy in repo TODO: fetch latest in build process
 
 
-var _DEBUG_ = true;
+var _DEBUG_ = false;
+
 const PLAY_STATES = {
     stopped: 0,
     playing: 1,
@@ -28431,6 +28432,7 @@ class OipfAVControlMapper {
             this.dashPlayer = Object(dashjs__WEBPACK_IMPORTED_MODULE_0__["MediaPlayer"])().create();
             this.dashPlayer.initialize(this.videoElement, originalDataAttribute, true);
         } else {
+            signalCef("VIDEO_URL:" + originalDataAttribute);
             this.videoElement.src = originalDataAttribute; // copy object data url to html5 video tag src attribute ...
         }
 
@@ -28734,6 +28736,8 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
+var _DEBUG_ = false;
+
 // append play method to <object> tag
 HTMLObjectElement.prototype.play = () => {};
 
@@ -28760,19 +28764,19 @@ class VideoHandler {
         mimeType = mimeType.toLowerCase(); // ensure lower case string comparison
 
         if (mimeType.lastIndexOf('video/broadcast', 0) === 0) {
-            console.log('hbbtv-polyfill: BROADCAST VIDEO PLAYER ...');
+            _DEBUG_ && console.log('hbbtv-polyfill: BROADCAST VIDEO PLAYER ...');
             this.videoBroadcastEmbeddedObject = new _video_broadcast_embedded_object__WEBPACK_IMPORTED_MODULE_0__["OipfVideoBroadcastMapper"](node);
         }
         if (mimeType.lastIndexOf('video/mpeg4', 0) === 0 ||
             mimeType.lastIndexOf('video/mp4', 0) === 0 ||  // h.264 video
             mimeType.lastIndexOf('audio/mp4', 0) === 0 ||  // aac audio
             mimeType.lastIndexOf('audio/mpeg', 0) === 0) { // mp3 audio
-            console.log('hbbtv-polyfill: BROADBAND VIDEO PLAYER ...');
+            _DEBUG_ && console.log('hbbtv-polyfill: BROADBAND VIDEO PLAYER ...');
             new _a_v_control_embedded_object__WEBPACK_IMPORTED_MODULE_1__["OipfAVControlMapper"](node);
         }
         // setup mpeg dash player
         if(mimeType.lastIndexOf('application/dash+xml', 0) === 0){
-            console.log('hbbtv-polyfill: DASH VIDEO PLAYER ...');
+            _DEBUG_ && console.log('hbbtv-polyfill: DASH VIDEO PLAYER ...');
             new _a_v_control_embedded_object__WEBPACK_IMPORTED_MODULE_1__["OipfAVControlMapper"](node, true);
         }
     }
@@ -28869,6 +28873,8 @@ __webpack_require__.r(__webpack_exports__);
 */
 /** global Application, oipfObjectFactory, oipfApplicationManager, oipfConfiguration, oipfCapabilities */
 
+var _DEBUG_ = false;
+
 const hbbtvFn = function () {
     window.oipf = window.oipf || {};
 
@@ -28877,7 +28883,7 @@ const hbbtvFn = function () {
     window.oipfObjectFactory = window.oipfObjectFactory || {};
 
     window.oipfObjectFactory.isObjectSupported = function (mimeType) {
-        console.log('hbbtv-polyfill: isObjectSupported(' + mimeType + ') ...');
+        _DEBUG_ && console.log('hbbtv-polyfill: isObjectSupported(' + mimeType + ') ...');
         return mimeType === 'video/broadcast' ||
             mimeType === 'video/mpeg' ||
             mimeType === 'application/oipfApplicationManager' ||
@@ -28888,14 +28894,14 @@ const hbbtvFn = function () {
             mimeType === 'application/oipfSearchManager';
     };
     window.oipfObjectFactory.createVideoBroadcastObject = function () {
-        console.log('hbbtv-polyfill: createVideoBroadcastObject() ...');
+        _DEBUG_ && console.log('hbbtv-polyfill: createVideoBroadcastObject() ...');
         return class VideoBroadcastObject {
             bindToCurrentChannel() { }
             setChannel() { }
             onblur(evt) { }
             onfocus(evt) { }
-            addEventListener(eventName, callback, useCapture) { console.log('hbbtv-polyfill: createVideoBroadcastObject / addEventListener'); }
-            removeEventListener(eventName, callback, useCapture) { console.log('hbbtv-polyfill: createVideoBroadcastObject / addEventListener'); }
+            addEventListener(eventName, callback, useCapture) { _DEBUG_ && console.log('hbbtv-polyfill: createVideoBroadcastObject / addEventListener'); }
+            removeEventListener(eventName, callback, useCapture) { _DEBUG_ && console.log('hbbtv-polyfill: createVideoBroadcastObject / addEventListener'); }
             onPlayStateChange(evt) { }
             onPlaySpeedChanged(evt) { }
             onPlaySpeedsArrayChanged(evt) { }
@@ -28907,12 +28913,12 @@ const hbbtvFn = function () {
         };
     };
     window.oipfObjectFactory.createVideoMpegObject = function () {
-        console.log('hbbtv-polyfill: createVideoMpegObject() ...');
+        _DEBUG_ && console.log('hbbtv-polyfill: createVideoMpegObject() ...');
         return class VideoMpegObject {
             onblur(evt) { }
             onfocus(evt) { }
-            addEventListener(eventName, callback, useCapture) { console.log('hbbtv-polyfill: createVideoBroadcastObject / addEventListener'); }
-            removeEventListener(eventName, callback, useCapture) { console.log('hbbtv-polyfill: createVideoBroadcastObject / addEventListener'); }
+            addEventListener(eventName, callback, useCapture) { _DEBUG_ && console.log('hbbtv-polyfill: createVideoBroadcastObject / addEventListener'); }
+            removeEventListener(eventName, callback, useCapture) { _DEBUG_ && console.log('hbbtv-polyfill: createVideoBroadcastObject / addEventListener'); }
             onPlayStateChange(evt) { }
             onPlaySpeedChanged(evt) { }
             onPlaySpeedsArrayChanged(evt) { }
@@ -29153,8 +29159,10 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
+var _DEBUG_ = false;
+
 function init() {
-    console.log("hbbtv-polyfill: load");
+    _DEBUG_ && console.log("hbbtv-polyfill: load");
     // global helper namespace to simplify testing
     window.HBBTV_POLYFILL_NS = window.HBBTV_POLYFILL_NS || {
     };
@@ -29198,7 +29206,7 @@ function init() {
         signalCef('VDR:' + command);
     };
 
-    console.log("hbbtv-polyfill: loaded");
+    _DEBUG_ && console.log("hbbtv-polyfill: loaded");
 }
 if (!document.body) {
     document.addEventListener("DOMContentLoaded", init);
@@ -29420,9 +29428,11 @@ __webpack_require__.r(__webpack_exports__);
  * 7.13.1 The video/broadcast embedded object
  */
 
+var _DEBUG_ = false;
+
 class OipfVideoBroadcastMapper {
     constructor(node) { // the vide/broadcast object tag
-        console.log('hbbtv-polyfill: Create video to oipf object mapper.');
+        _DEBUG_ && console.log('hbbtv-polyfill: Create video to oipf object mapper.');
 
         this.oipfPluginObject = node;
         this.videoTag = undefined;
@@ -29439,7 +29449,7 @@ class OipfVideoBroadcastMapper {
             this.videoTag.src = "";
             oipfPluginObject.appendChild(this.videoTag);
             oipfPluginObject.playState = 2;
-            console.info('hbbtv-polyfill: BROADCAST VIDEO PLAYER ... ADDED');
+            _DEBUG_ &&  console.info('hbbtv-polyfill: BROADCAST VIDEO PLAYER ... ADDED');
         }
 
         // inject OIPF methods ...
@@ -29448,18 +29458,18 @@ class OipfVideoBroadcastMapper {
         var currentChannel = window.HBBTV_POLYFILL_NS.currentChannel;
         oipfPluginObject.currentChannel = currentChannel;
         oipfPluginObject.createChannelObject = function () {
-            console.log('hbbtv-polyfill: BroadcastVideo createChannelObject() ...');
+            _DEBUG_ && console.log('hbbtv-polyfill: BroadcastVideo createChannelObject() ...');
         };
         oipfPluginObject.bindToCurrentChannel = function () {
-            console.log('hbbtv-polyfill: BroadcastVideo bindToCurrentChannel() ...');
+            _DEBUG_ && console.log('hbbtv-polyfill: BroadcastVideo bindToCurrentChannel() ...');
             var player = document.getElementById('hbbtv-polyfill-video-player');
             if (player) {
                 player.onerror = function (e) {
-                    console.log("hbbtv-polyfill:", e);
+                    _DEBUG_ && console.log("hbbtv-polyfill:", e);
                 };
-                console.log("hbbtv-polyfill: now play");
+                _DEBUG_ && console.log("hbbtv-polyfill: now play");
                 player.play().catch((e) => {
-                    console.log("hbbtv-polyfill:", e, e.message, player.src);
+                    _DEBUG_ && console.log("hbbtv-polyfill:", e, e.message, player.src);
                 });
                 oipfPluginObject.playState = 2;
                 // TODO: If there is no channel currently being presented, the OITF SHALL dispatch an event to the onPlayStateChange listener(s) whereby the state parameter is given value 0 (“ unrealized ")
@@ -29468,18 +29478,18 @@ class OipfVideoBroadcastMapper {
         };
 
         oipfPluginObject.setChannel = function () {
-            console.log('hbbtv-polyfill: BroadcastVideo setChannel() ...');
+            _DEBUG_ && console.log('hbbtv-polyfill: BroadcastVideo setChannel() ...');
         };
         oipfPluginObject.prevChannel = function () {
-            console.log('hbbtv-polyfill: BroadcastVideo prevChannel() ...');
+            _DEBUG_ && console.log('hbbtv-polyfill: BroadcastVideo prevChannel() ...');
             return currentChannel;
         };
         oipfPluginObject.nextChannel = function () {
-            console.log('hbbtv-polyfill: BroadcastVideo nextChannel() ...');
+            _DEBUG_ && console.log('hbbtv-polyfill: BroadcastVideo nextChannel() ...');
             return currentChannel;
         };
         oipfPluginObject.release = function () {
-            console.log('hbbtv-polyfill: BroadcastVideo release() ...2');
+            _DEBUG_ && console.log('hbbtv-polyfill: BroadcastVideo release() ...2');
             var player = document.getElementById('hbbtv-polyfill-video-player');
             if (player) {
                 player.pause();
@@ -29616,7 +29626,7 @@ class OipfVideoBroadcastMapper {
         };
         // use custom namespace to track and trigger registered streamevents
         oipfPluginObject.addStreamEventListener = function (url, eventName, listener) {
-            console.log('hbbtv-polyfill: register listener -', eventName);
+            _DEBUG_ && console.log('hbbtv-polyfill: register listener -', eventName);
             window.HBBTV_POLYFILL_NS.streamEventListeners.push({ url, eventName, listener });
         };
         oipfPluginObject.removeStreamEventListener = function (url, eventName, listener) {
