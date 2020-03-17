@@ -89,9 +89,9 @@ int main(int argc, char **argv)
     nn_send(Globals::GetToVdrSocket(), &CMD_STATUS, 1, 0);
     nn_send(Globals::GetToVdrSocket(), "PLAY_VIDEO:10", 14 , 0);
 
-    fprintf(stderr, "Sleep before start streaming...\n");
+    // fprintf(stderr, "Sleep before start streaming...\n");
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+    // std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 
     fprintf(stderr, "Start streaming...\n");
 
@@ -101,7 +101,7 @@ int main(int argc, char **argv)
         nn_send(Globals::GetToVdrSocket(), &buffer, sizeof(buffer), 0);
 
         // don't be too fast
-        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+        std::this_thread::sleep_for(std::chrono::milliseconds(150));
     }
 
     fprintf(stderr, "Closing...\n");

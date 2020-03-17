@@ -84,7 +84,7 @@ bool VideoTranscode::startStreaming() {
     ffmpegVideoOut = open(OSR_FFMPEG_OUTPUT, O_RDWR); // O_RDONLY blocks
 
     // FIXME: Der Aufruf muss konfigurierbar sein.
-    std::string ffmpegParams = "/usr/bin/ffmpeg -y -f rawvideo -vcodec rawvideo -pix_fmt bgra -s 1920x1080 -r 25 -i " OSR_FFMPEG_VIDEOIN " -f mpegts -q:v 10 -an -vcodec mpeg4 " OSR_FFMPEG_OUTPUT;
+    std::string ffmpegParams = "/usr/bin/ffmpeg -y -f rawvideo -vcodec rawvideo -pix_fmt bgra -s 1920x1080 -r 25 -i " OSR_FFMPEG_VIDEOIN " -f mpegts -q:v 10 -an -vcodec libx264 -vf format=yuv420p " OSR_FFMPEG_OUTPUT;
 
     ExecParams params(ffmpegParams);
 
