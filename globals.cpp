@@ -13,6 +13,8 @@ int Globals::toVdrEndpointId;
 int Globals::fromVdrSocketId;
 int Globals::fromVdrEndpointId;
 
+Globals *globals = new Globals();
+
 Globals::Globals() {
     // bind socket
     if ((toVdrSocketId = nn_socket(AF_SP, NN_PUSH)) < 0) {

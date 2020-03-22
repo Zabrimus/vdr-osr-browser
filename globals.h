@@ -21,4 +21,6 @@ public:
     static int GetFromVdrSocket() { return fromVdrSocketId; };
 };
 
+extern Globals *globals;
+
 #endif //OSR_BROWSER_GLOBALS_H

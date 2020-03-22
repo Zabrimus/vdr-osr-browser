@@ -23,6 +23,7 @@
 #include "osrhandler.h"
 #include "browserclient.h"
 #include "browsercontrol.h"
+#include "videotranscode.h"
 #include "globals.h"
 
 MainApp::MainApp() {
@@ -144,8 +145,6 @@ int main(int argc, char *argv[]) {
     browserClient->initJavascriptCallback();
 
     BrowserControl browserControl(browser, osrHandler, browserClient);
-
-    Globals *globals = new Globals();
 
     {
         std::thread controlThread(startBrowserControl, browserControl);

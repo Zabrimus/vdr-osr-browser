@@ -1,0 +1,498 @@
+/**
+ * Based on the work, source code and tutorial of Leandro Moreira (https://github.com/leandromoreira/ffmpeg-libav-tutorial)
+ * Especially on https://github.com/leandromoreira/ffmpeg-libav-tutorial/blob/master/3_transcoding.c
+ */
+
+#include <stdio.h>
+#include <stdarg.h>
+#include <stdlib.h>
+#include <string.h>
+#include <inttypes.h>
+
+#include "transcodeffmpeg.h"
+
+// Fix some compile problems
+#undef av_err2str
+#define av_err2str(errnum) av_make_error_string((char*)__builtin_alloca(AV_ERROR_MAX_STRING_SIZE), AV_ERROR_MAX_STRING_SIZE, errnum)
+
+#undef av_ts2str
+#define av_ts2str(ts) av_ts_make_string((char*)__builtin_alloca(AV_TS_MAX_STRING_SIZE), ts)
+
+#undef av_ts2timestr
+#define av_ts2timestr(ts, tb) av_ts_make_time_string((char*)__builtin_alloca(AV_TS_MAX_STRING_SIZE), ts, tb)
+
+FILE *TranscodeFFmpeg::fp_output = NULL;
+bool TranscodeFFmpeg::write2File;
+
+TranscodeFFmpeg::TranscodeFFmpeg(char* in, char* out, bool write2File) {
+    decoder = (StreamingContext *) calloc(1, sizeof(StreamingContext));
+    decoder->filename = av_strdup(in);
+
+    encoder = (StreamingContext *) calloc(1, sizeof(StreamingContext));
+    encoder->filename = av_strdup(out);
+
+    strcat(encoder->filename, ".ts");
+
+    TranscodeFFmpeg::write2File = write2File;
+
+    if (write2File) {
+        fp_output = fopen(encoder->filename, "wb+");
+    }
+}
+
+TranscodeFFmpeg::~TranscodeFFmpeg() {
+    avformat_close_input(&decoder->avfc);
+
+    avformat_free_context(decoder->avfc);
+    decoder->avfc = NULL;
+    avformat_free_context(encoder->avfc);
+    encoder->avfc = NULL;
+
+    avcodec_free_context(&decoder->video_avcc);
+    decoder->video_avcc = NULL;
+    avcodec_free_context(&decoder->audio_avcc);
+    decoder->audio_avcc = NULL;
+
+    free(decoder);
+    decoder = NULL;
+
+    free(encoder);
+    encoder = NULL;
+
+    if (fp_output != NULL) {
+        fclose(fp_output);
+    }
+}
+
+// Logging functions
+void TranscodeFFmpeg::logging(const char *fmt, ...)
+{
+    va_list args;
+    fprintf( stderr, "LOG: " );
+    va_start( args, fmt );
+    vfprintf( stderr, fmt, args );
+    va_end( args );
+    fprintf( stderr, "\n" );
+}
+
+void TranscodeFFmpeg::log_packet(const AVFormatContext *fmt_ctx, const AVPacket *pkt)
+{
+    AVRational *time_base = &fmt_ctx->streams[pkt->stream_index]->time_base;
+
+    logging("pts:%s pts_time:%s dts:%s dts_time:%s duration:%s duration_time:%s stream_index:%d",
+            av_ts2str(pkt->pts), av_ts2timestr(pkt->pts, time_base),
+            av_ts2str(pkt->dts), av_ts2timestr(pkt->dts, time_base),
+            av_ts2str(pkt->duration), av_ts2timestr(pkt->duration, time_base),
+            pkt->stream_index);
+}
+
+void TranscodeFFmpeg::print_timing(char *name, AVFormatContext *avf, AVCodecContext *avc, AVStream *avs) {
+    logging("=================================================");
+    logging("%s", name);
+
+    logging("\tAVFormatContext");
+    if (avf != NULL) {
+        logging("\t\tstart_time=%d duration=%d bit_rate=%d start_time_realtime=%d", avf->start_time, avf->duration, avf->bit_rate, avf->start_time_realtime);
+    } else {
+        logging("\t\t->NULL");
+    }
+
+    logging("\tAVCodecContext");
+    if (avc != NULL) {
+        logging("\t\tbit_rate=%d ticks_per_frame=%d width=%d height=%d gop_size=%d keyint_min=%d sample_rate=%d profile=%d level=%d ",
+                avc->bit_rate, avc->ticks_per_frame, avc->width, avc->height, avc->gop_size, avc->keyint_min, avc->sample_rate, avc->profile, avc->level);
+        logging("\t\tavc->time_base=num/den %d/%d", avc->time_base.num, avc->time_base.den);
+        logging("\t\tavc->framerate=num/den %d/%d", avc->framerate.num, avc->framerate.den);
+        logging("\t\tavc->pkt_timebase=num/den %d/%d", avc->pkt_timebase.num, avc->pkt_timebase.den);
+    } else {
+        logging("\t\t->NULL");
+    }
+
+    logging("\tAVStream");
+    if (avs != NULL) {
+        logging("\t\tindex=%d start_time=%d duration=%d ", avs->index, avs->start_time, avs->duration);
+        logging("\t\tavs->time_base=num/den %d/%d", avs->time_base.num, avs->time_base.den);
+        logging("\t\tavs->sample_aspect_ratio=num/den %d/%d", avs->sample_aspect_ratio.num, avs->sample_aspect_ratio.den);
+        logging("\t\tavs->avg_frame_rate=num/den %d/%d", avs->avg_frame_rate.num, avs->avg_frame_rate.den);
+        logging("\t\tavs->r_frame_rate=num/den %d/%d", avs->r_frame_rate.num, avs->r_frame_rate.den);
+    } else {
+        logging("\t\t->NULL");
+    }
+
+    logging("=================================================");
+}
+
+int TranscodeFFmpeg::write_buffer_to_file(void *opaque, uint8_t *buf, int buf_size) {
+    if (!feof(fp_output)) {
+        int true_size=fwrite(buf,1,buf_size,fp_output);
+        return true_size;
+    } else {
+        return -1;
+    }
+}
+
+int TranscodeFFmpeg::write_buffer_to_vdr(void *opaque, uint8_t *buf, int buf_size) {
+    if (!feof(fp_output)) {
+        int true_size=fwrite(buf,1,buf_size,fp_output);
+        return true_size;
+    } else {
+        return -1;
+    }
+}
+
+int TranscodeFFmpeg::fill_stream_info(AVStream *avs, AVCodec **avc, AVCodecContext **avcc) {
+    *avc = avcodec_find_decoder(avs->codecpar->codec_id);
+    if (!*avc) {
+        logging("failed to find the codec");
+        return -1;
+    }
+
+    *avcc = avcodec_alloc_context3(*avc);
+    if (!*avcc) {
+        logging("failed to alloc memory for codec context");
+        return -1;
+    }
+
+    if (avcodec_parameters_to_context(*avcc, avs->codecpar) < 0) {
+        logging("failed to fill codec context");
+        return -1;
+    }
+
+    if (avcodec_open2(*avcc, *avc, NULL) < 0) {
+        logging("failed to open codec");
+        return -1;
+    }
+    return 0;
+}
+
+int TranscodeFFmpeg::open_media(const char *in_filename, AVFormatContext **avfc) {
+    *avfc = avformat_alloc_context();
+    if (!*avfc) {
+        logging("failed to alloc memory for format");
+        return -1;
+    }
+
+    if (avformat_open_input(avfc, in_filename, NULL, NULL) != 0) {
+        logging("failed to open input file %s", in_filename);
+        return -1;
+    }
+
+    if (avformat_find_stream_info(*avfc, NULL) < 0) {
+        logging("failed to get stream info");
+        return -1;
+    }
+
+    // av_dump_format(*avfc, 1, "url", 0);
+
+
+    return 0;
+}
+
+int TranscodeFFmpeg::prepare_decoder() {
+    for (unsigned int i = 0; i < decoder->avfc->nb_streams; i++) {
+        if (decoder->avfc->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
+            decoder->video_avs = decoder->avfc->streams[i];
+            decoder->video_index = i;
+
+            if (fill_stream_info(decoder->video_avs, &decoder->video_avc, &decoder->video_avcc)) {
+                return -1;
+            }
+        } else if (decoder->avfc->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_AUDIO) {
+            decoder->audio_avs = decoder->avfc->streams[i];
+            decoder->audio_index = i;
+
+            if (fill_stream_info(decoder->audio_avs, &decoder->audio_avc, &decoder->audio_avcc)) {
+                return -1;
+            }
+        } else {
+            logging("skipping streams other than audio and video");
+        }
+    }
+
+    return 0;
+}
+
+int TranscodeFFmpeg::prepare_video_encoder(AVCodecContext *decoder_ctx, AVRational input_framerate) {
+    encoder->video_avs = avformat_new_stream(encoder->avfc, NULL);
+
+    encoder->video_avc = avcodec_find_encoder_by_name("libx264");
+    if (!encoder->video_avc) {
+        logging("could not find the proper codec");
+        return -1;
+    }
+
+    encoder->video_avcc = avcodec_alloc_context3(encoder->video_avc);
+    if (!encoder->video_avcc) {
+        logging("could not allocated memory for codec context");
+        return -1;
+    }
+
+    av_opt_set(encoder->video_avcc->priv_data, "preset", "veryfast", 0);
+    av_opt_set(encoder->video_avcc->priv_data, "x264-params", "keyint=60:min-keyint=60:scenecut=0:force-cfr=1:crf=28", 0);
+
+    encoder->video_avcc->height = decoder_ctx->height;
+    encoder->video_avcc->width = decoder_ctx->width;
+    encoder->video_avcc->sample_aspect_ratio = decoder_ctx->sample_aspect_ratio;
+    if (encoder->video_avc->pix_fmts)
+        encoder->video_avcc->pix_fmt = encoder->video_avc->pix_fmts[0];
+    else
+        encoder->video_avcc->pix_fmt = decoder_ctx->pix_fmt;
+
+    encoder->video_avcc->bit_rate = decoder->video_avcc->bit_rate;
+    encoder->video_avcc->rc_buffer_size = decoder->video_avcc->rc_buffer_size;
+    encoder->video_avcc->rc_max_rate = decoder->video_avcc->rc_max_rate;
+    encoder->video_avcc->rc_min_rate = decoder->video_avcc->rc_min_rate;
+
+    encoder->video_avcc->time_base = av_inv_q(input_framerate);
+    encoder->video_avs->time_base = encoder->video_avcc->time_base;
+
+    if (avcodec_open2(encoder->video_avcc, encoder->video_avc, NULL) < 0) {
+        logging("could not open the codec");
+        return -1;
+    }
+    avcodec_parameters_from_context(encoder->video_avs->codecpar, encoder->video_avcc);
+    return 0;
+}
+
+int TranscodeFFmpeg::prepare_audio_encoder() {
+    encoder->audio_avs = avformat_new_stream(encoder->avfc, NULL);
+
+    encoder->audio_avc = avcodec_find_encoder_by_name("aac");
+    if (!encoder->audio_avc) {
+        logging("could not find the proper codec");
+        return -1;
+    }
+
+    encoder->audio_avcc = avcodec_alloc_context3(encoder->audio_avc);
+    if (!encoder->audio_avcc) {
+        logging("could not allocated memory for codec context");
+        return -1;
+    }
+
+    encoder->audio_avcc->channels = decoder->audio_avcc->channels;
+    encoder->audio_avcc->channel_layout = av_get_default_channel_layout(decoder->audio_avcc->channels);
+    encoder->audio_avcc->sample_rate = decoder->audio_avcc->sample_rate;
+    encoder->audio_avcc->sample_fmt = encoder->audio_avc->sample_fmts[0];
+    encoder->audio_avcc->bit_rate = decoder->audio_avcc->bit_rate;
+    encoder->audio_avcc->time_base = (AVRational) {1, decoder->audio_avcc->sample_rate};
+
+    encoder->audio_avcc->strict_std_compliance = FF_COMPLIANCE_EXPERIMENTAL;
+
+    encoder->audio_avs->time_base = encoder->audio_avcc->time_base;
+
+    if (avcodec_open2(encoder->audio_avcc, encoder->audio_avc, NULL) < 0) {
+        logging("could not open the codec");
+        return -1;
+    }
+    avcodec_parameters_from_context(encoder->audio_avs->codecpar, encoder->audio_avcc);
+    return 0;
+}
+
+int TranscodeFFmpeg::encode_video(AVFrame *input_frame) {
+    if (input_frame) input_frame->pict_type = AV_PICTURE_TYPE_NONE;
+
+    AVPacket *output_packet = av_packet_alloc();
+    if (!output_packet) {
+        logging("could not allocate memory for output packet");
+        return -1;
+    }
+
+    int response = avcodec_send_frame(encoder->video_avcc, input_frame);
+
+    while (response >= 0) {
+        response = avcodec_receive_packet(encoder->video_avcc, output_packet);
+        if (response == AVERROR(EAGAIN) || response == AVERROR_EOF) {
+            break;
+        } else if (response < 0) {
+            auto errstr = av_err2str(response);
+            logging("Error while receiving packet from encoder: %s", errstr);
+            return -1;
+        }
+
+        output_packet->stream_index = decoder->video_index;
+        output_packet->duration = encoder->video_avs->time_base.den / encoder->video_avs->time_base.num /
+                                  decoder->video_avs->avg_frame_rate.num * decoder->video_avs->avg_frame_rate.den;
+
+        av_packet_rescale_ts(output_packet, decoder->video_avs->time_base, encoder->video_avs->time_base);
+        response = av_interleaved_write_frame(encoder->avfc, output_packet);
+        if (response != 0) {
+            logging("Error %d while receiving packet from decoder: %s", response, av_err2str(response));
+            return -1;
+        }
+    }
+    av_packet_unref(output_packet);
+    av_packet_free(&output_packet);
+    return 0;
+}
+
+int TranscodeFFmpeg::encode_audio(AVFrame *input_frame) {
+    AVPacket *output_packet = av_packet_alloc();
+    if (!output_packet) {
+        logging("could not allocate memory for output packet");
+        return -1;
+    }
+
+    int response = avcodec_send_frame(encoder->audio_avcc, input_frame);
+
+    while (response >= 0) {
+        response = avcodec_receive_packet(encoder->audio_avcc, output_packet);
+        if (response == AVERROR(EAGAIN) || response == AVERROR_EOF) {
+            break;
+        } else if (response < 0) {
+            logging("Error while receiving packet from encoder: %s", av_err2str(response));
+            return -1;
+        }
+
+        output_packet->stream_index = decoder->audio_index;
+
+        av_packet_rescale_ts(output_packet, decoder->audio_avs->time_base, encoder->audio_avs->time_base);
+        response = av_interleaved_write_frame(encoder->avfc, output_packet);
+        if (response != 0) {
+            logging("Error %d while receiving packet from decoder: %s", response, av_err2str(response));
+            return -1;
+        }
+    }
+    av_packet_unref(output_packet);
+    av_packet_free(&output_packet);
+    return 0;
+}
+
+int TranscodeFFmpeg::transcode_audio(AVPacket *input_packet, AVFrame *input_frame) {
+    int response = avcodec_send_packet(decoder->audio_avcc, input_packet);
+    if (response < 0) {
+        logging("Error while sending packet to decoder: %s", av_err2str(response));
+        return response;
+    }
+
+    while (response >= 0) {
+        response = avcodec_receive_frame(decoder->audio_avcc, input_frame);
+        if (response == AVERROR(EAGAIN) || response == AVERROR_EOF) {
+            break;
+        } else if (response < 0) {
+            logging("Error while receiving frame from decoder: %s", av_err2str(response));
+            return response;
+        }
+
+        if (response >= 0) {
+            if (encode_audio(input_frame)) return -1;
+        }
+        av_frame_unref(input_frame);
+    }
+    return 0;
+}
+
+int TranscodeFFmpeg::transcode_video(AVPacket *input_packet, AVFrame *input_frame) {
+    int response = avcodec_send_packet(decoder->video_avcc, input_packet);
+    if (response < 0) {
+        logging("Error while sending packet to decoder: %s", av_err2str(response));
+        return response;
+    }
+
+    while (response >= 0) {
+        response = avcodec_receive_frame(decoder->video_avcc, input_frame);
+        if (response == AVERROR(EAGAIN) || response == AVERROR_EOF) {
+            break;
+        } else if (response < 0) {
+            logging("Error while receiving frame from decoder: %s", av_err2str(response));
+            return response;
+        }
+
+        if (response >= 0) {
+            if (encode_video(input_frame)) return -1;
+        }
+        av_frame_unref(input_frame);
+    }
+    return 0;
+}
+
+int TranscodeFFmpeg::transcode() {
+    if (open_media(decoder->filename, &decoder->avfc)) {
+        return -1;
+    }
+
+    if (prepare_decoder()) {
+        return -1;
+    }
+
+    avformat_alloc_output_context2(&encoder->avfc, NULL, NULL, encoder->filename);
+    if (!encoder->avfc) {
+        logging("could not allocate memory for output format");
+        return -1;
+    }
+
+    AVRational input_framerate = av_guess_frame_rate(decoder->avfc, decoder->video_avs, NULL);
+    prepare_video_encoder(decoder->video_avcc, input_framerate);
+
+    if (decoder->audio_avc != NULL) {
+        if (prepare_audio_encoder()) {
+            return -1;
+        }
+    }
+
+    if (encoder->avfc->oformat->flags & AVFMT_GLOBALHEADER)
+        encoder->avfc->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
+
+    unsigned char* outbuffer = (unsigned char*)av_malloc(112800);
+    AVIOContext *avio_out;
+
+    if (write2File) {
+        avio_out = avio_alloc_context(outbuffer, 112800, 1, NULL, NULL, write_buffer_to_file, NULL);
+    } else {
+        avio_out = avio_alloc_context(outbuffer, 112800, 1, NULL, NULL, write_buffer_to_vdr, NULL);
+    }
+
+    if (avio_out == NULL) {
+        av_free(outbuffer);
+        return -1;
+    }
+
+    encoder->avfc->pb = avio_out;
+    encoder->avfc->flags = AVFMT_FLAG_CUSTOM_IO;
+
+    if (avformat_write_header(encoder->avfc, NULL) < 0) {
+        logging("an error occurred when opening output file");
+        return -1;
+    }
+
+    AVFrame *input_frame = av_frame_alloc();
+    if (!input_frame) {
+        logging("failed to allocated memory for AVFrame");
+        return -1;
+    }
+
+    AVPacket *input_packet = av_packet_alloc();
+    if (!input_packet) {
+        logging("failed to allocated memory for AVPacket");
+        return -1;
+    }
+
+    while (av_read_frame(decoder->avfc, input_packet) >= 0) {
+        if (decoder->avfc->streams[input_packet->stream_index]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
+            if (transcode_video(input_packet, input_frame)) return -1;
+            av_packet_unref(input_packet);
+        } else if (decoder->avfc->streams[input_packet->stream_index]->codecpar->codec_type == AVMEDIA_TYPE_AUDIO) {
+            if (transcode_audio(input_packet, input_frame)) return -1;
+            av_packet_unref(input_packet);
+        } else {
+            logging("ignoring all non video or audio packets");
+        }
+    }
+
+    av_write_trailer(encoder->avfc);
+
+    if (input_frame != NULL) {
+        av_frame_free(&input_frame);
+        input_frame = NULL;
+    }
+
+    if (input_packet != NULL) {
+        av_packet_free(&input_packet);
+        input_packet = NULL;
+    }
+
+    avformat_close_input(&decoder->avfc);
+
+    av_free(outbuffer);
+
+    return 0;
+}

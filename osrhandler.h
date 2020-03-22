@@ -26,9 +26,8 @@ private:
 
     static bool streamToFfmpeg;
 
-    VideoTranscode *videoTranscode;
     std::thread *videoReadThread;
-    static void readEncodedVideo(VideoTranscode *transcoder);
+    static void readEncodedVideo();
 
 public:
     OSRHandler(int width, int height);
@@ -41,7 +40,7 @@ public:
     void setStreamToFfmpeg(bool flag);
     static bool getStreamToFfmpeg() { return OSRHandler::streamToFfmpeg; };
 
-    IMPLEMENT_REFCOUNTING(OSRHandler);
+IMPLEMENT_REFCOUNTING(OSRHandler);
 };
 
 #endif // OSRHANDLER_H

@@ -1,9 +1,12 @@
 #include <sstream>
 #include <string>
 #include <cstring>
-#include <stdio.h>
+#include <regex>
 #include <vector>
 #include <signal.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/prctl.h>
@@ -15,6 +18,8 @@
 #define OSR_FFMPEG_VIDEOIN "/tmp/osr_ffmpeg_videoin"
 #define OSR_FFMPEG_AUDIOIN "/tmp/osr_ffmpeg_audioin"
 #define OSR_FFMPEG_OUTPUT  "/tmp/osr_ffmpeg_output"
+
+VideoTranscode *videoTranscode = new VideoTranscode();
 
 /**
  * Internal helper class to convert a std::string to a NULL-terminated char* array
@@ -60,6 +65,12 @@ public:
 };
 
 VideoTranscode::VideoTranscode() {
+    width = -1;
+    height = -1;
+    audioCodec = "";
+    videoCodec = "";
+
+    videoTranscode = this;
 }
 
 VideoTranscode::~VideoTranscode() {
@@ -143,4 +154,58 @@ void VideoTranscode::writeAudio(const void *buffer, int size) {
 
 int VideoTranscode::readEncoded(void* buffer, int size) {
     return read(ffmpegVideoOut, buffer, size);
+}
+
+void VideoTranscode::analyzeVideo(const CefString& url) {
+    std::string execParams = "/usr/bin/ffprobe -hide_banner -print_format xml -show_entries stream_tags:stream=codec_name,width,height ";
+    execParams += url.ToString();
+
+    FILE *fp;
+    char path[1024];
+
+    fprintf(stderr, "Command: %s\n", execParams.c_str());
+
+    fp = popen(execParams.c_str(), "r");
+    if (fp == NULL) {
+        width = -1;
+        height = -1;
+        audioCodec = nullptr;
+        videoCodec = nullptr;
+        return;
+    }
+
+    std::regex codec(".*?<stream codec_name=\"(.*?)\"(.*?width=\"(.*?)\".*?height=\"(.*?)\".*?)?");
+    std::smatch matches;
+
+    while (fgets(path, sizeof(path), fp) != NULL) {
+        std::string input(path);
+
+        if(std::regex_search(input, matches, codec)) {
+            std::string name = matches[1].str();
+
+            int w = 0;
+            if (matches[3].length() > 0) {
+                w = std::stoi(matches[3].str());
+            }
+
+            int h = 0;
+            if (matches[4].length() > 0) {
+                h = std::stoi(matches[4].str());
+            }
+
+            if (w > 0 && h > 0) {
+                // found video codec
+                videoCodec = name;
+                width = w;
+                height = h;
+            } else {
+                // seems to be an audio codec
+                audioCodec = name;
+            }
+        }
+    }
+
+    fprintf(stderr, "VideoCodec: %s, AudioCodec: %s, Size: %dx%d\n", videoCodec.c_str(), audioCodec.c_str(), width, height);
+
+    pclose(fp);
 }

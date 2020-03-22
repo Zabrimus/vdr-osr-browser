@@ -244,17 +244,22 @@ bool JavascriptHandler::OnQuery(CefRefPtr<CefBrowser> browser,
 
             browserControl->setStreamToFfmpeg(true);
             return true;
+        } else if (strncmp(request.ToString().c_str(), "VIDEO_URL:", 10) == 0) {
+            DBG("Video URL: %s\n", request.ToString().c_str() + 10);
+
+            videoTranscode->analyzeVideo(request.ToString().c_str() + 10);
+            return true;
         } else if (strncmp(request.ToString().c_str(), "PAUSE_VIDEO:", 11) == 0) {
             DBG("Video streaming paused\n");
 
             // TODO: Do something useful
             return true;
-        } else if (strncmp(request.ToString().c_str(), "END_VIDEO:", 11) == 0) {
+        } else if (strncmp(request.ToString().c_str(), "END_VIDEO:", 10) == 0) {
             DBG("Video streaming ended\n");
 
             browserControl->setStreamToFfmpeg(false);
             return true;
-        } else if (strncmp(request.ToString().c_str(), "ERROR_VIDEO:", 11) == 0) {
+        } else if (strncmp(request.ToString().c_str(), "ERROR_VIDEO:", 12) == 0) {
             DBG("Video playing throws an error\n");
 
             // TODO: Do something useful
@@ -309,15 +314,9 @@ CefRefPtr<CefResourceRequestHandler> BrowserClient::GetResourceRequestHandler(Ce
         return this;
     }
 
-    // DBG("-- Load URL: %s, is_navigation=%s\n", url.c_str(), is_navigation ? "ja" : "nein");
-
     // test at first for internal requests
     if ((url.find("https://local_js/") != std::string::npos) || (url.find("https://local_css/") != std::string::npos)) {
         return this;
-    }
-
-    if (url.find(".mp4", 0) != std::string::npos) {
-        DBG("Video URL: %s\n", url.c_str());
     }
 
     if (is_navigation) {

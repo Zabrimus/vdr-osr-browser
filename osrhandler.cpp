@@ -18,6 +18,7 @@
 
 #include "globals.h"
 #include "osrhandler.h"
+#include "videotranscode.h"
 
 unsigned char CMD_OSD = 2;
 unsigned char CMD_VIDEO = 3;
@@ -28,13 +29,9 @@ OSRHandler::OSRHandler(int width, int height) {
     renderWidth = width;
     renderHeight = height;
     streamToFfmpeg = false;
-    videoTranscode = new VideoTranscode();
 }
 
 OSRHandler::~OSRHandler() {
-    if (videoTranscode) {
-        delete videoTranscode;
-    }
 }
 
 void OSRHandler::setRenderSize(int width, int height) {
@@ -50,7 +47,7 @@ void OSRHandler::setStreamToFfmpeg(bool flag) {
     streamToFfmpeg = flag;
 
     if (flag) {
-        videoReadThread = new std::thread(readEncodedVideo, videoTranscode);
+        videoReadThread = new std::thread(readEncodedVideo);
         if (!videoTranscode->startStreaming()) {
             streamToFfmpeg = false;
             return;
@@ -61,14 +58,14 @@ void OSRHandler::setStreamToFfmpeg(bool flag) {
     }
 }
 
-void OSRHandler::readEncodedVideo(VideoTranscode *transcoder) {
+void OSRHandler::readEncodedVideo() {
     char* buffer[18800];
 
     while (OSRHandler::getStreamToFfmpeg()) {
-        int size = transcoder->readEncoded(buffer, 18800);
+        int size = videoTranscode->readEncoded(buffer, 18800);
 
         if (size < 0) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
         } else {
             // write to VDR
             nn_send(Globals::GetToVdrSocket(), &CMD_VIDEO, 1, 0);

@@ -19,7 +19,7 @@ CFLAGS = -c -O0 -g -Wall -std=c++11
 LDFLAGS = -pthread
 
 # SOURCES = cefsimple_linux.cc simple_app.cc simple_handler.cc simple_handler_linux.cc
-SOURCES = main.cpp osrhandler.cpp browserclient.cpp browsercontrol.cpp videotranscode.cpp globals.cpp
+SOURCES = main.cpp osrhandler.cpp browserclient.cpp browsercontrol.cpp videotranscode.cpp globals.cpp transcodeffmpeg.cpp
 OBJECTS = $(SOURCES:.cpp=.o)
 
 SOURCES2 = osrclient.cpp
@@ -28,9 +28,13 @@ OBJECTS2 = $(SOURCES2:.cpp=.o)
 SOURCES3 = osrclientvideo.cpp globals.cpp
 OBJECTS3 = $(SOURCES3:.cpp=.o)
 
+SOURCES4 = transcodetest.cpp transcodeffmpeg.cpp
+OBJECTS4 = $(SOURCES4:.cpp=.o)
+
 EXECUTABLE  = vdrosrbrowser
 EXECUTABLE2  = vdrosrclient
 EXECUTABLE3  = vdrosrvideo
+EXECUTABLE4  = transcodetest
 
 # CEF (debian packaged or self-installed version)
 ifeq (exists, $(shell test -e /usr/include/x86_64-linux-gnu/cef/cef_app.h && echo exists))
@@ -51,10 +55,33 @@ LDFLAGS += $(shell pkg-config --libs libcurl)
 NNGCFLAGS  = -Ithirdparty/nng-1.2.6/include/nng/compat
 NNGLDFLAGS = thirdparty/nng-1.2.6/build/libnng.a
 
-all: prepareexe buildnng $(SOURCES) $(EXECUTABLE) $(EXECUTABLE2) $(EXECUTABLE3)
+# libav / ffmpeg
+LIBAVCFLAGS += $(shell pkg-config --cflags libavformat)
+LIBAVLDFLAGS += $(shell pkg-config --libs libavformat)
+
+LIBAVCFLAGS += $(shell pkg-config --cflags libavcodec)
+LIBAVLDFLAGS += $(shell pkg-config --libs libavcodec)
+
+LIBAVCFLAGS += $(shell pkg-config --cflags libavfilter)
+LIBAVLDFLAGS += $(shell pkg-config --libs libavfilter)
+
+LIBAVCFLAGS += $(shell pkg-config --cflags libavdevice)
+LIBAVLDFLAGS += $(shell pkg-config --libs libavdevice)
+
+LIBAVCFLAGS += $(shell pkg-config --cflags libswresample)
+LIBAVLDFLAGS += $(shell pkg-config --libs libswresample)
+
+LIBAVCFLAGS += $(shell pkg-config --cflags libswscale)
+LIBAVLDFLAGS += $(shell pkg-config --libs libswscale)
+
+LIBAVCFLAGS += $(shell pkg-config --cflags libavutil)
+LIBAVLDFLAGS += $(shell pkg-config --libs libavutil)
+
+
+all: prepareexe buildnng $(SOURCES) $(EXECUTABLE) $(EXECUTABLE2) $(EXECUTABLE3) $(EXECUTABLE4)
 
 $(EXECUTABLE): $(OBJECTS)
-	$(CC) $(OBJECTS) -o $@ $(LDFLAGS) $(NNGLDFLAGS)
+	$(CC) $(OBJECTS) -o $@ $(LDFLAGS) $(LIBAVLDFLAGS) $(NNGLDFLAGS)
 	mv $(EXECUTABLE) Release
 
 $(EXECUTABLE2): $(OBJECTS2)
@@ -65,6 +92,11 @@ $(EXECUTABLE2): $(OBJECTS2)
 $(EXECUTABLE3): $(OBJECTS3)
 	$(CC) $(OBJECTS3) $(NNGCFLAGS) -o $@ -pthread $(NNGLDFLAGS)
 	mv $(EXECUTABLE3) Release
+	cp -r js Release
+
+$(EXECUTABLE4): $(OBJECTS4)
+	$(CC) -O3 $(OBJECTS4) $(LIBAVCFLAGS) -o $@ -pthread $(LIBAVLDFLAGS)
+	mv $(EXECUTABLE4) Release
 	cp -r js Release
 
 prepareexe:
@@ -107,13 +139,13 @@ cleanjs:
 	rm thirdparty/HybridTvViewer/package-lock.json
 
 .cpp.o:
-	$(CC) $(CFLAGS) $(NNGCFLAGS) -MMD $< -o $@
+	$(CC) $(CFLAGS) $(LIBAVCFLAGS) $(NNGCFLAGS) -MMD $< -o $@
 
 DEPS := $(OBJECTS:.o=.d)
 -include $(DEPS)
 
 clean:
-	rm -f $(OBJECTS) $(EXECUTABLE) *.d
+	rm -f $(OBJECTS) $(EXECUTABLE) $(OBJECTS2) $(EXECUTABLE2) $(OBJECTS3) $(EXECUTABLE3) $(OBJECTS4) $(EXECUTABLE4) *.d tests/*.d
 	rm -Rf cef_binary*
 	rm -Rf Release
 	rm -Rf thirdparty/nng-1.2.6/build
