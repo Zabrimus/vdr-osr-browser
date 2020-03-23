@@ -14,7 +14,6 @@
 #include <thread>
 #include <chrono>
 #include "browser.h"
-// #include "videotranscode.h"
 
 unsigned char CMD_OSD = 2;
 

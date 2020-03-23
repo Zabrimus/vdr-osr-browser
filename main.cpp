@@ -20,7 +20,6 @@
 
 #include "main.h"
 #include "browser.h"
-#include "videotranscode.h"
 
 MainApp::MainApp() {
     CefMessageRouterConfig config;
