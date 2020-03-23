@@ -21,10 +21,18 @@
 #undef av_ts2timestr
 #define av_ts2timestr(ts, tb) av_ts_make_time_string((char*)__builtin_alloca(AV_TS_MAX_STRING_SIZE), ts, tb)
 
-FILE *TranscodeFFmpeg::fp_output = NULL;
-bool TranscodeFFmpeg::write2File;
+FILE *fp_output = NULL;
 
-TranscodeFFmpeg::TranscodeFFmpeg(char* in, char* out, bool write2File) {
+int write_buffer_to_file(void *opaque, uint8_t *buf, int buf_size) {
+    if (!feof(fp_output)) {
+        int true_size = fwrite(buf,1,buf_size, fp_output);
+        return true_size;
+    } else {
+        return -1;
+    }
+}
+
+TranscodeFFmpeg::TranscodeFFmpeg(const char* in, const char* out, bool write2File) {
     decoder = (StreamingContext *) calloc(1, sizeof(StreamingContext));
     decoder->filename = av_strdup(in);
 
@@ -32,8 +40,6 @@ TranscodeFFmpeg::TranscodeFFmpeg(char* in, char* out, bool write2File) {
     encoder->filename = av_strdup(out);
 
     strcat(encoder->filename, ".ts");
-
-    TranscodeFFmpeg::write2File = write2File;
 
     if (write2File) {
         fp_output = fopen(encoder->filename, "wb+");
@@ -62,6 +68,10 @@ TranscodeFFmpeg::~TranscodeFFmpeg() {
     if (fp_output != NULL) {
         fclose(fp_output);
     }
+}
+
+void TranscodeFFmpeg::setInputFile(const char* input) {
+    decoder->filename = av_strdup(input);
 }
 
 // Logging functions
@@ -120,24 +130,6 @@ void TranscodeFFmpeg::print_timing(char *name, AVFormatContext *avf, AVCodecCont
     }
 
     logging("=================================================");
-}
-
-int TranscodeFFmpeg::write_buffer_to_file(void *opaque, uint8_t *buf, int buf_size) {
-    if (!feof(fp_output)) {
-        int true_size=fwrite(buf,1,buf_size,fp_output);
-        return true_size;
-    } else {
-        return -1;
-    }
-}
-
-int TranscodeFFmpeg::write_buffer_to_vdr(void *opaque, uint8_t *buf, int buf_size) {
-    if (!feof(fp_output)) {
-        int true_size=fwrite(buf,1,buf_size,fp_output);
-        return true_size;
-    } else {
-        return -1;
-    }
 }
 
 int TranscodeFFmpeg::fill_stream_info(AVStream *avs, AVCodec **avc, AVCodecContext **avcc) {
@@ -405,7 +397,13 @@ int TranscodeFFmpeg::transcode_video(AVPacket *input_packet, AVFrame *input_fram
     return 0;
 }
 
-int TranscodeFFmpeg::transcode() {
+int TranscodeFFmpeg::transcode(int (*write_packet)(void *opaque, uint8_t *buf, int buf_size)) {
+
+    if (write_packet == NULL) {
+        // use default file writer
+        write_packet = write_buffer_to_file;
+    }
+
     if (open_media(decoder->filename, &decoder->avfc)) {
         return -1;
     }
@@ -433,13 +431,7 @@ int TranscodeFFmpeg::transcode() {
         encoder->avfc->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
 
     unsigned char* outbuffer = (unsigned char*)av_malloc(112800);
-    AVIOContext *avio_out;
-
-    if (write2File) {
-        avio_out = avio_alloc_context(outbuffer, 112800, 1, NULL, NULL, write_buffer_to_file, NULL);
-    } else {
-        avio_out = avio_alloc_context(outbuffer, 112800, 1, NULL, NULL, write_buffer_to_vdr, NULL);
-    }
+    AVIOContext *avio_out = avio_alloc_context(outbuffer, 112800, 1, NULL, NULL, write_packet, NULL);
 
     if (avio_out == NULL) {
         av_free(outbuffer);

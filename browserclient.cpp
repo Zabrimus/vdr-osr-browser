@@ -27,6 +27,9 @@ static bool DumpDebugData = true;
 #define HEADERSIZE (4 * 1024)
 
 unsigned char CMD_STATUS = 1;
+unsigned char CMD_VIDEO = 3;
+
+BrowserClient *browserClient;
 
 struct MemoryStruct {
     char *memory;
@@ -232,14 +235,17 @@ bool JavascriptHandler::OnQuery(CefRefPtr<CefBrowser> browser,
         return true;
     } else {
         if (strncmp(request.ToString().c_str(), "PLAY_VIDEO:", 11) == 0) {
-            DBG("Play video with duration: %s\n", request.ToString().c_str() + 11);
-            browserClient->SendToVdrString(CMD_STATUS, request.ToString().c_str());
-            browserClient->setStreamToFfmpeg(true);
+            // FIXME: Das wird nicht mehr aufgerufen, weil die Video-URL geändert wird.
+
+            // DBG("Play video with duration: %s\n", request.ToString().c_str() + 11);
+            // browserClient->SendToVdrString(CMD_STATUS, request.ToString().c_str());
             return true;
         } else if (strncmp(request.ToString().c_str(), "VIDEO_URL:", 10) == 0) {
             DBG("Video URL: %s\n", request.ToString().c_str() + 10);
 
-            videoTranscode->analyzeVideo(request.ToString().c_str() + 10);
+            browserClient->SendToVdrString(CMD_STATUS, "PLAY_VIDEO:");
+            browserClient->setInputFile(request.ToString().c_str() + 10);
+            browserClient->transcode(BrowserClient::write_buffer_to_vdr);
             return true;
         } else if (strncmp(request.ToString().c_str(), "PAUSE_VIDEO:", 11) == 0) {
             DBG("Video streaming paused\n");
@@ -248,7 +254,6 @@ bool JavascriptHandler::OnQuery(CefRefPtr<CefBrowser> browser,
             return true;
         } else if (strncmp(request.ToString().c_str(), "END_VIDEO:", 10) == 0) {
             DBG("Video streaming ended\n");
-            browserClient->setStreamToFfmpeg(false);
             return true;
         } else if (strncmp(request.ToString().c_str(), "ERROR_VIDEO:", 12) == 0) {
             DBG("Video playing throws an error\n");
@@ -265,7 +270,17 @@ void JavascriptHandler::OnQueryCanceled(CefRefPtr<CefBrowser> browser, CefRefPtr
     // TODO: cancel our async query task...
 }
 
-BrowserClient::BrowserClient(bool debug) {
+int BrowserClient::write_buffer_to_vdr(void *opaque, uint8_t *buf, int buf_size) {
+    printf("Got encoded buffer with %d size\n", buf_size);
+
+    browserClient->SendToVdrBuffer(CMD_VIDEO, buf, buf_size);
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+    return buf_size;
+}
+
+BrowserClient::BrowserClient(bool debug) : TranscodeFFmpeg("in", "out", false) {
     // bind socket
     if ((toVdrSocketId = nn_socket(AF_SP, NN_PUSH)) < 0) {
         fprintf(stderr, "BrowserClient: unable to create nanomsg socket\n");
@@ -274,6 +289,8 @@ BrowserClient::BrowserClient(bool debug) {
     if ((toVdrEndpointId = nn_bind(toVdrSocketId, TO_VDR_CHANNEL)) < 0) {
         fprintf(stderr, "BrowserClient: unable to bind nanomsg socket to %s\n", TO_VDR_CHANNEL);
     }
+
+    browserClient = this;
 
     osrHandler = new OSRHandler(this,1920, 1080);
     renderHandler = osrHandler;

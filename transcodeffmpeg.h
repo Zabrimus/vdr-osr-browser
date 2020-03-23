@@ -47,16 +47,12 @@ private:
     int transcode_audio(AVPacket *input_packet, AVFrame *input_frame);
     int transcode_video(AVPacket *input_packet, AVFrame *input_frame);
 
-    static FILE *fp_output;
-    static bool write2File;
-    static int write_buffer_to_file(void *opaque, uint8_t *buf, int buf_size);
-    static int write_buffer_to_vdr(void *opaque, uint8_t *buf, int buf_size);
-
 public:
-    TranscodeFFmpeg(char* input, char* output, bool write2File = false);
+    TranscodeFFmpeg(const char* input, const char* output, bool write2File = true);
     ~TranscodeFFmpeg();
 
-    int transcode();
+    void setInputFile(const char* input);
+    int transcode(int (*write_packet)(void *opaque, uint8_t *buf, int buf_size));
 };
 
 

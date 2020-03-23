@@ -8,7 +8,7 @@
 #include "include/cef_client.h"
 #include "include/cef_render_handler.h"
 #include "include/wrapper/cef_message_router.h"
-#include "videotranscode.h"
+#include "transcodeffmpeg.h"
 
 class BrowserClient;
 class BrowserControl;
@@ -19,11 +19,6 @@ private:
     int renderWidth;
     int renderHeight;
 
-    static bool streamToFfmpeg;
-
-    std::thread *videoReadThread;
-    static void readEncodedVideo();
-
     static BrowserClient *browserClient;
 
 public:
@@ -33,9 +28,6 @@ public:
     void setRenderSize(int width, int height);
     void GetViewRect(CefRefPtr<CefBrowser> browser, CefRect &rect) override;
     void OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList &dirtyRects, const void *buffer, int width, int height) override;
-
-    void setStreamToFfmpeg(bool flag);
-    static bool getStreamToFfmpeg() { return OSRHandler::streamToFfmpeg; };
 
     IMPLEMENT_REFCOUNTING(OSRHandler);
 };
@@ -90,7 +82,8 @@ class BrowserClient : public CefClient,
                       public CefLoadHandler,
                       public CefResourceHandler,
                       public CefResourceRequestHandler,
-                      public CefLifeSpanHandler {
+                      public CefLifeSpanHandler,
+                      public TranscodeFFmpeg {
 
 private:
     CefRefPtr<CefRenderHandler> renderHandler;
@@ -179,7 +172,7 @@ public:
     void SendToVdrBuffer(void* message, int size);
 
     void setRenderSize(int width, int height) { osrHandler->setRenderSize(width, height); };
-    void setStreamToFfmpeg(bool flag) { osrHandler->setStreamToFfmpeg(flag); };
+    static int write_buffer_to_vdr(void *opaque, uint8_t *buf, int buf_size);
 
     IMPLEMENT_REFCOUNTING(BrowserClient);
 };

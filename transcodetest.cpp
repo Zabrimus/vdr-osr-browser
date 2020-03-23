@@ -7,6 +7,6 @@ int main(int argc, char **argv) {
     }
 
     TranscodeFFmpeg *transcoder = new TranscodeFFmpeg(argv[1], argv[2], true);
-    transcoder->transcode();
+    transcoder->transcode(NULL);
     delete transcoder;
 }
