@@ -13,29 +13,25 @@
 #include <unistd.h>
 #include <iostream>
 #include <cmath>
-#include <X11/keysym.h>
 #include "include/cef_app.h"
 #include <nanomsg/nn.h>
 #include <nanomsg/reqrep.h>
-
-#include "browsercontrol.h"
-#include "browserclient.h"
-#include "globals.h"
+#include "globaldefs.h"
+#include "browser.h"
 
 // #define DEBUG_JS
 
-BrowserControl::BrowserControl(CefRefPtr<CefBrowser> _browser, OSRHandler* osrHandler, BrowserClient* client) {
+BrowserControl::BrowserControl(CefRefPtr<CefBrowser> _browser, BrowserClient* client) {
     browser = _browser;
-    handler = osrHandler;
     browserClient = client;
 
     browserClient->setBrowserControl(this);
-
-    socketId = -1;
-    endpointId = -1;
 }
 
 BrowserControl::~BrowserControl() {
+    if (fromVdrSocketId > 0) {
+        nn_close(fromVdrSocketId);
+    }
 };
 
 void BrowserControl::LoadURL(const CefString& url) {
@@ -64,12 +60,22 @@ void BrowserControl::BrowserStopLoad() {
 void BrowserControl::Start() {
     isRunning = true;
 
+    // bind socket
+    if ((fromVdrSocketId = nn_socket(AF_SP, NN_REP)) < 0) {
+        fprintf(stderr, "BrowserControl: unable to create nanomsg socket\n");
+        exit(1);
+    }
+
+    if ((fromVdrEndpointId = nn_bind(fromVdrSocketId, FROM_VDR_CHANNEL)) < 0) {
+        fprintf(stderr, "BrowserControl: unable to bind nanomsg socket to %s\n", FROM_VDR_CHANNEL);
+    }
+
     while (isRunning) {
         char *buf = nullptr;
         int bytes;
 
-        if ((bytes = nn_recv(Globals::GetFromVdrSocket(), &buf, NN_MSG, 0)) < 0) {
-            fprintf(stderr, "unable to read command from socket\n");
+        if ((bytes = nn_recv(fromVdrSocketId, &buf, NN_MSG, 0)) < 0) {
+            fprintf(stderr, "BrowserControl: unable to read command from socket %d, %d, %s\n", bytes, nn_errno(), nn_strerror(nn_errno()));
         }
 
         if (bytes > 0) {
@@ -90,7 +96,7 @@ void BrowserControl::Start() {
                 int w, h;
                 sscanf(buf + 4,"%d %d",&w, &h);
 
-                handler->setRenderSize(w, h);
+                browserClient->setRenderSize(w, h);
                 browser->GetHost()->WasResized();
             } else if (strncmp("ZOOM", buf, 4) == 0) {
                 double level;
@@ -128,27 +134,25 @@ void BrowserControl::Start() {
             char *buffer;
             if (successful) {
                 asprintf(&buffer, "ok");
-                if ((bytes = nn_send(Globals::GetFromVdrSocket(), buffer, strlen(buffer) + 1, 0)) < 0) {
+                if ((bytes = nn_send(fromVdrSocketId, buffer, strlen(buffer) + 1, 0)) < 0) {
                     fprintf(stderr, "unable to send response\n");
                 }
             } else {
                 asprintf(&buffer, "unknown command '%s'\n", buf);
-                if ((bytes = nn_send(Globals::GetFromVdrSocket(), buffer, strlen(buffer) + 1, 0)) < 0) {
+                if ((bytes = nn_send(fromVdrSocketId, buffer, strlen(buffer) + 1, 0)) < 0) {
                     fprintf(stderr, "unable to send response\n");
                 }
             }
         }
 
-        nn_freemsg(buf);
+        if (buf != nullptr) {
+            nn_freemsg(buf);
+        }
     }
 }
 
 void BrowserControl::Stop() {
     isRunning = false;
-}
-
-void BrowserControl::setStreamToFfmpeg(bool flag) {
-    handler->setStreamToFfmpeg(flag);
 }
 
 void BrowserControl::sendKeyEvent(const char* keyCode) {

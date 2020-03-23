@@ -28416,7 +28416,7 @@ class OipfAVControlMapper {
 
         const originalDataAttribute = this.avControlObject.data;
         // let video playback fail. Modern browsers don't support any handling of media events and methods on <object type="" data=""> tags
-        // setting data to unknown url will cause a GET 40x.. found no better soluttion yet to disable playback
+        // setting data to unknown url will cause a GET 40x.. found no better solution yet to disable playback
         this.avControlObject.data = "http://google.com/400";
         this.videoElement = document.createElement('video'); // setup artificial video tag
         this.videoElement.setAttribute('id', 'hbbtv-polyfill-video-player');
@@ -28433,7 +28433,10 @@ class OipfAVControlMapper {
             this.dashPlayer.initialize(this.videoElement, originalDataAttribute, true);
         } else {
             signalCef("VIDEO_URL:" + originalDataAttribute);
-            this.videoElement.src = originalDataAttribute; // copy object data url to html5 video tag src attribute ...
+
+            // let video playback fail, because we already have the video URL
+            // this.videoElement.src = originalDataAttribute; // copy object data url to html5 video tag src attribute ...
+            this.videoElement.src = "http://google.com/400";
         }
 
         this.mapAvControlToHtml5Video();

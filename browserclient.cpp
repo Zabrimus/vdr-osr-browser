@@ -15,11 +15,10 @@
 #include <nanomsg/nn.h>
 #include <nanomsg/pipeline.h>
 #include <curl/curl.h>
-#include "browserclient.h"
 #include "include/wrapper/cef_helpers.h"
-#include "globals.h"
-#include "browsercontrol.h"
-#include "globals.h"
+#include "globaldefs.h"
+#include "browser.h"
+
 
 // to enable much more debug data output to stderr, set this variable to true
 static bool DumpDebugData = true;
@@ -169,9 +168,6 @@ void HbbtvCurl::LoadUrl(std::string url, CefRequest::HeaderMap headers) {
         response_content =  std::string(contentdata.memory, contentdata.size);
     }
 
-    // response_content =  std::string(contentdata.memory, contentdata.size);
-    // DBG("Read content:\n %s\n", response_content.c_str());
-
     curl_easy_cleanup(curl_handle);
 
     free(headerdata);
@@ -232,17 +228,13 @@ bool JavascriptHandler::OnQuery(CefRefPtr<CefBrowser> browser,
     DBG("Javascript called me: %s\n", request.ToString().c_str());
 
     if (strncmp(request.ToString().c_str(), "VDR:", 4) == 0) {
-        nn_send(Globals::GetToVdrSocket(), &CMD_STATUS, 1, 0);
-        nn_send(Globals::GetToVdrSocket(), request.ToString().c_str() + 4, strlen(request.ToString().c_str()) - 3, 0);
+        browserClient->SendToVdrString(CMD_STATUS, request.ToString().c_str() + 4);
         return true;
     } else {
         if (strncmp(request.ToString().c_str(), "PLAY_VIDEO:", 11) == 0) {
             DBG("Play video with duration: %s\n", request.ToString().c_str() + 11);
-
-            nn_send(Globals::GetToVdrSocket(), &CMD_STATUS, 1, 0);
-            nn_send(Globals::GetToVdrSocket(), request.ToString().c_str(), strlen(request.ToString().c_str()) + 1, 0);
-
-            browserControl->setStreamToFfmpeg(true);
+            browserClient->SendToVdrString(CMD_STATUS, request.ToString().c_str());
+            browserClient->setStreamToFfmpeg(true);
             return true;
         } else if (strncmp(request.ToString().c_str(), "VIDEO_URL:", 10) == 0) {
             DBG("Video URL: %s\n", request.ToString().c_str() + 10);
@@ -256,8 +248,7 @@ bool JavascriptHandler::OnQuery(CefRefPtr<CefBrowser> browser,
             return true;
         } else if (strncmp(request.ToString().c_str(), "END_VIDEO:", 10) == 0) {
             DBG("Video streaming ended\n");
-
-            browserControl->setStreamToFfmpeg(false);
+            browserClient->setStreamToFfmpeg(false);
             return true;
         } else if (strncmp(request.ToString().c_str(), "ERROR_VIDEO:", 12) == 0) {
             DBG("Video playing throws an error\n");
@@ -274,8 +265,19 @@ void JavascriptHandler::OnQueryCanceled(CefRefPtr<CefBrowser> browser, CefRefPtr
     // TODO: cancel our async query task...
 }
 
-BrowserClient::BrowserClient(OSRHandler *renderHandler, bool debug) {
-    m_renderHandler = renderHandler;
+BrowserClient::BrowserClient(bool debug) {
+    // bind socket
+    if ((toVdrSocketId = nn_socket(AF_SP, NN_PUSH)) < 0) {
+        fprintf(stderr, "BrowserClient: unable to create nanomsg socket\n");
+    }
+
+    if ((toVdrEndpointId = nn_bind(toVdrSocketId, TO_VDR_CHANNEL)) < 0) {
+        fprintf(stderr, "BrowserClient: unable to bind nanomsg socket to %s\n", TO_VDR_CHANNEL);
+    }
+
+    osrHandler = new OSRHandler(this,1920, 1080);
+    renderHandler = osrHandler;
+
     debugMode = debug;
     injectJavascript = true;
 
@@ -296,13 +298,23 @@ BrowserClient::BrowserClient(OSRHandler *renderHandler, bool debug) {
 }
 
 BrowserClient::~BrowserClient() {
+    if (toVdrSocketId > 0) {
+        nn_close(toVdrSocketId);
+    }
+
+    if (osrHandler != NULL) {
+        delete osrHandler;
+        osrHandler = NULL;
+        renderHandler = NULL;
+    }
+
     browser_side_router->RemoveHandler(handler);
     delete handler;
 }
 
 // getter for the different handler
 CefRefPtr<CefRenderHandler> BrowserClient::GetRenderHandler() {
-    return m_renderHandler;
+    return renderHandler;
 }
 
 CefRefPtr<CefResourceRequestHandler> BrowserClient::GetResourceRequestHandler(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, bool is_navigation, bool is_download, const CefString &request_initiator, bool &disable_default_handling) {
@@ -663,7 +675,22 @@ void BrowserClient::initJavascriptCallback() {
     config.js_cancel_function = "cefQueryCancel";
 
     handler = new JavascriptHandler();
+    handler->SetBrowserClient(this);
 
     browser_side_router = CefMessageRouterBrowserSide::Create(config);
     browser_side_router->AddHandler(handler, true);
+}
+
+void BrowserClient::SendToVdrString(int messageType, const char* message) {
+    nn_send(toVdrSocketId, &messageType, 1, 0);
+    nn_send(toVdrSocketId, message, strlen(message) + 1, 0);
+}
+
+void BrowserClient::SendToVdrBuffer(int messageType, void* message, int size) {
+    nn_send(toVdrSocketId, &messageType, 1, 0);
+    nn_send(toVdrSocketId, message, size, 0);
+}
+
+void BrowserClient::SendToVdrBuffer(void* message, int size) {
+    nn_send(toVdrSocketId, message, size, 0);
 }

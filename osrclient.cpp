@@ -17,11 +17,7 @@
 #include <nanomsg/nn.h>
 #include <nanomsg/reqrep.h>
 #include <nanomsg/pipeline.h>
-#include "globals.h"
-
-
-#define TO_VDR_CHANNEL "ipc:///tmp/vdrosr_tovdr.ipc"
-#define FROM_VDR_CHANNEL "ipc:///tmp/vdrosr_tobrowser.ipc"
+#include "globaldefs.h"
 
 std::string url;
 std::string call;

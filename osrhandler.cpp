@@ -13,19 +13,17 @@
 #include <cstdint>
 #include <thread>
 #include <chrono>
-#include <nanomsg/nn.h>
-#include <nanomsg/pipeline.h>
-
-#include "globals.h"
-#include "osrhandler.h"
+#include "browser.h"
 #include "videotranscode.h"
 
 unsigned char CMD_OSD = 2;
 unsigned char CMD_VIDEO = 3;
 
 bool OSRHandler::streamToFfmpeg;
+BrowserClient* OSRHandler::browserClient;
 
-OSRHandler::OSRHandler(int width, int height) {
+OSRHandler::OSRHandler(BrowserClient *bc, int width, int height) {
+    browserClient = bc;
     renderWidth = width;
     renderHeight = height;
     streamToFfmpeg = false;
@@ -68,8 +66,7 @@ void OSRHandler::readEncodedVideo() {
             std::this_thread::sleep_for(std::chrono::milliseconds(500));
         } else {
             // write to VDR
-            nn_send(Globals::GetToVdrSocket(), &CMD_VIDEO, 1, 0);
-            nn_send(Globals::GetToVdrSocket(), &buffer, size, 0);
+            browserClient->SendToVdrBuffer(CMD_VIDEO, buffer, size);
         }
     }
 }
@@ -88,8 +85,7 @@ void OSRHandler::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, c
         // send count of dirty recs
         auto countOfDirtyRecs = dirtyRects.size();
         if (countOfDirtyRecs > 0) {
-            nn_send(Globals::GetToVdrSocket(), &CMD_OSD, 1, 0);
-            nn_send(Globals::GetToVdrSocket(), &countOfDirtyRecs, sizeof(countOfDirtyRecs), 0);
+            browserClient->SendToVdrBuffer(CMD_OSD, &countOfDirtyRecs, sizeof(countOfDirtyRecs));
 
             // iterate overall dirty recs and send the size and buffer
             for (unsigned long i = 0; i < countOfDirtyRecs; ++i) {
@@ -99,14 +95,14 @@ void OSRHandler::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, c
                 auto h = dirtyRects[i].height;
                 auto w = dirtyRects[i].width;
 
-                bytes = nn_send(Globals::GetToVdrSocket(), &x, sizeof(x), 0);
-                bytes = nn_send(Globals::GetToVdrSocket(), &y, sizeof(y), 0);
-                bytes = nn_send(Globals::GetToVdrSocket(), &w, sizeof(w), 0);
-                bytes = nn_send(Globals::GetToVdrSocket(), &h, sizeof(h), 0);
+                browserClient->SendToVdrBuffer(&x, sizeof(x));
+                browserClient->SendToVdrBuffer(&y, sizeof(y));
+                browserClient->SendToVdrBuffer(&w, sizeof(w));
+                browserClient->SendToVdrBuffer(&h, sizeof(h));
 
                 // send buffer
                 for (auto j = y; j < y + h; ++j) {
-                    bytes = nn_send(Globals::GetToVdrSocket(), img + (width * j + x), 4 * w, 0);
+                    browserClient->SendToVdrBuffer(img + (width * j + x), 4 * w);
                 }
             }
         }

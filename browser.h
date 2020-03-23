@@ -1,27 +1,45 @@
-/**
- *  CEF OSR implementation used für vdr-plugin-htmlskin
- *
- *  browserclient.h
- *
- *  (c) 2019 Robert Hannebauer
- *
- * This code is distributed under the terms and conditions of the
- * GNU GENERAL PUBLIC LICENSE. See the file COPYING for details.
- *
- **/
-
-#ifndef BROWSERCLIENT_H
-#define BROWSERCLIENT_H
+#ifndef BROWSER_H
+#define BROWSER_H
 
 #include <fstream>
+#include <thread>
+
 #include "include/cef_app.h"
 #include "include/cef_client.h"
 #include "include/cef_render_handler.h"
 #include "include/wrapper/cef_message_router.h"
+#include "videotranscode.h"
 
-#include "osrhandler.h"
-
+class BrowserClient;
 class BrowserControl;
+
+
+class OSRHandler : public CefRenderHandler {
+private:
+    int renderWidth;
+    int renderHeight;
+
+    static bool streamToFfmpeg;
+
+    std::thread *videoReadThread;
+    static void readEncodedVideo();
+
+    static BrowserClient *browserClient;
+
+public:
+    OSRHandler(BrowserClient *bc, int width, int height);
+    ~OSRHandler();
+
+    void setRenderSize(int width, int height);
+    void GetViewRect(CefRefPtr<CefBrowser> browser, CefRect &rect) override;
+    void OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList &dirtyRects, const void *buffer, int width, int height) override;
+
+    void setStreamToFfmpeg(bool flag);
+    static bool getStreamToFfmpeg() { return OSRHandler::streamToFfmpeg; };
+
+    IMPLEMENT_REFCOUNTING(OSRHandler);
+};
+
 
 class HbbtvCurl {
 public:
@@ -49,21 +67,22 @@ public:
     ~JavascriptHandler();
 
     bool OnQuery(CefRefPtr<CefBrowser> browser,
-                         CefRefPtr<CefFrame> frame,
-                         int64 query_id,
-                         const CefString& request,
-                         bool persistent,
-                         CefRefPtr<Callback> callback) override;
+                 CefRefPtr<CefFrame> frame,
+                 int64 query_id,
+                 const CefString& request,
+                 bool persistent,
+                 CefRefPtr<Callback> callback) override;
 
     void OnQueryCanceled(CefRefPtr<CefBrowser> browser,
-                                 CefRefPtr<CefFrame> frame,
-                                 int64 query_id) override;
+                         CefRefPtr<CefFrame> frame,
+                         int64 query_id) override;
 
     void SetBrowserControl(BrowserControl *ctl) { this->browserControl = ctl; }
+    void SetBrowserClient(BrowserClient *ctl) { this->browserClient = ctl; }
 
 private:
     BrowserControl *browserControl;
-
+    BrowserClient  *browserClient;
 };
 
 class BrowserClient : public CefClient,
@@ -74,8 +93,9 @@ class BrowserClient : public CefClient,
                       public CefLifeSpanHandler {
 
 private:
-    CefRefPtr<CefRenderHandler> m_renderHandler;
+    CefRefPtr<CefRenderHandler> renderHandler;
     CefRefPtr<CefMessageRouterBrowserSide> browser_side_router;
+    OSRHandler* osrHandler;
 
     std::string exePath;
     HbbtvCurl hbbtvCurl;
@@ -94,6 +114,10 @@ private:
     // default HTML mode
     int mode = 1;
 
+    // sockets
+    int toVdrSocketId;
+    int toVdrEndpointId;
+
     bool loadingStart;
 
     void injectJs(CefRefPtr<CefBrowser> browser, std::string url, bool sync, bool headerStart, std::string htmlid);
@@ -104,7 +128,7 @@ private:
     }
 
 public:
-    explicit BrowserClient(OSRHandler *renderHandler, bool debug);
+    explicit BrowserClient(bool debug);
     ~BrowserClient();
 
     void setLoadingStart(bool loading);
@@ -149,7 +173,46 @@ public:
     void SetHtmlMode() { mode = 1; };
     void SetHbbtvMode() { mode = 2; };
 
-IMPLEMENT_REFCOUNTING(BrowserClient);
+    //
+    void SendToVdrString(int messageType, const char* message);
+    void SendToVdrBuffer(int messageType, void* message, int size);
+    void SendToVdrBuffer(void* message, int size);
+
+    void setRenderSize(int width, int height) { osrHandler->setRenderSize(width, height); };
+    void setStreamToFfmpeg(bool flag) { osrHandler->setStreamToFfmpeg(flag); };
+
+    IMPLEMENT_REFCOUNTING(BrowserClient);
 };
 
-#endif // BROWSERCLIENT_H
+class BrowserControl {
+public:
+    explicit BrowserControl(CefRefPtr<CefBrowser> _browser, BrowserClient* client);
+    ~BrowserControl();
+
+    void LoadURL(const CefString& url);
+
+    void PauseRender();
+    void ResumeRender();
+
+    void Start();
+    void Stop();
+
+    void BrowserBack();
+    void BrowserStopLoad();
+
+    void sendKeyEvent(const char* keyCode);
+
+private:
+    CefRefPtr<CefBrowser> browser;
+    BrowserClient *browserClient;
+
+    bool isRunning;
+
+    int fromVdrSocketId;
+    int fromVdrEndpointId;
+
+    std::string url;
+};
+
+
+#endif // BROWSER_H

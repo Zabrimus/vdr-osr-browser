@@ -18,13 +18,9 @@
 #include <thread>
 #include <csignal>
 
-#include "globals.h"
 #include "main.h"
-#include "osrhandler.h"
-#include "browserclient.h"
-#include "browsercontrol.h"
+#include "browser.h"
 #include "videotranscode.h"
-#include "globals.h"
 
 MainApp::MainApp() {
     CefMessageRouterConfig config;
@@ -131,8 +127,7 @@ int main(int argc, char *argv[]) {
     CefWindowInfo window_info;
     window_info.SetAsWindowless(0);
 
-    auto osrHandler = new OSRHandler(1920, 1080);
-    CefRefPtr<BrowserClient> browserClient = new BrowserClient(osrHandler, debugmode);
+    CefRefPtr<BrowserClient> browserClient = new BrowserClient(debugmode);
     browser = CefBrowserHost::CreateBrowserSync(window_info, browserClient.get(), initUrl ? initUrl->c_str() : "", browserSettings, nullptr, nullptr);
 
     browser->GetHost()->WasHidden(true);
@@ -144,7 +139,7 @@ int main(int argc, char *argv[]) {
 
     browserClient->initJavascriptCallback();
 
-    BrowserControl browserControl(browser, osrHandler, browserClient);
+    BrowserControl browserControl(browser, browserClient);
 
     {
         std::thread controlThread(startBrowserControl, browserControl);

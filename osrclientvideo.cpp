@@ -12,15 +12,13 @@
 
 #include <getopt.h>
 #include <iostream>
-#include <fstream>
 #include <cstring>
 #include <sys/time.h>
 #include <thread>
 #include <chrono>
 #include <nanomsg/nn.h>
-#include <nanomsg/reqrep.h>
 #include <nanomsg/pipeline.h>
-#include "globals.h"
+#include "globaldefs.h"
 
 unsigned char CMD_STATUS = 1;
 unsigned char CMD_VIDEO = 3;
@@ -70,11 +68,6 @@ int main(int argc, char **argv)
 {
     ProcessArgs(argc, argv);
 
-    fprintf(stderr, "Create Globals...\n");
-    Globals *globals = new Globals();
-
-    fprintf(stderr, "Open video file...\n");
-
     unsigned char buffer[18800];
     FILE *ptr;
     ptr = fopen(video.c_str(),"rb");
@@ -84,30 +77,39 @@ int main(int argc, char **argv)
         exit (1);
     }
 
+    // bind socket
+    int toVdrSocketId;
+    int toVdrEndpointId;
+
+    if ((toVdrSocketId = nn_socket(AF_SP, NN_PUSH)) < 0) {
+        fprintf(stderr, "unable to create nanomsg socket\n");
+        exit(1);
+    }
+
+    if ((toVdrEndpointId = nn_bind(toVdrSocketId, TO_VDR_CHANNEL)) < 0) {
+        fprintf(stderr, "unable to bind nanomsg socket to %s\n", TO_VDR_CHANNEL);
+        exit(1);
+    }
+
     fprintf(stderr, "Send video command to VDR...\n");
 
-    nn_send(Globals::GetToVdrSocket(), &CMD_STATUS, 1, 0);
-    nn_send(Globals::GetToVdrSocket(), "PLAY_VIDEO:10", 14 , 0);
-
-    // fprintf(stderr, "Sleep before start streaming...\n");
-
-    // std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+    nn_send(toVdrSocketId, &CMD_STATUS, 1, 0);
+    nn_send(toVdrSocketId, "PLAY_VIDEO:10", 14 , 0);
 
     fprintf(stderr, "Start streaming...\n");
 
     while (fread(buffer, sizeof(buffer),1, ptr) > 0) {
         // write to VDR
-        nn_send(Globals::GetToVdrSocket(), &CMD_VIDEO, 1, 0);
-        nn_send(Globals::GetToVdrSocket(), &buffer, sizeof(buffer), 0);
+        nn_send(toVdrSocketId, &CMD_VIDEO, 1, 0);
+        nn_send(toVdrSocketId, &buffer, sizeof(buffer), 0);
 
         // don't be too fast
         std::this_thread::sleep_for(std::chrono::milliseconds(150));
     }
 
     fprintf(stderr, "Closing...\n");
-
+    nn_close(toVdrSocketId);
     fclose(ptr);
-    delete globals;
 
     return 0;
 }

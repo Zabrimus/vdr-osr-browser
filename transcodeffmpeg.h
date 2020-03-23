@@ -13,8 +13,6 @@ extern "C" {
 }
 #endif
 
-#include "globals.h"
-
 typedef struct StreamingContext {
     AVFormatContext *avfc;
     AVCodec *video_avc;
