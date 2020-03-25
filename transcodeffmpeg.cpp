@@ -44,6 +44,10 @@ TranscodeFFmpeg::TranscodeFFmpeg(const char* in, const char* out, bool write2Fil
     if (write2File) {
         fp_output = fopen(encoder->filename, "wb+");
     }
+
+    if (avfilter_version() < AV_VERSION_INT(7, 57, 100)) {
+        fprintf(stderr, "Warning: Found FFmpeg version < 4.2. Some functionality is not available!\n");
+    }
 }
 
 TranscodeFFmpeg::~TranscodeFFmpeg() {
@@ -174,8 +178,146 @@ int TranscodeFFmpeg::open_media(const char *in_filename, AVFormatContext **avfc)
         return -1;
     }
 
-    // av_dump_format(*avfc, 1, "url", 0);
+    av_dump_format(*avfc, 1, in_filename, 0);
 
+    return 0;
+}
+
+int TranscodeFFmpeg::init_audio_filter_graph(StreamingContext *decoder) {
+    char strbuf[512];
+    int err;
+
+    // create new graph
+    decoder->audio_fgraph = avfilter_graph_alloc();
+    if (!decoder->audio_fgraph) {
+        av_log(NULL, AV_LOG_ERROR, "unable to create filter graph: out of memory\n");
+        return -1;
+    }
+
+    const AVFilter *abuffer = avfilter_get_by_name("abuffer");
+    const AVFilter *arealtime = avfilter_get_by_name("arealtime");
+    const AVFilter *abuffersink = avfilter_get_by_name("abuffersink");
+
+    // create abuffer filter
+    AVCodecContext *avctx = decoder->audio_avcc;
+    AVRational time_base = decoder->audio_avs->time_base;
+
+    snprintf(strbuf, sizeof(strbuf),
+             "time_base=%d/%d:sample_rate=%d:sample_fmt=%s:channel_layout=0x%" PRIx64,
+             time_base.num, time_base.den, avctx->sample_rate,
+             av_get_sample_fmt_name(avctx->sample_fmt),
+             avctx->channel_layout);
+
+    err = avfilter_graph_create_filter(&decoder->audio_fsrc, abuffer, NULL, strbuf, NULL, decoder->audio_fgraph);
+    if (err < 0) {
+        av_log(NULL, AV_LOG_ERROR, "error initializing abuffer filter\n");
+        return err;
+    }
+
+    // create arealtime filter
+    // Test for FFmpeg >= 4.2
+    if (avfilter_version() >= AV_VERSION_INT(7, 57, 100)) {
+        // speed option is only available for FFmpeg >= 4.2
+        snprintf(strbuf, sizeof(strbuf), "speed=%f", 1.0); // TODO: Make this configurable
+        err = avfilter_graph_create_filter(&decoder->audio_arealtime, arealtime, NULL, strbuf, NULL, decoder->audio_fgraph);
+    } else {
+        err = avfilter_graph_create_filter(&decoder->audio_arealtime, arealtime, NULL, NULL, NULL, decoder->audio_fgraph);
+    }
+
+    if (err < 0) {
+        av_log(NULL, AV_LOG_ERROR, "error initializing arealtime filter\n");
+        return err;
+    }
+
+    // create abuffersink filter
+    err = avfilter_graph_create_filter(&decoder->audio_fsink, abuffersink, NULL, NULL, NULL, decoder->audio_fgraph);
+    if (err < 0) {
+        av_log(NULL, AV_LOG_ERROR, "unable to create aformat filter\n");
+        return err;
+    }
+
+    // connect inputs and outputs
+    if (err >= 0) err = avfilter_link(decoder->audio_fsrc, 0, decoder->audio_arealtime, 0);
+    if (err >= 0) err = avfilter_link(decoder->audio_arealtime, 0, decoder->audio_fsink, 0);
+
+    if (err < 0) {
+        av_log(NULL, AV_LOG_ERROR, "error connecting filters\n");
+        return err;
+    }
+
+    err = avfilter_graph_config(decoder->audio_fgraph, NULL);
+    if (err < 0) {
+        av_log(NULL, AV_LOG_ERROR, "error configuring the filter graph\n");
+        return err;
+    }
+
+    return 0;
+}
+
+int TranscodeFFmpeg::init_video_filter_graph(StreamingContext *decoder) {
+    char strbuf[512];
+    int err;
+
+    // create new graph
+    decoder->video_fgraph = avfilter_graph_alloc();
+    if (!decoder->video_fgraph) {
+        av_log(NULL, AV_LOG_ERROR, "unable to create filter graph: out of memory\n");
+        return -1;
+    }
+
+    const AVFilter *buffersrc = avfilter_get_by_name("buffer");
+    const AVFilter *realtime = avfilter_get_by_name("realtime");
+    const AVFilter *buffersink = avfilter_get_by_name("buffersink");
+
+    // create abuffer filter
+    snprintf(strbuf, sizeof(strbuf),
+             "video_size=%dx%d:pix_fmt=%d:time_base=%d/%d:pixel_aspect=%d/%d",
+             decoder->video_avcc->width, decoder->video_avcc->height, decoder->video_avcc->pix_fmt,
+             decoder->video_avs->time_base.num, decoder->video_avs->time_base.den,
+             decoder->video_avcc->sample_aspect_ratio.num, decoder->video_avcc->sample_aspect_ratio.den);
+
+    err = avfilter_graph_create_filter(&decoder->video_fsrc, buffersrc, NULL, strbuf, NULL, decoder->video_fgraph);
+    if (err < 0) {
+        av_log(NULL, AV_LOG_ERROR, "error initializing buffer filter\n");
+        return err;
+    }
+
+    // create realtime filter
+    // Test for FFmpeg >= 4.2
+    if (avfilter_version() >= AV_VERSION_INT(7, 57, 100)) {
+        // speed option is only available for FFmpeg >= 4.2
+        snprintf(strbuf, sizeof(strbuf), "speed=%f", 1.0); // TODO: Make this configurable
+        err = avfilter_graph_create_filter(&decoder->video_realtime, realtime, NULL, strbuf, NULL, decoder->video_fgraph);
+    } else {
+        err = avfilter_graph_create_filter(&decoder->video_realtime, realtime, NULL, NULL, NULL, decoder->video_fgraph);
+    }
+
+    if (err < 0) {
+        av_log(NULL, AV_LOG_ERROR, "error initializing realtime filter\n");
+        return err;
+    }
+
+    // create buffersink filter
+    err = avfilter_graph_create_filter(&decoder->video_fsink, buffersink, NULL, NULL, NULL, decoder->video_fgraph);
+    if (err < 0) {
+        av_log(NULL, AV_LOG_ERROR, "unable to create buffer sink\n");
+        return err;
+    }
+
+    // connect inputs and outputs
+    if (err >= 0) err = avfilter_link(decoder->video_fsrc, 0, decoder->video_realtime, 0);
+    if (err >= 0) err = avfilter_link(decoder->video_realtime, 0, decoder->video_fsink, 0);
+
+    if (err < 0) {
+        av_log(NULL, AV_LOG_ERROR, "error connecting filters\n");
+        return err;
+    }
+
+    err = avfilter_graph_config(decoder->video_fgraph, NULL);
+    if (err < 0) {
+        av_log(NULL, AV_LOG_ERROR, "error configuring the filter graph\n");
+        return err;
+    }
 
     return 0;
 }
@@ -199,6 +341,21 @@ int TranscodeFFmpeg::prepare_decoder() {
         } else {
             logging("skipping streams other than audio and video");
         }
+    }
+
+    // init filters
+    int ret;
+
+    ret = init_audio_filter_graph(decoder);
+    if (ret < 0) {
+        av_log(NULL, AV_LOG_ERROR, "Cannot create audio filter graph\n");
+        return ret;
+    }
+
+    ret = init_video_filter_graph(decoder);
+    if (ret < 0) {
+        av_log(NULL, AV_LOG_ERROR, "Cannot create video filter graph\n");
+        return ret;
     }
 
     return 0;
@@ -225,10 +382,12 @@ int TranscodeFFmpeg::prepare_video_encoder(AVCodecContext *decoder_ctx, AVRation
     encoder->video_avcc->height = decoder_ctx->height;
     encoder->video_avcc->width = decoder_ctx->width;
     encoder->video_avcc->sample_aspect_ratio = decoder_ctx->sample_aspect_ratio;
-    if (encoder->video_avc->pix_fmts)
+
+    if (encoder->video_avc->pix_fmts) {
         encoder->video_avcc->pix_fmt = encoder->video_avc->pix_fmts[0];
-    else
+    } else {
         encoder->video_avcc->pix_fmt = decoder_ctx->pix_fmt;
+    }
 
     encoder->video_avcc->bit_rate = decoder->video_avcc->bit_rate;
     encoder->video_avcc->rc_buffer_size = decoder->video_avcc->rc_buffer_size;
@@ -365,7 +524,27 @@ int TranscodeFFmpeg::transcode_audio(AVPacket *input_packet, AVFrame *input_fram
             return response;
         }
 
+        // push the video data from decoded frame into the filtergraph
+        response = av_buffersrc_write_frame(decoder->audio_fsrc, input_frame);
+        if (response < 0) {
+            av_log(NULL, AV_LOG_ERROR, "error writing frame to buffersrc\n");
+            return -1;
+        }
+
+        av_frame_unref(input_frame);
+
         if (response >= 0) {
+            // pull filtered audio from the filtergraph
+            response = av_buffersink_get_frame(decoder->audio_fsink, input_frame);
+            if (response == AVERROR_EOF || response == AVERROR(EAGAIN)) {
+                return response;
+            }
+
+            if (response < 0) {
+                av_log(NULL, AV_LOG_ERROR, "error reading buffer from buffersink\n");
+                return -1;
+            }
+
             if (encode_audio(input_frame)) return -1;
         }
         av_frame_unref(input_frame);
@@ -389,7 +568,27 @@ int TranscodeFFmpeg::transcode_video(AVPacket *input_packet, AVFrame *input_fram
             return response;
         }
 
+        // push the video data from decoded frame into the filtergraph
+        response = av_buffersrc_write_frame(decoder->video_fsrc, input_frame);
+        if (response < 0) {
+            av_log(NULL, AV_LOG_ERROR, "error writing frame to buffersrc\n");
+            return -1;
+        }
+
+        av_frame_unref(input_frame);
+
         if (response >= 0) {
+            // pull filtered video from the filtergraph
+            response = av_buffersink_get_frame(decoder->video_fsink, input_frame);
+            if (response == AVERROR_EOF || response == AVERROR(EAGAIN)) {
+                return response;
+            }
+
+            if (response < 0) {
+                av_log(NULL, AV_LOG_ERROR, "error reading buffer from buffersink\n");
+                return -1;
+            }
+
             if (encode_video(input_frame)) return -1;
         }
         av_frame_unref(input_frame);
@@ -482,6 +681,8 @@ int TranscodeFFmpeg::transcode(int (*write_packet)(void *opaque, uint8_t *buf, i
         input_packet = NULL;
     }
 
+    avfilter_graph_free(&decoder->audio_fgraph);
+    avfilter_graph_free(&decoder->video_fgraph);
     avformat_close_input(&decoder->avfc);
 
     av_free(outbuffer);
