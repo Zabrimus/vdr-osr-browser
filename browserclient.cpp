@@ -275,8 +275,6 @@ int BrowserClient::write_buffer_to_vdr(void *opaque, uint8_t *buf, int buf_size)
 
     browserClient->SendToVdrBuffer(CMD_VIDEO, buf, buf_size);
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
     return buf_size;
 }
 
