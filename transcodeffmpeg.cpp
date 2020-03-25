@@ -629,8 +629,8 @@ int TranscodeFFmpeg::transcode(int (*write_packet)(void *opaque, uint8_t *buf, i
     if (encoder->avfc->oformat->flags & AVFMT_GLOBALHEADER)
         encoder->avfc->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
 
-    unsigned char* outbuffer = (unsigned char*)av_malloc(112800);
-    AVIOContext *avio_out = avio_alloc_context(outbuffer, 112800, 1, NULL, NULL, write_packet, NULL);
+    unsigned char* outbuffer = (unsigned char*)av_malloc(32712);
+    AVIOContext *avio_out = avio_alloc_context(outbuffer, 32712, 1, NULL, NULL, write_packet, NULL);
 
     if (avio_out == NULL) {
         av_free(outbuffer);

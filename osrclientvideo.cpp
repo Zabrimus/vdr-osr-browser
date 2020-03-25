@@ -68,7 +68,7 @@ int main(int argc, char **argv)
 {
     ProcessArgs(argc, argv);
 
-    unsigned char buffer[18800];
+    unsigned char buffer[32712];
     FILE *ptr;
     ptr = fopen(video.c_str(),"rb");
 

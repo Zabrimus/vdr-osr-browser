@@ -167,8 +167,8 @@ public:
     void SetHbbtvMode() { mode = 2; };
 
     //
-    void SendToVdrString(int messageType, const char* message);
-    void SendToVdrBuffer(int messageType, void* message, int size);
+    void SendToVdrString(uint8_t messageType, const char* message);
+    void SendToVdrBuffer(uint8_t messageType, void* message, int size);
     void SendToVdrBuffer(void* message, int size);
 
     void setRenderSize(int width, int height) { osrHandler->setRenderSize(width, height); };

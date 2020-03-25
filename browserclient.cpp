@@ -26,8 +26,8 @@ static bool DumpDebugData = true;
 
 #define HEADERSIZE (4 * 1024)
 
-unsigned char CMD_STATUS = 1;
-unsigned char CMD_VIDEO = 3;
+uint8_t CMD_STATUS = 1;
+uint8_t CMD_VIDEO = 3;
 
 BrowserClient *browserClient;
 
@@ -271,10 +271,7 @@ void JavascriptHandler::OnQueryCanceled(CefRefPtr<CefBrowser> browser, CefRefPtr
 }
 
 int BrowserClient::write_buffer_to_vdr(void *opaque, uint8_t *buf, int buf_size) {
-    printf("Got encoded buffer with %d size\n", buf_size);
-
     browserClient->SendToVdrBuffer(CMD_VIDEO, buf, buf_size);
-
     return buf_size;
 }
 
@@ -696,12 +693,12 @@ void BrowserClient::initJavascriptCallback() {
     browser_side_router->AddHandler(handler, true);
 }
 
-void BrowserClient::SendToVdrString(int messageType, const char* message) {
+void BrowserClient::SendToVdrString(uint8_t messageType, const char* message) {
     nn_send(toVdrSocketId, &messageType, 1, 0);
     nn_send(toVdrSocketId, message, strlen(message) + 1, 0);
 }
 
-void BrowserClient::SendToVdrBuffer(int messageType, void* message, int size) {
+void BrowserClient::SendToVdrBuffer(uint8_t messageType, void* message, int size) {
     nn_send(toVdrSocketId, &messageType, 1, 0);
     nn_send(toVdrSocketId, message, size, 0);
 }
