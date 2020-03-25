@@ -11,6 +11,7 @@ einer Chromium Installation entspricht, düfte dies auch klar sein.
 ## Voraussetzungen
 - libcurl
 - eine Installation des CEF (siehe unten)
+- FFmpeg (am besten >= 4.2)
 
 ### Installation eines automatischen CEF-Builds 
 Das Makefile bietet die Möglichkeit, vorkompilierte Binaries des CEF herunterzuladen und die Entwicklungsumgebung
