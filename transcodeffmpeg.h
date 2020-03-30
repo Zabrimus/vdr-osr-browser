@@ -13,6 +13,8 @@ extern "C" {
 #include <libavfilter/buffersrc.h>
 #include <libavutil/opt.h>
 #include <libavutil/pixdesc.h>
+#include <libswscale/swscale.h>
+#include <libavutil/imgutils.h>
 #ifdef __cplusplus
 }
 #endif
@@ -26,17 +28,20 @@ typedef struct StreamingContext {
     AVCodecContext *video_avcc;
     AVCodecContext *audio_avcc;
 
+    // Audio stream
     AVFilterContext *audio_fsrc;
     AVFilterContext *audio_fsink;
     AVFilterContext *audio_arealtime;
     AVFilterGraph   *audio_fgraph;
 
+    // Video stream
     AVFilterContext *video_fsrc;
     AVFilterContext *video_fsink;
     AVFilterContext *video_realtime;
+    AVFilterContext *video_overlay;
+    AVFilterContext *video_overlay_fsrc;
     AVFilterGraph   *video_fgraph;
 
-    AVFilterGraph *video_filter_graph;
     int video_index;
     int audio_index;
     char *filename;
@@ -46,6 +51,11 @@ class TranscodeFFmpeg {
 private:
     StreamingContext *decoder;
     StreamingContext *encoder;
+    SwsContext* swsCtx;
+    AVFrame *video_overlay_frame;
+
+    int srcWidth;
+    int srcHeight;
 
 private:
     // Logging functions
@@ -67,11 +77,14 @@ private:
     int transcode_video(AVPacket *input_packet, AVFrame *input_frame);
 
 public:
+    // Transcode video stream
     TranscodeFFmpeg(const char* input, const char* output, bool write2File = true);
     ~TranscodeFFmpeg();
 
     void setInputFile(const char* input);
     int transcode(int (*write_packet)(void *opaque, uint8_t *buf, int buf_size));
+
+    int addOverlayFrame(int width, int height, uint8_t* image);
 };
 
 

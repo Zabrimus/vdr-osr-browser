@@ -80,21 +80,21 @@ LIBAVLDFLAGS += $(shell pkg-config --libs libavutil)
 
 all: prepareexe buildnng $(SOURCES) $(EXECUTABLE) $(EXECUTABLE2) $(EXECUTABLE3) $(EXECUTABLE4)
 
-$(EXECUTABLE): $(OBJECTS)
+$(EXECUTABLE): $(OBJECTS) transcodeffmpeg.h globaldefs.h main.h browser.h
 	$(CC) $(OBJECTS) -o $@ $(LDFLAGS) $(LIBAVLDFLAGS) $(NNGLDFLAGS)
 	mv $(EXECUTABLE) Release
 
-$(EXECUTABLE2): $(OBJECTS2)
+$(EXECUTABLE2): $(OBJECTS2) transcodeffmpeg.h globaldefs.h
 	$(CC) $(OBJECTS2) $(NNGCFLAGS) -o $@ -pthread $(NNGLDFLAGS)
 	mv $(EXECUTABLE2) Release
 	cp -r js Release
 
-$(EXECUTABLE3): $(OBJECTS3)
+$(EXECUTABLE3): $(OBJECTS3) transcodeffmpeg.h globaldefs.h
 	$(CC) $(OBJECTS3) $(NNGCFLAGS) -o $@ -pthread $(NNGLDFLAGS)
 	mv $(EXECUTABLE3) Release
 	cp -r js Release
 
-$(EXECUTABLE4): $(OBJECTS4)
+$(EXECUTABLE4): $(OBJECTS4) transcodeffmpeg.h globaldefs.h
 	$(CC) -O3 $(OBJECTS4) $(LIBAVCFLAGS) -o $@ -pthread $(LIBAVLDFLAGS)
 	mv $(EXECUTABLE4) Release
 	cp -r js Release
