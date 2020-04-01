@@ -62,7 +62,7 @@ private:
     int srcWidth;
     int srcHeight;
 
-    int use_short_filter = 0;
+    bool use_short_filter = false;
 
 private:
     // Logging functions

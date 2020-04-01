@@ -718,9 +718,9 @@ int TranscodeFFmpeg::transcode_video(AVPacket *input_packet, AVFrame *input_fram
         }
 
         // push overlay image
-        video_overlay_frame->pts = input_frame->pts;
+        if (!use_short_filter) {
+            video_overlay_frame->pts = input_frame->pts;
 
-        if (use_short_filter < 2) {
             int response = av_buffersrc_write_frame(decoder->video_overlay_fsrc, video_overlay_frame);
             if (response < 0) {
                 auto errstr = av_err2str(response);
@@ -747,7 +747,7 @@ int TranscodeFFmpeg::transcode_video(AVPacket *input_packet, AVFrame *input_fram
 
         if (response >= 0) {
             // pull filtered video from the filtergraph
-            if (use_short_filter < 2) {
+            if (!use_short_filter) {
                 response = av_buffersink_get_frame(decoder->video_fsink, input_frame);
             } else {
                 response = av_buffersink_get_frame(decoder->video_fsink_short, input_frame);
@@ -832,14 +832,15 @@ int TranscodeFFmpeg::transcode(int (*write_packet)(void *opaque, uint8_t *buf, i
         return -1;
     }
 
-    // push transparent image to overlay input buffer
-    /* TEST 1 */
+    // TEST 1
+    // push transparent image into  overlay input buffer
     uint8_t transparent[4096];
     memset(&transparent, 0, 4096);
     add_overlay_frame(16, 16, &transparent[0]);
-    /* TEST 1 */
+    // TEST 1
 
     // TEST 2
+    // push existing bgra image into overlay input buffer
     /*
     uint8_t transparent[1280 * 720 * 4];
     FILE * filp = fopen("../../test_image.bgra", "rb");
@@ -891,12 +892,11 @@ int TranscodeFFmpeg::transcode(int (*write_packet)(void *opaque, uint8_t *buf, i
 
 // add an bgra image
 int TranscodeFFmpeg::add_overlay_frame(int width, int height, uint8_t* image) {
-    if (is_buffer_not_empty(image, width * height * 4)) {
-        use_short_filter = 0;
-    } else {
-        if (use_short_filter < 2) {
-            use_short_filter++;
-        }
+    use_short_filter = is_buffer_not_empty(image, width * height * 4) == 0;
+
+    if (use_short_filter) {
+        // nothing to do
+        return 0;
     }
 
     // get sws context
