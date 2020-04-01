@@ -62,12 +62,15 @@ private:
     int srcWidth;
     int srcHeight;
 
+    int use_short_filter = 0;
+
 private:
     // Logging functions
     void logging(const char *fmt, ...);
     void log_packet(const AVFormatContext *fmt_ctx, const AVPacket *pkt);
     void print_timing(char *name, AVFormatContext *avf, AVCodecContext *avc, AVStream *avs);
 
+    // create all filters
     int create_video_buffersrc_filter(StreamingContext *decoder, AVFilterContext **filt_ctx, AVFilterGraph *graph_ctx);
     int create_video_image_buffersrc_filter(StreamingContext *decoder, AVFilterContext **filt_ctx, AVFilterGraph *graph_ctx);
     int create_video_realtime_filter(StreamingContext *decoder, AVFilterContext **filt_ctx, AVFilterGraph *graph_ctx);
@@ -75,10 +78,12 @@ private:
     int create_video_overlay_filter(StreamingContext *decoder, AVFilterContext **filt_ctx, AVFilterGraph *graph_ctx);
     int create_video_buffersink_filter(StreamingContext *decoder, AVFilterContext **filt_ctx, AVFilterGraph *graph_ctx);
 
+    // build filter graphs
     int init_audio_filter_graph(StreamingContext *decoder);
     int init_full_video_filter_graph(StreamingContext *decoder);
     int init_short_video_filter_graph(StreamingContext *decoder);
 
+    // decode/encode/transcode
     int fill_stream_info(AVStream *avs, AVCodec **avc, AVCodecContext **avcc);
     int open_media(const char *in_filename, AVFormatContext **avfc);
     int prepare_decoder();
@@ -88,6 +93,11 @@ private:
     int encode_audio(AVFrame *input_frame);
     int transcode_audio(AVPacket *input_packet, AVFrame *input_frame);
     int transcode_video(AVPacket *input_packet, AVFrame *input_frame);
+
+    // helper function
+    inline int is_buffer_not_empty(uint8_t *buff, size_t size) {
+        return *buff || memcmp(buff, buff+1, size-1);
+    }
 
 public:
     // Transcode video stream

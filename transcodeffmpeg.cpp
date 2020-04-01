@@ -37,12 +37,11 @@ TranscodeFFmpeg::TranscodeFFmpeg(const char* in, const char* out, bool write2Fil
 
     decoder = (StreamingContext *) calloc(1, sizeof(StreamingContext));
     if (in != NULL) {
-        decoder->filename = av_strdup(in);
+        decoder->filename = strdup(in);
     }
 
     encoder = (StreamingContext *) calloc(1, sizeof(StreamingContext));
-    encoder->filename = av_strdup(out);
-    strcat(encoder->filename, ".ts");
+    asprintf(&encoder->filename, "%s.ts", out);
 
     if (write2File) {
         fp_output = fopen(encoder->filename, "wb+");
@@ -408,8 +407,8 @@ int TranscodeFFmpeg::init_full_video_filter_graph(StreamingContext *decoder) {
     if (err >= 0) err = avfilter_link(decoder->video_fsrc, 0, decoder->video_overlay, 0);
     if (err >= 0) err = avfilter_link(decoder->video_overlay_fsrc, 0, decoder->video_overlay, 1);
     if (err >= 0) err = avfilter_link(decoder->video_overlay, 0, decoder->video_format, 0);
-    if (err >= 0) err = avfilter_link(decoder->video_realtime, 0, decoder->video_format, 0);
-    if (err >= 0) err = avfilter_link(decoder->video_format, 0, decoder->video_fsink, 0);
+    if (err >= 0) err = avfilter_link(decoder->video_format, 0, decoder->video_realtime, 0);
+    if (err >= 0) err = avfilter_link(decoder->video_realtime, 0, decoder->video_fsink, 0);
 
     if (err < 0) {
         av_log(NULL, AV_LOG_ERROR, "error connecting filters\n");
@@ -721,27 +720,39 @@ int TranscodeFFmpeg::transcode_video(AVPacket *input_packet, AVFrame *input_fram
         // push overlay image
         video_overlay_frame->pts = input_frame->pts;
 
-        if (decoder->video_overlay_fsrc) {
+        if (use_short_filter < 2) {
             int response = av_buffersrc_write_frame(decoder->video_overlay_fsrc, video_overlay_frame);
             if (response < 0) {
                 auto errstr = av_err2str(response);
                 av_log(NULL, AV_LOG_ERROR, "error writing frame to overlay buffersrc: %d, %s\n", response, errstr);
                 return -1;
             }
-        }
 
-        // push the video data from decoded frame into the filtergraph
-        response = av_buffersrc_write_frame(decoder->video_fsrc, input_frame);
-        if (response < 0) {
-            av_log(NULL, AV_LOG_ERROR, "error writing frame to buffersrc\n");
-            return -1;
+            // push the video data from decoded frame into the filtergraph
+            response = av_buffersrc_write_frame(decoder->video_fsrc, input_frame);
+            if (response < 0) {
+                av_log(NULL, AV_LOG_ERROR, "error writing frame to buffersrc\n");
+                return -1;
+            }
+        } else {
+            // push the video data from decoded frame into the filtergraph
+            response = av_buffersrc_write_frame(decoder->video_fsrc_short, input_frame);
+            if (response < 0) {
+                av_log(NULL, AV_LOG_ERROR, "error writing frame to buffersrc\n");
+                return -1;
+            }
         }
 
         av_frame_unref(input_frame);
 
         if (response >= 0) {
             // pull filtered video from the filtergraph
-            response = av_buffersink_get_frame(decoder->video_fsink, input_frame);
+            if (use_short_filter < 2) {
+                response = av_buffersink_get_frame(decoder->video_fsink, input_frame);
+            } else {
+                response = av_buffersink_get_frame(decoder->video_fsink_short, input_frame);
+            }
+
             if (response == AVERROR_EOF || response == AVERROR(EAGAIN)) {
                 return response;
             }
@@ -880,6 +891,14 @@ int TranscodeFFmpeg::transcode(int (*write_packet)(void *opaque, uint8_t *buf, i
 
 // add an bgra image
 int TranscodeFFmpeg::add_overlay_frame(int width, int height, uint8_t* image) {
+    if (is_buffer_not_empty(image, width * height * 4)) {
+        use_short_filter = 0;
+    } else {
+        if (use_short_filter < 2) {
+            use_short_filter++;
+        }
+    }
+
     // get sws context
     swsCtx = sws_getCachedContext(swsCtx, width, height, AV_PIX_FMT_BGRA,
                                   decoder->video_avcc->width, decoder->video_avcc->height, AV_PIX_FMT_YUVA420P,
