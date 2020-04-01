@@ -82,7 +82,7 @@ TranscodeFFmpeg::~TranscodeFFmpeg() {
     }
 }
 
-void TranscodeFFmpeg::setInputFile(const char* input) {
+void TranscodeFFmpeg::set_input_file(const char* input) {
     decoder->filename = av_strdup(input);
 }
 
@@ -267,28 +267,11 @@ int TranscodeFFmpeg::init_audio_filter_graph(StreamingContext *decoder) {
     return 0;
 }
 
-int TranscodeFFmpeg::init_video_filter_graph(StreamingContext *decoder) {
-    if (decoder->video_index < 0) {
-        // no video stream available
-        return 0;
-    }
-
+int TranscodeFFmpeg::create_video_buffersrc_filter(StreamingContext *decoder, AVFilterContext **filt_ctx, AVFilterGraph *graph_ctx) {
     char strbuf[512];
     int err;
 
-    // create new graph
-    decoder->video_fgraph = avfilter_graph_alloc();
-    if (!decoder->video_fgraph) {
-        av_log(NULL, AV_LOG_ERROR, "unable to create filter graph: out of memory\n");
-        return -1;
-    }
-
     const AVFilter *buffersrc = avfilter_get_by_name("buffer");
-    const AVFilter *realtime = avfilter_get_by_name("realtime");
-    //const AVFilter *overlay = avfilter_get_by_name("overlay");
-    const AVFilter *overlay = avfilter_get_by_name("blend");
-    const AVFilter *overlaysrc = avfilter_get_by_name("buffer");
-    const AVFilter *buffersink = avfilter_get_by_name("buffersink");
 
     // create buffer filter
     snprintf(strbuf, sizeof(strbuf),
@@ -297,42 +280,50 @@ int TranscodeFFmpeg::init_video_filter_graph(StreamingContext *decoder) {
              decoder->video_avs->time_base.num, decoder->video_avs->time_base.den,
              decoder->video_avcc->sample_aspect_ratio.num, decoder->video_avcc->sample_aspect_ratio.den);
 
-    err = avfilter_graph_create_filter(&decoder->video_fsrc, buffersrc, NULL, strbuf, NULL, decoder->video_fgraph);
+    err = avfilter_graph_create_filter(filt_ctx, buffersrc, NULL, strbuf, NULL, graph_ctx);
     if (err < 0) {
-        av_log(NULL, AV_LOG_ERROR, "error initializing buffer filter\n");
+        av_log(NULL, AV_LOG_ERROR, "error initializing buffersrc filter\n");
         return err;
     }
 
-    // create overlay filter
-    // err = avfilter_graph_create_filter(&decoder->video_overlay, overlay, NULL, "eof_action=repeat:format=yuv420:alpha=premultiplied", NULL, decoder->video_fgraph);
-    err = avfilter_graph_create_filter(&decoder->video_overlay, overlay, NULL, "all_mode=overlay:all_opacity=0.7", NULL, decoder->video_fgraph);
+    return 0;
+}
 
-    if (err < 0) {
-        av_log(NULL, AV_LOG_ERROR, "error initializing overlay filter\n");
-        return err;
-    }
+int TranscodeFFmpeg::create_video_image_buffersrc_filter(StreamingContext *decoder, AVFilterContext **filt_ctx, AVFilterGraph *graph_ctx) {
+    char strbuf[512];
+    int err;
 
-    // create overlay buffer filter
+    const AVFilter *buffersrc = avfilter_get_by_name("buffer");
+
+    // create buffer filter
     snprintf(strbuf, sizeof(strbuf),
              "video_size=%dx%d:pix_fmt=%d:time_base=%d/%d:pixel_aspect=%d/%d",
-             decoder->video_avcc->width, decoder->video_avcc->height, decoder->video_avcc->pix_fmt,
+             decoder->video_avcc->width, decoder->video_avcc->height, AV_PIX_FMT_YUVA420P,
              decoder->video_avs->time_base.num, decoder->video_avs->time_base.den,
              decoder->video_avcc->sample_aspect_ratio.num, decoder->video_avcc->sample_aspect_ratio.den);
 
-    err = avfilter_graph_create_filter(&decoder->video_overlay_fsrc, overlaysrc, NULL, strbuf, NULL, decoder->video_fgraph);
+    err = avfilter_graph_create_filter(filt_ctx, buffersrc, NULL, strbuf, NULL, graph_ctx);
     if (err < 0) {
-        av_log(NULL, AV_LOG_ERROR, "error initializing buffer filter\n");
+        av_log(NULL, AV_LOG_ERROR, "error initializing buffersrc filter\n");
         return err;
     }
 
-    // create realtime filter
+    return 0;
+}
+
+int TranscodeFFmpeg::create_video_realtime_filter(StreamingContext *decoder, AVFilterContext **filt_ctx, AVFilterGraph *graph_ctx) {
+    int err;
+    char strbuf[512];
+
+    const AVFilter *realtime = avfilter_get_by_name("realtime");
+
     // Test for FFmpeg >= 4.2
     if (avfilter_version() >= AV_VERSION_INT(7, 57, 100)) {
         // speed option is only available for FFmpeg >= 4.2
         snprintf(strbuf, sizeof(strbuf), "speed=%f", 1.0); // TODO: Make this configurable
-        err = avfilter_graph_create_filter(&decoder->video_realtime, realtime, NULL, strbuf, NULL, decoder->video_fgraph);
+        err = avfilter_graph_create_filter(filt_ctx, realtime, NULL, strbuf, NULL, graph_ctx);
     } else {
-        err = avfilter_graph_create_filter(&decoder->video_realtime, realtime, NULL, NULL, NULL, decoder->video_fgraph);
+        err = avfilter_graph_create_filter(filt_ctx, realtime, NULL, NULL, NULL, graph_ctx);
     }
 
     if (err < 0) {
@@ -340,21 +331,85 @@ int TranscodeFFmpeg::init_video_filter_graph(StreamingContext *decoder) {
         return err;
     }
 
-    // create buffersink filter
-    err = avfilter_graph_create_filter(&decoder->video_fsink, buffersink, NULL, NULL, NULL, decoder->video_fgraph);
+    return 0;
+}
+
+int TranscodeFFmpeg::create_video_format_filter(StreamingContext *decoder, AVFilterContext **filt_ctx, AVFilterGraph *graph_ctx) {
+    int err;
+
+    const AVFilter *format = avfilter_get_by_name("format");
+
+    // create format
+    err = avfilter_graph_create_filter(filt_ctx, format, NULL, "pix_fmts=yuv420p", NULL, graph_ctx);
+
     if (err < 0) {
-        av_log(NULL, AV_LOG_ERROR, "unable to create buffer sink\n");
+        av_log(NULL, AV_LOG_ERROR, "error initializing format filter\n");
         return err;
     }
 
-    // connect inputs and outputs
+    return 0;
+}
+
+int TranscodeFFmpeg::create_video_overlay_filter(StreamingContext *decoder, AVFilterContext **filt_ctx, AVFilterGraph *graph_ctx) {
+    int err;
+
+    const AVFilter *overlay = avfilter_get_by_name("overlay");
+
+    // create overlay filter
+    err = avfilter_graph_create_filter(filt_ctx, overlay, NULL, "shortest=0:repeatlast=0:eof_action=pass:format=yuv420:alpha=straight", NULL, graph_ctx);
+
+    if (err < 0) {
+        av_log(NULL, AV_LOG_ERROR, "error initializing overlay filter\n");
+        return err;
+    }
+
+    return 0;
+}
+
+int TranscodeFFmpeg::create_video_buffersink_filter(StreamingContext *decoder, AVFilterContext **filt_ctx, AVFilterGraph *graph_ctx) {
+    int err;
+
+    const AVFilter *buffersink = avfilter_get_by_name("buffersink");
+
+    err = avfilter_graph_create_filter(filt_ctx, buffersink, NULL, NULL, NULL, graph_ctx);
+
+    if (err < 0) {
+        av_log(NULL, AV_LOG_ERROR, "error initializing buffersink filter\n");
+        return err;
+    }
+
+    return 0;
+}
+
+int TranscodeFFmpeg::init_full_video_filter_graph(StreamingContext *decoder) {
+    int err;
+
+    if (decoder->video_index < 0) {
+        // no video stream available
+        return 0;
+    }
+
+    // create new graph
+    decoder->video_fgraph = avfilter_graph_alloc();
+    if (!decoder->video_fgraph) {
+        av_log(NULL, AV_LOG_ERROR, "unable to create filter graph: out of memory\n");
+        return -1;
+    }
+
+    // create filter
+    if ((err = create_video_buffersrc_filter(decoder, &decoder->video_fsrc, decoder->video_fgraph)) < 0)              return err;
+    if ((err = create_video_format_filter(decoder, &decoder->video_format, decoder->video_fgraph)) < 0)               return err;
+    if ((err = create_video_overlay_filter(decoder, &decoder->video_overlay, decoder->video_fgraph)) < 0)             return err;
+    if ((err = create_video_image_buffersrc_filter(decoder, &decoder->video_overlay_fsrc, decoder->video_fgraph)) < 0) return err;
+    if ((err = create_video_realtime_filter(decoder, &decoder->video_realtime, decoder->video_fgraph)) < 0)           return err;
+    if ((err = create_video_buffersink_filter(decoder, &decoder->video_fsink, decoder->video_fgraph)) < 0)            return err;
+
+    // connect everything
     if (err >= 0) err = avfilter_link(decoder->video_fsrc, 0, decoder->video_overlay, 0);
     if (err >= 0) err = avfilter_link(decoder->video_overlay_fsrc, 0, decoder->video_overlay, 1);
-    if (err >= 0) err = avfilter_link(decoder->video_overlay, 0, decoder->video_realtime, 0);
-    if (err >= 0) err = avfilter_link(decoder->video_realtime, 0, decoder->video_fsink, 0);
-
-    // if (err >= 0) err = avfilter_link(decoder->video_fsrc, 0, decoder->video_realtime, 0);
-    // if (err >= 0) err = avfilter_link(decoder->video_realtime, 0, decoder->video_fsink, 0);
+    if (err >= 0) err = avfilter_link(decoder->video_overlay, 0, decoder->video_format, 0);
+    if (err >= 0) err = avfilter_link(decoder->video_realtime, 0, decoder->video_format, 0);
+    if (err >= 0) err = avfilter_link(decoder->video_format, 0, decoder->video_fsink, 0);
 
     if (err < 0) {
         av_log(NULL, AV_LOG_ERROR, "error connecting filters\n");
@@ -362,6 +417,44 @@ int TranscodeFFmpeg::init_video_filter_graph(StreamingContext *decoder) {
     }
 
     err = avfilter_graph_config(decoder->video_fgraph, NULL);
+    if (err < 0) {
+        av_log(NULL, AV_LOG_ERROR, "error configuring the filter graph\n");
+        return err;
+    }
+
+    return 0;
+}
+
+int TranscodeFFmpeg::init_short_video_filter_graph(StreamingContext *decoder) {
+    int err;
+
+    if (decoder->video_index < 0) {
+        // no video stream available
+        return 0;
+    }
+
+    // create new graph
+    decoder->video_fgraph_short = avfilter_graph_alloc();
+    if (!decoder->video_fgraph_short) {
+        av_log(NULL, AV_LOG_ERROR, "unable to create filter graph: out of memory\n");
+        return -1;
+    }
+
+    // create filter
+    if ((err = create_video_buffersrc_filter(decoder, &decoder->video_fsrc_short, decoder->video_fgraph_short)) < 0)              return err;
+    if ((err = create_video_realtime_filter(decoder, &decoder->video_realtime_short, decoder->video_fgraph_short)) < 0)           return err;
+    if ((err = create_video_buffersink_filter(decoder, &decoder->video_fsink_short, decoder->video_fgraph_short)) < 0)            return err;
+
+    // connect everything
+    if (err >= 0) err = avfilter_link(decoder->video_fsrc_short, 0, decoder->video_realtime_short, 0);
+    if (err >= 0) err = avfilter_link(decoder->video_realtime_short, 0, decoder->video_fsink_short, 0);
+
+    if (err < 0) {
+        av_log(NULL, AV_LOG_ERROR, "error connecting filters\n");
+        return err;
+    }
+
+    err = avfilter_graph_config(decoder->video_fgraph_short, NULL);
     if (err < 0) {
         av_log(NULL, AV_LOG_ERROR, "error configuring the filter graph\n");
         return err;
@@ -403,9 +496,15 @@ int TranscodeFFmpeg::prepare_decoder() {
         return ret;
     }
 
-    ret = init_video_filter_graph(decoder);
+    ret = init_full_video_filter_graph(decoder);
     if (ret < 0) {
-        av_log(NULL, AV_LOG_ERROR, "Cannot create video filter graph\n");
+        av_log(NULL, AV_LOG_ERROR, "Cannot create full video filter graph\n");
+        return ret;
+    }
+
+    ret = init_short_video_filter_graph(decoder);
+    if (ret < 0) {
+        av_log(NULL, AV_LOG_ERROR, "Cannot create short video filter graph\n");
         return ret;
     }
 
@@ -619,31 +718,17 @@ int TranscodeFFmpeg::transcode_video(AVPacket *input_packet, AVFrame *input_fram
             return response;
         }
 
-        // TEST
-
-        /*
-        uint8_t transparent[4] = {255, 255, 255, 0};
-        addOverlayFrame(1,1, &transparent[0]);
-        */
-
+        // push overlay image
         video_overlay_frame->pts = input_frame->pts;
 
-        int response = av_buffersrc_write_frame(decoder->video_overlay_fsrc, video_overlay_frame);
-        if (response < 0) {
-            auto errstr = av_err2str(response);
-            av_log(NULL, AV_LOG_ERROR, "error writing frame to overlay buffersrc: %d, %s\n", response, errstr);
-            return -1;
+        if (decoder->video_overlay_fsrc) {
+            int response = av_buffersrc_write_frame(decoder->video_overlay_fsrc, video_overlay_frame);
+            if (response < 0) {
+                auto errstr = av_err2str(response);
+                av_log(NULL, AV_LOG_ERROR, "error writing frame to overlay buffersrc: %d, %s\n", response, errstr);
+                return -1;
+            }
         }
-
-        /*
-        int response = av_buffersrc_write_frame(decoder->video_overlay_fsrc, input_frame);
-        if (response < 0) {
-            auto errstr = av_err2str(response);
-            av_log(NULL, AV_LOG_ERROR, "error writing frame to overlay buffersrc: %d, %s\n", response, errstr);
-            return -1;
-        }
-        */
-        // TEST
 
         // push the video data from decoded frame into the filtergraph
         response = av_buffersrc_write_frame(decoder->video_fsrc, input_frame);
@@ -737,20 +822,22 @@ int TranscodeFFmpeg::transcode(int (*write_packet)(void *opaque, uint8_t *buf, i
     }
 
     // push transparent image to overlay input buffer
-    // TEST 1
-    // uint8_t transparent[4] = {0, 0, 0, 255};
-    // addOverlayFrame(1,1, &transparent[0]);
-    // TEST 1
+    /* TEST 1 */
+    uint8_t transparent[4096];
+    memset(&transparent, 0, 4096);
+    add_overlay_frame(16, 16, &transparent[0]);
+    /* TEST 1 */
 
     // TEST 2
+    /*
     uint8_t transparent[1280 * 720 * 4];
     FILE * filp = fopen("../../test_image.bgra", "rb");
     int bytes_read = fread(transparent, sizeof(uint8_t), 1280 * 720 * 4, filp);
     printf("Read Buffer: %d\n", bytes_read);
     fclose(filp);
-    addOverlayFrame(1280,720, &transparent[0]);
+    add_overlay_frame(1280,720, &transparent[0]);
+    */
     // TEST 2
-
 
     while (av_read_frame(decoder->avfc, input_packet) >= 0) {
         if (decoder->avfc->streams[input_packet->stream_index]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
@@ -792,10 +879,10 @@ int TranscodeFFmpeg::transcode(int (*write_packet)(void *opaque, uint8_t *buf, i
 }
 
 // add an bgra image
-int TranscodeFFmpeg::addOverlayFrame(int width, int height, uint8_t* image) {
+int TranscodeFFmpeg::add_overlay_frame(int width, int height, uint8_t* image) {
     // get sws context
     swsCtx = sws_getCachedContext(swsCtx, width, height, AV_PIX_FMT_BGRA,
-                                  decoder->video_avcc->width, decoder->video_avcc->height, AV_PIX_FMT_YUV420P,
+                                  decoder->video_avcc->width, decoder->video_avcc->height, AV_PIX_FMT_YUVA420P,
                                   SWS_BICUBIC, NULL, NULL, NULL);
 
     // if source has been changed, a new AVFrame has to be created
@@ -817,11 +904,9 @@ int TranscodeFFmpeg::addOverlayFrame(int width, int height, uint8_t* image) {
 
         video_overlay_frame->width = decoder->video_avcc->width;
         video_overlay_frame->height = decoder->video_avcc->height;
-        video_overlay_frame->format = AV_PIX_FMT_YUV420P;
-        // video_overlay_frame->format = AV_PIX_FMT_BGRA;
+        video_overlay_frame->format = AV_PIX_FMT_YUVA420P;
 
-        int ret = av_image_alloc(video_overlay_frame->data, video_overlay_frame->linesize, video_overlay_frame->width, video_overlay_frame->height, AV_PIX_FMT_YUV420P, 24);
-        // int ret = av_image_alloc(video_overlay_frame->data, video_overlay_frame->linesize, video_overlay_frame->width, video_overlay_frame->height, AV_PIX_FMT_BGRA, 32);
+        int ret = av_image_alloc(video_overlay_frame->data, video_overlay_frame->linesize, video_overlay_frame->width, video_overlay_frame->height, AV_PIX_FMT_YUVA420P, 24);
         if (ret < 0) {
             av_log(NULL, AV_LOG_ERROR, "Could not allocate raw picture buffer: %d, %s\n", ret, av_err2str(ret));
             return -1;
@@ -834,14 +919,5 @@ int TranscodeFFmpeg::addOverlayFrame(int width, int height, uint8_t* image) {
     // scale and convert to yuv
     sws_scale(swsCtx, inData, inLinesize, 0, height, video_overlay_frame->data, video_overlay_frame->linesize);
 
-    // push frame to overlay buffer
-    /*
-    int response = av_buffersrc_write_frame(decoder->video_overlay_fsrc, video_overlay_frame);
-    if (response < 0) {
-        auto errstr = av_err2str(response);
-        av_log(NULL, AV_LOG_ERROR, "error writing frame to overlay buffersrc: %d, %s\n", response, errstr);
-        return -1;
-    }
-    */
     return 0;
 }

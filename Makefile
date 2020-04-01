@@ -14,8 +14,8 @@ CEF_INSTALL_DIR = /opt/cef
 CEF_BUILD = http://opensource.spotify.com/cefbuilds/cef_binary_$(CEF_VERSION)_linux64_minimal.tar.bz2
 
 CC = g++
-CFLAGS = -g -c -O3  -Wall -std=c++11
-#CFLAGS = -c -O0 -g -Wall -std=c++11
+#CFLAGS = -g -c -O3  -Wall -std=c++11
+CFLAGS = -c -O0 -g -Wall -std=c++11
 LDFLAGS = -pthread
 
 # SOURCES = cefsimple_linux.cc simple_app.cc simple_handler.cc simple_handler_linux.cc

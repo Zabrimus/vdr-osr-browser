@@ -244,7 +244,7 @@ bool JavascriptHandler::OnQuery(CefRefPtr<CefBrowser> browser,
             DBG("Video URL: %s\n", request.ToString().c_str() + 10);
 
             browserClient->SendToVdrString(CMD_STATUS, "PLAY_VIDEO:");
-            browserClient->setInputFile(request.ToString().c_str() + 10);
+            browserClient->set_input_file(request.ToString().c_str() + 10);
             browserClient->transcode(BrowserClient::write_buffer_to_vdr);
             return true;
         } else if (strncmp(request.ToString().c_str(), "PAUSE_VIDEO:", 11) == 0) {

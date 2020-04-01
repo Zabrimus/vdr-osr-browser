@@ -36,11 +36,16 @@ typedef struct StreamingContext {
 
     // Video stream
     AVFilterContext *video_fsrc;
+    AVFilterContext *video_fsrc_short;
     AVFilterContext *video_fsink;
+    AVFilterContext *video_fsink_short;
     AVFilterContext *video_realtime;
+    AVFilterContext *video_realtime_short;
     AVFilterContext *video_overlay;
     AVFilterContext *video_overlay_fsrc;
+    AVFilterContext *video_format;
     AVFilterGraph   *video_fgraph;
+    AVFilterGraph   *video_fgraph_short;
 
     int video_index;
     int audio_index;
@@ -63,8 +68,16 @@ private:
     void log_packet(const AVFormatContext *fmt_ctx, const AVPacket *pkt);
     void print_timing(char *name, AVFormatContext *avf, AVCodecContext *avc, AVStream *avs);
 
+    int create_video_buffersrc_filter(StreamingContext *decoder, AVFilterContext **filt_ctx, AVFilterGraph *graph_ctx);
+    int create_video_image_buffersrc_filter(StreamingContext *decoder, AVFilterContext **filt_ctx, AVFilterGraph *graph_ctx);
+    int create_video_realtime_filter(StreamingContext *decoder, AVFilterContext **filt_ctx, AVFilterGraph *graph_ctx);
+    int create_video_format_filter(StreamingContext *decoder, AVFilterContext **filt_ctx, AVFilterGraph *graph_ctx);
+    int create_video_overlay_filter(StreamingContext *decoder, AVFilterContext **filt_ctx, AVFilterGraph *graph_ctx);
+    int create_video_buffersink_filter(StreamingContext *decoder, AVFilterContext **filt_ctx, AVFilterGraph *graph_ctx);
+
     int init_audio_filter_graph(StreamingContext *decoder);
-    int init_video_filter_graph(StreamingContext *decoder);
+    int init_full_video_filter_graph(StreamingContext *decoder);
+    int init_short_video_filter_graph(StreamingContext *decoder);
 
     int fill_stream_info(AVStream *avs, AVCodec **avc, AVCodecContext **avcc);
     int open_media(const char *in_filename, AVFormatContext **avfc);
@@ -81,10 +94,10 @@ public:
     TranscodeFFmpeg(const char* input, const char* output, bool write2File = true);
     ~TranscodeFFmpeg();
 
-    void setInputFile(const char* input);
+    void set_input_file(const char* input);
     int transcode(int (*write_packet)(void *opaque, uint8_t *buf, int buf_size));
 
-    int addOverlayFrame(int width, int height, uint8_t* image);
+    int add_overlay_frame(int width, int height, uint8_t* image);
 };
 
 
