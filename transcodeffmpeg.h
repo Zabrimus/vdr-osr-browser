@@ -64,6 +64,11 @@ private:
 
     bool use_short_filter = false;
 
+    // tempory saved overlay image
+    int tmpOverlayWidth;
+    int tmpOverlayHeight;
+    uint8_t* tmpOverlayImage;
+
 private:
     // Logging functions
     void logging(const char *fmt, ...);

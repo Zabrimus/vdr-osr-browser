@@ -55,6 +55,8 @@ TranscodeFFmpeg::TranscodeFFmpeg(const char* in, const char* out, bool write2Fil
     decoder->video_index = -1;
     encoder->video_index = -1;
     encoder->video_index = -1;
+
+    use_short_filter = true;
 }
 
 TranscodeFFmpeg::~TranscodeFFmpeg() {
@@ -832,24 +834,15 @@ int TranscodeFFmpeg::transcode(int (*write_packet)(void *opaque, uint8_t *buf, i
         return -1;
     }
 
-    // TEST 1
-    // push transparent image into  overlay input buffer
-    uint8_t transparent[4096];
-    memset(&transparent, 0, 4096);
-    add_overlay_frame(16, 16, &transparent[0]);
-    // TEST 1
+    // check if a buffered image exists and push it
+    if (tmpOverlayImage != NULL) {
+        add_overlay_frame(tmpOverlayWidth, tmpOverlayHeight, tmpOverlayImage);
 
-    // TEST 2
-    // push existing bgra image into overlay input buffer
-    /*
-    uint8_t transparent[1280 * 720 * 4];
-    FILE * filp = fopen("../../test_image.bgra", "rb");
-    int bytes_read = fread(transparent, sizeof(uint8_t), 1280 * 720 * 4, filp);
-    printf("Read Buffer: %d\n", bytes_read);
-    fclose(filp);
-    add_overlay_frame(1280,720, &transparent[0]);
-    */
-    // TEST 2
+        tmpOverlayWidth = 0;
+        tmpOverlayHeight = 0;
+        free(tmpOverlayImage);
+        tmpOverlayImage = NULL;
+    }
 
     while (av_read_frame(decoder->avfc, input_packet) >= 0) {
         if (decoder->avfc->streams[input_packet->stream_index]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
@@ -896,6 +889,32 @@ int TranscodeFFmpeg::add_overlay_frame(int width, int height, uint8_t* image) {
 
     if (use_short_filter) {
         // nothing to do
+        tmpOverlayWidth = 0;
+        tmpOverlayHeight = 0;
+
+        if (tmpOverlayImage != NULL) {
+            free(tmpOverlayImage);
+            tmpOverlayImage = NULL;
+        }
+
+        return 0;
+    }
+
+    // if decoder is not yet ready, puffer the image
+    if (decoder->video_avcc == NULL) {
+        tmpOverlayWidth = width;
+        tmpOverlayHeight = height;
+
+        if (tmpOverlayImage != NULL) {
+            free(tmpOverlayImage);
+            tmpOverlayImage = NULL;
+        }
+
+        if (tmpOverlayImage == NULL) {
+            tmpOverlayImage = static_cast<uint8_t *>(calloc(width * height * 4, 1));
+            memcpy(tmpOverlayImage, image, width * height * 4);
+        }
+
         return 0;
     }
 
