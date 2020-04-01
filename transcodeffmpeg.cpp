@@ -398,12 +398,12 @@ int TranscodeFFmpeg::init_full_video_filter_graph(StreamingContext *decoder) {
     }
 
     // create filter
-    if ((err = create_video_buffersrc_filter(decoder, &decoder->video_fsrc, decoder->video_fgraph)) < 0)              return err;
-    if ((err = create_video_format_filter(decoder, &decoder->video_format, decoder->video_fgraph)) < 0)               return err;
-    if ((err = create_video_overlay_filter(decoder, &decoder->video_overlay, decoder->video_fgraph)) < 0)             return err;
+    if ((err = create_video_buffersrc_filter(decoder, &decoder->video_fsrc, decoder->video_fgraph)) < 0)               return err;
+    if ((err = create_video_format_filter(decoder, &decoder->video_format, decoder->video_fgraph)) < 0)                return err;
+    if ((err = create_video_overlay_filter(decoder, &decoder->video_overlay, decoder->video_fgraph)) < 0)              return err;
     if ((err = create_video_image_buffersrc_filter(decoder, &decoder->video_overlay_fsrc, decoder->video_fgraph)) < 0) return err;
-    if ((err = create_video_realtime_filter(decoder, &decoder->video_realtime, decoder->video_fgraph)) < 0)           return err;
-    if ((err = create_video_buffersink_filter(decoder, &decoder->video_fsink, decoder->video_fgraph)) < 0)            return err;
+    if ((err = create_video_realtime_filter(decoder, &decoder->video_realtime, decoder->video_fgraph)) < 0)            return err;
+    if ((err = create_video_buffersink_filter(decoder, &decoder->video_fsink, decoder->video_fgraph)) < 0)             return err;
 
     // connect everything
     if (err >= 0) err = avfilter_link(decoder->video_fsrc, 0, decoder->video_overlay, 0);
@@ -442,9 +442,9 @@ int TranscodeFFmpeg::init_short_video_filter_graph(StreamingContext *decoder) {
     }
 
     // create filter
-    if ((err = create_video_buffersrc_filter(decoder, &decoder->video_fsrc_short, decoder->video_fgraph_short)) < 0)              return err;
-    if ((err = create_video_realtime_filter(decoder, &decoder->video_realtime_short, decoder->video_fgraph_short)) < 0)           return err;
-    if ((err = create_video_buffersink_filter(decoder, &decoder->video_fsink_short, decoder->video_fgraph_short)) < 0)            return err;
+    if ((err = create_video_buffersrc_filter(decoder, &decoder->video_fsrc_short, decoder->video_fgraph_short)) < 0)    return err;
+    if ((err = create_video_realtime_filter(decoder, &decoder->video_realtime_short, decoder->video_fgraph_short)) < 0) return err;
+    if ((err = create_video_buffersink_filter(decoder, &decoder->video_fsink_short, decoder->video_fgraph_short)) < 0)  return err;
 
     // connect everything
     if (err >= 0) err = avfilter_link(decoder->video_fsrc_short, 0, decoder->video_realtime_short, 0);
