@@ -20,6 +20,7 @@
 
 #include "main.h"
 #include "browser.h"
+#include "schemehandler.h"
 
 MainApp::MainApp() {
     CefMessageRouterConfig config;
@@ -47,6 +48,16 @@ void MainApp::OnContextReleased(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFram
 
 bool MainApp::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefProcessId source_process, CefRefPtr<CefProcessMessage> message) {
     return renderer_side_router->OnProcessMessageReceived(browser, frame, source_process, message);
+}
+
+void MainApp::OnRegisterCustomSchemes(CefRawPtr<CefSchemeRegistrar> registrar) {
+    registrar->AddCustomScheme("client", CEF_SCHEME_OPTION_STANDARD);
+}
+
+void MainApp::OnContextInitialized() {
+    CefRegisterSchemeHandlerFactory("client", "js",new ClientSchemeHandlerFactory());
+    CefRegisterSchemeHandlerFactory("client", "css",new ClientSchemeHandlerFactory());
+    CefRegisterSchemeHandlerFactory("client", "movie",new ClientSchemeHandlerFactory());
 }
 
 CefRefPtr<CefBrowser> browser;

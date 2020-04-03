@@ -338,11 +338,6 @@ CefRefPtr<CefResourceRequestHandler> BrowserClient::GetResourceRequestHandler(Ce
         return this;
     }
 
-    // test at first for internal requests
-    if ((url.find("https://local_js/") != std::string::npos) || (url.find("https://local_css/") != std::string::npos)) {
-        return this;
-    }
-
     if (is_navigation) {
         injectJavascript = true;
     } else {
@@ -362,11 +357,6 @@ CefRefPtr<CefResourceHandler> BrowserClient::GetResourceHandler(CefRefPtr<CefBro
 
         // test if the special handler is necesary
         auto url = request->GetURL().ToString();
-
-        // test at first internal requests
-        if ((url.find("https://local_js/") != std::string::npos) || (url.find("https://local_css/") != std::string::npos)) {
-            return this;
-        }
 
         // filter http(s) requests
         if (url.find("http", 0) == std::string::npos) {
@@ -457,7 +447,8 @@ void BrowserClient::OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame>
     if (mode == 2 && injectJavascript) {
         // inject Javascript
         DBG("Inject javascript\n");
-        injectJs(browser, "https://local_js/hbbtv_polyfill", false, false, "cef_hbbtvpolyfill");
+        injectJs(browser, "client://js/hbbtv_polyfill.js", false, false, "testtest");
+
         injectJavascript = false;
     }
 
@@ -477,67 +468,21 @@ bool BrowserClient::ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr<CefC
     DBG("PROCESS REQUEST %s\n", request->GetURL().ToString().c_str());
 
     {
-        auto js = std::string("https://local_js/");
-        auto css = std::string("https://local_css/");
-
         // distinguish between local files and remote files using cUrl
         auto url = request->GetURL().ToString();
-        bool localJs = url.find(js) != std::string::npos;
-        bool localCss = url.find(css) != std::string::npos;
 
         if (url.find(".xiti.com") != std::string::npos || url.find(".ioam.de") != std::string::npos) {
             return false;
         }
 
-        if (localJs || localCss) {
-            char result[ PATH_MAX ];
-            ssize_t count = readlink( "/proc/self/exe", result, PATH_MAX );
-            auto exe = std::string(result, static_cast<unsigned long>((count > 0) ? count : 0));
-        }
+        CefRequest::HeaderMap headers;
+        request->GetHeaderMap(headers);
 
-        if (localJs) {
-            auto file = url.substr(js.length());
-            auto _tmp = exePath;
+        hbbtvCurl.LoadUrl(url, headers);
 
-            auto url = _tmp.append("/js/");
-            if (file.find(".js.map") != std::string::npos) {
-                url = url.append(file);
-            } else {
-                url = url.append(file).append(".js");
-            }
-
-            responseContent = readFile(url);
-
-            responseHeader.clear();
-            responseHeader.insert(std::pair<std::string, std::string>("Content-Type", "application/javascript"));
-            responseHeader.insert(std::pair<std::string, std::string>("Status", "200 OK"));
-        } else if (localCss) {
-            auto file = url.substr(css.length(), url.length());
-            auto _tmp = exePath;
-            url = _tmp.append("/css/").append(file).append(".css");
-
-            responseContent = readFile(url);
-
-            responseHeader.clear();
-            responseHeader.insert(std::pair<std::string, std::string>("Content-Type", "text/css"));
-            responseHeader.insert(std::pair<std::string, std::string>("Status", "200 OK"));
-        } else {
-            CefRequest::HeaderMap headers;
-            request->GetHeaderMap(headers);
-
-            hbbtvCurl.LoadUrl(url, headers);
-
-            responseHeader = hbbtvCurl.GetResponseHeader();
-            responseContent = hbbtvCurl.GetResponseContent();
-            redirectUrl = hbbtvCurl.GetRedirectUrl();
-
-            /*
-            DBG("Response Headers:\n");
-            for (auto const& header : responseHeader) {
-                DBG("     - %s: %s\n", header.first.c_str(), header.second.c_str());
-            }
-            */
-        }
+        responseHeader = hbbtvCurl.GetResponseHeader();
+        responseContent = hbbtvCurl.GetResponseContent();
+        redirectUrl = hbbtvCurl.GetRedirectUrl();
     }
 
     callback->Continue();

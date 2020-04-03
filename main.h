@@ -3,6 +3,8 @@
 
 #include "include/cef_app.h"
 #include "include/wrapper/cef_message_router.h"
+#include "include/cef_scheme.h"
+#include "include/wrapper/cef_helpers.h"
 
 class MainApp : public CefApp,
                 public CefBrowserProcessHandler,
@@ -24,6 +26,8 @@ public:
     void OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefV8Context> context) override;
     void OnContextReleased(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefV8Context> context) override;
     bool OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefProcessId source_process, CefRefPtr<CefProcessMessage> message) override;
+    void OnRegisterCustomSchemes(CefRawPtr<CefSchemeRegistrar> registrar) override;
+    void OnContextInitialized() override;
 
 private:
     CefRefPtr<CefMessageRouterRendererSide> renderer_side_router;
