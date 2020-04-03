@@ -447,7 +447,7 @@ void BrowserClient::OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame>
     if (mode == 2 && injectJavascript) {
         // inject Javascript
         DBG("Inject javascript\n");
-        injectJs(browser, "client://js/hbbtv_polyfill.js", false, false, "testtest");
+        injectJs(browser, "client://js/hbbtv_polyfill.js", false, false, "hbbtvpolyfill");
 
         injectJavascript = false;
     }
