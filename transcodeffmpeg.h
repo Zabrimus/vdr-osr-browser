@@ -65,9 +65,12 @@ private:
     bool use_short_filter = false;
 
     // tempory saved overlay image
-    int tmpOverlayWidth;
-    int tmpOverlayHeight;
-    uint8_t* tmpOverlayImage;
+    int tmpOverlayWidth = -1;
+    int tmpOverlayHeight = -1;
+    uint8_t* tmpOverlayImage = NULL;
+
+    // ffmpeg
+    char *ffmpeg_executable;
 
 private:
     // Logging functions
@@ -106,10 +109,10 @@ private:
 
 public:
     // Transcode video stream
-    TranscodeFFmpeg(const char* input, const char* output, bool write2File = true);
+    TranscodeFFmpeg(const char* ffmpeg, const char* input, const char* output, bool write2File = true);
     ~TranscodeFFmpeg();
 
-    void set_input_file(const char* input);
+    bool set_input_file(const char* input);
     int transcode(int (*write_packet)(void *opaque, uint8_t *buf, int buf_size));
 
     int add_overlay_frame(int width, int height, uint8_t* image);

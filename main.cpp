@@ -40,6 +40,15 @@ void MainApp::OnBeforeCommandLineProcessing(const CefString& process_type, CefRe
 
 void MainApp::OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefV8Context> context) {
     renderer_side_router->OnContextCreated(browser, frame, context);
+
+    /*
+    // register native javascript function
+    CefRefPtr<CefV8Value> object = context->GetGlobal();
+
+    CefRefPtr<CefV8Handler> handler = new MyV8Handler(this);
+    CefRefPtr<CefV8Value> func = CefV8Value::CreateFunction("registerVideo", handler);
+    object->SetValue("registerVideo", func, V8_PROPERTY_ATTRIBUTE_NONE);
+     */
 }
 
 void MainApp::OnContextReleased(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefV8Context> context) {
@@ -79,11 +88,13 @@ void quit_handler(int sig) {
 }
 
 std::string *initUrl = nullptr;
+std::string *ffmpeg  = nullptr;
 
 // Entry point function for all processes.
 int main(int argc, char *argv[]) {
     signal (SIGQUIT, quit_handler);
     signal(SIGINT, quit_handler);
+
 
     bool debugmode = false;
 
@@ -125,6 +136,8 @@ int main(int argc, char *argv[]) {
                     CefString(&settings.locales_dir_path).FromASCII(value.c_str());
                 } else if (key == "frameworkpath") {
                     CefString(&settings.framework_dir_path).FromASCII(value.c_str());
+                } else if (key == "") {
+                    ffmpeg = new std::string(value);
                 }
             }
         }
@@ -137,7 +150,7 @@ int main(int argc, char *argv[]) {
     CefWindowInfo window_info;
     window_info.SetAsWindowless(0);
 
-    CefRefPtr<BrowserClient> browserClient = new BrowserClient(debugmode);
+    CefRefPtr<BrowserClient> browserClient = new BrowserClient(debugmode, ffmpeg);
     browser = CefBrowserHost::CreateBrowserSync(window_info, browserClient.get(), initUrl ? initUrl->c_str() : "", browserSettings, nullptr, nullptr);
 
     browser->GetHost()->WasHidden(true);
@@ -145,6 +158,10 @@ int main(int argc, char *argv[]) {
 
     if (initUrl) {
         delete initUrl;
+    }
+
+    if (ffmpeg) {
+        delete ffmpeg;
     }
 
     browserClient->initJavascriptCallback();

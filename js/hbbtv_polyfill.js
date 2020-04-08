@@ -28432,7 +28432,9 @@ class OipfAVControlMapper {
             this.dashPlayer = Object(dashjs__WEBPACK_IMPORTED_MODULE_0__["MediaPlayer"])().create();
             this.dashPlayer.initialize(this.videoElement, originalDataAttribute, true);
         } else {
+            console.log('=== Vor SignalCef ===');
             signalCef("VIDEO_URL:" + originalDataAttribute);
+            console.log('=== Nach SignalCef ===');
 
             // let video playback fail, because we already have the video URL
             // this.videoElement.src = originalDataAttribute; // copy object data url to html5 video tag src attribute ...
@@ -28446,6 +28448,8 @@ class OipfAVControlMapper {
         this.avControlObject.playTime = this.videoElement.duration * 1000;
         // ANSI CTA-2014-B - 5.7.1.f - 5
         this.avControlObject.error = -1;
+
+        console.log('=== Und wech ===');
     }
 
     mapAvControlToHtml5Video() {
@@ -29431,7 +29435,7 @@ __webpack_require__.r(__webpack_exports__);
  * 7.13.1 The video/broadcast embedded object
  */
 
-var _DEBUG_ = false;
+var _DEBUG_ = true;
 
 class OipfVideoBroadcastMapper {
     constructor(node) { // the vide/broadcast object tag

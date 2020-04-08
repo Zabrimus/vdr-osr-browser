@@ -10,6 +10,16 @@
 CEF_VERSION   = 80.0.4+g74f7b0c+chromium-80.0.3987.122
 CEF_INSTALL_DIR = /opt/cef
 
+
+# Alternative ffmpeg installation.
+# FFMPEG_PKG_CONFIG_PATH=/usr/local/ffmpeg/lib/pkgconfig/
+
+# ffmpeg executable.
+# Will be written to the config file vdr-osr-browser.config
+# and can also be changed later.
+FFMPEG_EXECUTABLE = /usr/bin/ffmpeg
+#FFMPEG_EXECUTABLE = /usr/local/ffmpeg/bin/ffmpeg
+
 # 64 bit
 CEF_BUILD = http://opensource.spotify.com/cefbuilds/cef_binary_$(CEF_VERSION)_linux64_minimal.tar.bz2
 
@@ -56,27 +66,8 @@ NNGCFLAGS  = -Ithirdparty/nng-1.2.6/include/nng/compat
 NNGLDFLAGS = thirdparty/nng-1.2.6/build/libnng.a
 
 # libav / ffmpeg
-LIBAVCFLAGS += $(shell pkg-config --cflags libavformat)
-LIBAVLDFLAGS += $(shell pkg-config --libs libavformat)
-
-LIBAVCFLAGS += $(shell pkg-config --cflags libavcodec)
-LIBAVLDFLAGS += $(shell pkg-config --libs libavcodec)
-
-LIBAVCFLAGS += $(shell pkg-config --cflags libavfilter)
-LIBAVLDFLAGS += $(shell pkg-config --libs libavfilter)
-
-LIBAVCFLAGS += $(shell pkg-config --cflags libavdevice)
-LIBAVLDFLAGS += $(shell pkg-config --libs libavdevice)
-
-LIBAVCFLAGS += $(shell pkg-config --cflags libswresample)
-LIBAVLDFLAGS += $(shell pkg-config --libs libswresample)
-
-LIBAVCFLAGS += $(shell pkg-config --cflags libswscale)
-LIBAVLDFLAGS += $(shell pkg-config --libs libswscale)
-
-LIBAVCFLAGS += $(shell pkg-config --cflags libavutil)
-LIBAVLDFLAGS += $(shell pkg-config --libs libavutil)
-
+LIBAVCFLAGS += $(shell PKG_CONFIG_PATH=$(FFMPEG_PKG_CONFIG_PATH) pkg-config --cflags libavformat libavcodec libavfilter libavdevice libswresample libswscale libavutil)
+LIBAVLDFLAGS += $(shell PKG_CONFIG_PATH=$(FFMPEG_PKG_CONFIG_PATH) pkg-config --libs libavformat libavcodec libavfilter libavdevice libswresample libswscale libavutil)
 
 all: prepareexe buildnng $(SOURCES) $(EXECUTABLE) $(EXECUTABLE2) $(EXECUTABLE3) $(EXECUTABLE4)
 
@@ -104,12 +95,14 @@ prepareexe:
 ifeq ($(PACKAGED_CEF),1)
 	cd Release && \
 	echo "resourcepath = /usr/share/cef/Resources" > vdr-osr-browser.config && \
-	echo "localespath = /usr/share/cef/Resources/locales" >> vdr-osr-browser.config
+	echo "localespath = /usr/share/cef/Resources/locales" >> vdr-osr-browser.config && \
+	echo "ffmpeg_executable = $(FFMPEG_EXECUTABLE)" >> vdr-osr-browser.config
 else
 	cd Release && \
 	echo "resourcepath = $(CEF_INSTALL_DIR)/lib" > vdr-osr-browser.config && \
 	echo "localespath = $(CEF_INSTALL_DIR)/lib/locales" >> vdr-osr-browser.config && \
 	echo "frameworkpath  = $(CEF_INSTALL_DIR)/lib" >> vdr-osr-browser.config && \
+	echo "ffmpeg_executable = $(FFMPEG_EXECUTABLE)" >> vdr-osr-browser.config && \
 	rm -f icudtl.dat natives_blob.bin v8_context_snapshot.bin && \
 	ln -s $(CEF_INSTALL_DIR)/lib/icudtl.dat && \
 	ln -s $(CEF_INSTALL_DIR)/lib/natives_blob.bin && \

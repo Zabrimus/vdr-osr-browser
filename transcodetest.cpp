@@ -1,12 +1,31 @@
+#include <string>
 #include "transcodeffmpeg.h"
 
 int main(int argc, char **argv) {
-    if (argc != 3) {
-        printf("Usage %s <input> <output>\n", argv[0]);
+    if (argc < 3) {
+        printf("Usage %s <input> <output> <ffmpeg>\n", argv[0]);
         exit(1);
     }
 
-    TranscodeFFmpeg *transcoder = new TranscodeFFmpeg(argv[1], argv[2], true);
+    std::string *ffmpeg = nullptr;
+
+    if (argc == 3) {
+        // default value
+        ffmpeg = new std::string("/usr/bin/ffmpeg");
+    } else if (argc == 4) {
+        ffmpeg = new std::string(argv[3]);
+    }
+
+    TranscodeFFmpeg *transcoder = new TranscodeFFmpeg(ffmpeg->c_str(), argv[1], argv[2], true);
+
+    if (ffmpeg) {
+        delete(ffmpeg);
+    }
+
+    if (!transcoder->set_input_file(argv[1])) {
+        fprintf(stderr, "Some error occured. Aborting...\n");
+        exit(1);
+    }
 
     // TEST 1
     // push transparent image into  overlay input buffer

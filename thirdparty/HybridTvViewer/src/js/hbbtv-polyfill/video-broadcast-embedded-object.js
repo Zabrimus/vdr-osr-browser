@@ -5,7 +5,7 @@
  * 7.13.1 The video/broadcast embedded object
  */
 
-var _DEBUG_ = false;
+var _DEBUG_ = true;
 
 export class OipfVideoBroadcastMapper {
     constructor(node) { // the vide/broadcast object tag

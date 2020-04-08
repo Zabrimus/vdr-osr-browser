@@ -8,6 +8,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <inttypes.h>
+#include <fstream>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 #include "transcodeffmpeg.h"
 
@@ -21,6 +26,8 @@
 #undef av_ts2timestr
 #define av_ts2timestr(ts, tb) av_ts_make_time_string((char*)__builtin_alloca(AV_TS_MAX_STRING_SIZE), ts, tb)
 
+#define FFMPEG_FIFO "ffmpeg_io.mkv"
+
 FILE *fp_output = NULL;
 
 int write_buffer_to_file(void *opaque, uint8_t *buf, int buf_size) {
@@ -32,7 +39,7 @@ int write_buffer_to_file(void *opaque, uint8_t *buf, int buf_size) {
     }
 }
 
-TranscodeFFmpeg::TranscodeFFmpeg(const char* in, const char* out, bool write2File) {
+TranscodeFFmpeg::TranscodeFFmpeg(const char* ffmpeg, const char* in, const char* out, bool write2File) {
     // av_log_set_level(AV_LOG_TRACE);
 
     decoder = (StreamingContext *) calloc(1, sizeof(StreamingContext));
@@ -57,6 +64,8 @@ TranscodeFFmpeg::TranscodeFFmpeg(const char* in, const char* out, bool write2Fil
     encoder->video_index = -1;
 
     use_short_filter = true;
+
+    ffmpeg_executable = strdup(ffmpeg);
 }
 
 TranscodeFFmpeg::~TranscodeFFmpeg() {
@@ -81,10 +90,50 @@ TranscodeFFmpeg::~TranscodeFFmpeg() {
     if (fp_output != NULL) {
         fclose(fp_output);
     }
+
+    if (ffmpeg_executable) {
+        free(ffmpeg_executable);
+    }
 }
 
-void TranscodeFFmpeg::set_input_file(const char* input) {
-    decoder->filename = av_strdup(input);
+bool TranscodeFFmpeg::set_input_file(const char* input) {
+    // create pipe
+    bool createPipe = false;
+
+    struct stat sb{};
+    if(stat(FFMPEG_FIFO, &sb) != -1) {
+        if (!S_ISFIFO( sb.st_mode ) != 0) {
+            if(remove( FFMPEG_FIFO ) != 0) {
+                fprintf(stderr, "File %s exists and is not a pipe. Delete failed. Aborting...\n", FFMPEG_FIFO);
+                return false;
+            } else {
+                createPipe = true;
+            }
+        }
+    } else {
+        createPipe = true;
+    }
+
+    if (createPipe) {
+        if (mkfifo(FFMPEG_FIFO, 0666) < 0) {
+            fprintf(stderr, "Unable to create pipe %s. Aborting...\n", FFMPEG_FIFO);
+            return false;
+        }
+    }
+
+    // fork and start ffmpeg
+    pid_t pid = fork();
+    if (pid == -1) {
+        fprintf(stderr, "Fork failed. Aborting...\n");
+        return false;
+    } else if (pid == 0) {
+        // let ffmpeg do the hard work like fixing dts/pts and more
+        fprintf(stderr, "Fork ffmpeg...\n");
+        execl(ffmpeg_executable, ffmpeg_executable, "-i", input, "-codec", "copy", "-y", FFMPEG_FIFO, (const char*)NULL);
+        exit(0);
+    }
+
+    return true;
 }
 
 // Logging functions
@@ -167,6 +216,7 @@ int TranscodeFFmpeg::fill_stream_info(AVStream *avs, AVCodec **avc, AVCodecConte
         logging("failed to open codec");
         return -1;
     }
+
     return 0;
 }
 
@@ -513,6 +563,8 @@ int TranscodeFFmpeg::prepare_decoder() {
 }
 
 int TranscodeFFmpeg::prepare_video_encoder(AVCodecContext *decoder_ctx, AVRational input_framerate) {
+    int response;
+
     encoder->video_avs = avformat_new_stream(encoder->avfc, NULL);
 
     encoder->video_avc = avcodec_find_encoder_by_name("libx264");
@@ -552,7 +604,13 @@ int TranscodeFFmpeg::prepare_video_encoder(AVCodecContext *decoder_ctx, AVRation
         logging("could not open the codec");
         return -1;
     }
-    avcodec_parameters_from_context(encoder->video_avs->codecpar, encoder->video_avcc);
+
+    response = avcodec_parameters_from_context(encoder->video_avs->codecpar, encoder->video_avcc);
+    if (response < 0) {
+        av_log(NULL, AV_LOG_ERROR, "Failed to copy encoder parameters to output stream\n");
+        return response;
+    }
+
     return 0;
 }
 
@@ -586,6 +644,7 @@ int TranscodeFFmpeg::prepare_audio_encoder() {
         logging("could not open the codec");
         return -1;
     }
+
     avcodec_parameters_from_context(encoder->audio_avs->codecpar, encoder->audio_avcc);
     return 0;
 }
@@ -599,6 +658,10 @@ int TranscodeFFmpeg::encode_video(AVFrame *input_frame) {
         return -1;
     }
 
+    output_packet->data = NULL;
+    output_packet->size = 0;
+    av_init_packet(output_packet);
+
     int response = avcodec_send_frame(encoder->video_avcc, input_frame);
 
     while (response >= 0) {
@@ -611,11 +674,12 @@ int TranscodeFFmpeg::encode_video(AVFrame *input_frame) {
             return -1;
         }
 
-        output_packet->stream_index = decoder->video_index;
         output_packet->duration = encoder->video_avs->time_base.den / encoder->video_avs->time_base.num /
                                   decoder->video_avs->avg_frame_rate.num * decoder->video_avs->avg_frame_rate.den;
 
         av_packet_rescale_ts(output_packet, decoder->video_avs->time_base, encoder->video_avs->time_base);
+
+        output_packet->stream_index = decoder->video_index;
         response = av_interleaved_write_frame(encoder->avfc, output_packet);
         if (response != 0) {
             logging("Error %d while receiving packet from decoder: %s", response, av_err2str(response));
@@ -645,9 +709,9 @@ int TranscodeFFmpeg::encode_audio(AVFrame *input_frame) {
             return -1;
         }
 
-        output_packet->stream_index = decoder->audio_index;
-
         av_packet_rescale_ts(output_packet, decoder->audio_avs->time_base, encoder->audio_avs->time_base);
+
+        output_packet->stream_index = decoder->audio_index;
         response = av_interleaved_write_frame(encoder->avfc, output_packet);
         if (response != 0) {
             logging("Error %d while receiving packet from decoder: %s", response, av_err2str(response));
@@ -768,6 +832,7 @@ int TranscodeFFmpeg::transcode_video(AVPacket *input_packet, AVFrame *input_fram
                 return -1;
             }
         }
+
         av_frame_unref(input_frame);
     }
     return 0;
@@ -780,7 +845,7 @@ int TranscodeFFmpeg::transcode(int (*write_packet)(void *opaque, uint8_t *buf, i
         write_packet = write_buffer_to_file;
     }
 
-    if (open_media(decoder->filename, &decoder->avfc)) {
+    if (open_media(FFMPEG_FIFO, &decoder->avfc)) {
         return -1;
     }
 
@@ -803,8 +868,9 @@ int TranscodeFFmpeg::transcode(int (*write_packet)(void *opaque, uint8_t *buf, i
         }
     }
 
-    if (encoder->avfc->oformat->flags & AVFMT_GLOBALHEADER)
+    if (encoder->avfc->oformat->flags & AVFMT_GLOBALHEADER) {
         encoder->avfc->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
+    }
 
     unsigned char* outbuffer = (unsigned char*)av_malloc(32712);
     AVIOContext *avio_out = avio_alloc_context(outbuffer, 32712, 1, NULL, NULL, write_packet, NULL);
@@ -815,7 +881,7 @@ int TranscodeFFmpeg::transcode(int (*write_packet)(void *opaque, uint8_t *buf, i
     }
 
     encoder->avfc->pb = avio_out;
-    encoder->avfc->flags = AVFMT_FLAG_CUSTOM_IO;
+    encoder->avfc->flags |= AVFMT_FLAG_CUSTOM_IO;
 
     if (avformat_write_header(encoder->avfc, NULL) < 0) {
         logging("an error occurred when opening output file");
@@ -959,3 +1025,5 @@ int TranscodeFFmpeg::add_overlay_frame(int width, int height, uint8_t* image) {
 
     return 0;
 }
+
+

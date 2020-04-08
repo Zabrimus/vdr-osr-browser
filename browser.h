@@ -121,7 +121,7 @@ private:
     }
 
 public:
-    explicit BrowserClient(bool debug);
+    explicit BrowserClient(bool debug, std::string* ffmpeg);
     ~BrowserClient();
 
     void setLoadingStart(bool loading);
