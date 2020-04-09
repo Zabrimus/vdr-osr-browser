@@ -71,6 +71,7 @@ private:
 
     // ffmpeg
     char *ffmpeg_executable;
+    char *ffprobe_executable;
 
 private:
     // Logging functions
@@ -109,7 +110,7 @@ private:
 
 public:
     // Transcode video stream
-    TranscodeFFmpeg(const char* ffmpeg, const char* input, const char* output, bool write2File = true);
+    TranscodeFFmpeg(const char* ffmpeg, const char* ffprobe, const char* input, const char* output, bool write2File = true);
     ~TranscodeFFmpeg();
 
     bool set_input_file(const char* input);

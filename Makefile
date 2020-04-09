@@ -20,6 +20,9 @@ CEF_INSTALL_DIR = /opt/cef
 FFMPEG_EXECUTABLE = /usr/bin/ffmpeg
 #FFMPEG_EXECUTABLE = /usr/local/ffmpeg/bin/ffmpeg
 
+FFPROBE_EXECUTABLE = /usr/bin/ffprobe
+#FFPROBE_EXECUTABLE = /usr/local/ffmpeg/bin/ffprobe
+
 # 64 bit
 CEF_BUILD = http://opensource.spotify.com/cefbuilds/cef_binary_$(CEF_VERSION)_linux64_minimal.tar.bz2
 
@@ -69,7 +72,7 @@ NNGLDFLAGS = thirdparty/nng-1.2.6/build/libnng.a
 LIBAVCFLAGS += $(shell PKG_CONFIG_PATH=$(FFMPEG_PKG_CONFIG_PATH) pkg-config --cflags libavformat libavcodec libavfilter libavdevice libswresample libswscale libavutil)
 LIBAVLDFLAGS += $(shell PKG_CONFIG_PATH=$(FFMPEG_PKG_CONFIG_PATH) pkg-config --libs libavformat libavcodec libavfilter libavdevice libswresample libswscale libavutil)
 
-all: prepareexe buildnng $(SOURCES) $(EXECUTABLE) $(EXECUTABLE2) $(EXECUTABLE3) $(EXECUTABLE4)
+all: prepareexe emptyvideo buildnng $(SOURCES) $(EXECUTABLE) $(EXECUTABLE2) $(EXECUTABLE3) $(EXECUTABLE4)
 
 $(EXECUTABLE): $(OBJECTS) transcodeffmpeg.h globaldefs.h main.h browser.h
 	$(CC) $(OBJECTS) -o $@ $(LDFLAGS) $(LIBAVLDFLAGS) $(NNGLDFLAGS)
@@ -96,13 +99,15 @@ ifeq ($(PACKAGED_CEF),1)
 	cd Release && \
 	echo "resourcepath = /usr/share/cef/Resources" > vdr-osr-browser.config && \
 	echo "localespath = /usr/share/cef/Resources/locales" >> vdr-osr-browser.config && \
-	echo "ffmpeg_executable = $(FFMPEG_EXECUTABLE)" >> vdr-osr-browser.config
+	echo "ffmpeg_executable = $(FFMPEG_EXECUTABLE)" >> vdr-osr-browser.config && \
+	echo "ffprobe_executable = $(FFPROBE_EXECUTABLE)" >> vdr-osr-browser.config
 else
 	cd Release && \
 	echo "resourcepath = $(CEF_INSTALL_DIR)/lib" > vdr-osr-browser.config && \
 	echo "localespath = $(CEF_INSTALL_DIR)/lib/locales" >> vdr-osr-browser.config && \
 	echo "frameworkpath  = $(CEF_INSTALL_DIR)/lib" >> vdr-osr-browser.config && \
 	echo "ffmpeg_executable = $(FFMPEG_EXECUTABLE)" >> vdr-osr-browser.config && \
+	echo "ffprobe_executable = $(FFPROBE_EXECUTABLE)" >> vdr-osr-browser.config && \
 	rm -f icudtl.dat natives_blob.bin v8_context_snapshot.bin && \
 	ln -s $(CEF_INSTALL_DIR)/lib/icudtl.dat && \
 	ln -s $(CEF_INSTALL_DIR)/lib/natives_blob.bin && \
@@ -130,6 +135,14 @@ cleanjs:
 	rm -Rf thirdparty/HybridTvViewer/build
 	rm -Rf thirdparty/HybridTvViewer/node_modules
 	rm thirdparty/HybridTvViewer/package-lock.json
+
+# create a 6 hours video containing... nothing
+emptyvideo: prepareexe
+	mkdir -p Release/movie
+	cp -r movie/* Release/movie/
+ifneq (exists, $(shell test -e Release/movie/transparent-full.webm && echo exists))
+	$(FFMPEG_EXECUTABLE) -y -loop 1 -i Release/movie/transparent-16x16.png -t 21600 -r 1 -c:v libvpx -auto-alt-ref 0 Release/movie/transparent-full.webm
+endif
 
 .cpp.o:
 	$(CC) $(CFLAGS) $(LIBAVCFLAGS) $(NNGCFLAGS) -MMD $< -o $@

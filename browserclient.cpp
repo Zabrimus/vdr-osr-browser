@@ -246,7 +246,7 @@ bool JavascriptHandler::OnQuery(CefRefPtr<CefBrowser> browser,
             browserClient->SendToVdrString(CMD_STATUS, "PLAY_VIDEO:");
             browserClient->set_input_file(request.ToString().c_str() + 10);
             browserClient->transcode(BrowserClient::write_buffer_to_vdr);
-            DBG("Nach Treanscode...");
+            DBG("Nach Transcode...");
             return true;
         } else if (strncmp(request.ToString().c_str(), "PAUSE_VIDEO:", 11) == 0) {
             DBG("Video streaming paused\n");
@@ -276,7 +276,7 @@ int BrowserClient::write_buffer_to_vdr(void *opaque, uint8_t *buf, int buf_size)
     return buf_size;
 }
 
-BrowserClient::BrowserClient(bool debug, std::string *ffmpeg) : TranscodeFFmpeg(ffmpeg->c_str(), "in", "out", false) {
+BrowserClient::BrowserClient(bool debug, std::string *ffmpeg, std::string *ffprobe) : TranscodeFFmpeg(ffmpeg->c_str(), ffprobe->c_str(), "in", "out", false) {
     // bind socket
     if ((toVdrSocketId = nn_socket(AF_SP, NN_PUSH)) < 0) {
         fprintf(stderr, "BrowserClient: unable to create nanomsg socket\n");

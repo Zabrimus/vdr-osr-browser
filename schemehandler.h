@@ -27,6 +27,7 @@ public:
 private:
     std::string data;
     std::string mime_type;
+    int response_code;
     size_t offset;
 
     bool FileExists(const char* path);

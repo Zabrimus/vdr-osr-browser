@@ -5,6 +5,13 @@
 
 CefRefPtr<CefResourceHandler> ClientSchemeHandlerFactory::Create(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, const CefString& scheme_name, CefRefPtr<CefRequest> request) {
     CEF_REQUIRE_IO_THREAD();
+
+    // decide if a video shall be streamed or if the url shall be handled later
+    std::string url = request->GetURL();
+    if (strstr(url.c_str(), "client://movie/transparent.webm") != NULL) {
+        return new CefStreamResourceHandler("video/webm", CefStreamReader::CreateForFile("movie/transparent.webm"));
+    }
+
     return new ClientSchemeHandler();
 }
 
@@ -18,7 +25,7 @@ bool ClientSchemeHandler::ProcessRequest(CefRefPtr<CefRequest> request, CefRefPt
 
     std::string url = request->GetURL();
 
-    if ((strstr(url.c_str(), "client://js/") != NULL) || (strstr(url.c_str(), "client://css/") != NULL))  {
+    if ((strstr(url.c_str(), "client://js/") != NULL) || (strstr(url.c_str(), "client://css/") != NULL)) {
         if (GetResourceString(url.substr(9), data)) {
             handled = true;
 
@@ -27,9 +34,13 @@ bool ClientSchemeHandler::ProcessRequest(CefRefPtr<CefRequest> request, CefRefPt
             } else {
                 mime_type = GetMimeType(url);
             }
+            response_code = 200;
         }
-    } else if (strstr(url.c_str(), "client://movie/") != NULL) {
-
+    } else if (strstr(url.c_str(), "client://movie/fail") != NULL) {
+        // return 400
+        handled = true;
+        response_code = 400;
+        mime_type = "";
     }
 
     if (handled) {
@@ -44,11 +55,15 @@ bool ClientSchemeHandler::ProcessRequest(CefRefPtr<CefRequest> request, CefRefPt
 void ClientSchemeHandler::GetResponseHeaders(CefRefPtr<CefResponse> response, int64& response_length, CefString& redirectUrl) {
     CEF_REQUIRE_IO_THREAD();
 
-    DCHECK(!data.empty());
+    if (!mime_type.empty()) {
+        response->SetMimeType(mime_type);
+    }
 
-    response->SetMimeType(mime_type);
-    response->SetStatus(200);
-    response_length = data.length();
+    if (!data.empty()) {
+        response_length = data.length();
+    }
+
+    response->SetStatus(response_code);
 }
 
 void ClientSchemeHandler::Cancel() {

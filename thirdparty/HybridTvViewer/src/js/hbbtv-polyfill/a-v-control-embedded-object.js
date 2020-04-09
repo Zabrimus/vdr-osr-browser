@@ -43,7 +43,7 @@ export class OipfAVControlMapper {
         const originalDataAttribute = this.avControlObject.data;
         // let video playback fail. Modern browsers don't support any handling of media events and methods on <object type="" data=""> tags
         // setting data to unknown url will cause a GET 40x.. found no better solution yet to disable playback
-        this.avControlObject.data = "http://google.com/400";
+        this.avControlObject.data = "client://movie/fail";
         this.videoElement = document.createElement('video'); // setup artificial video tag
         this.videoElement.setAttribute('id', 'hbbtv-polyfill-video-player');
         this.videoElement.setAttribute('autoplay', ''); // setting src will start the video and send an event
@@ -58,13 +58,11 @@ export class OipfAVControlMapper {
             this.dashPlayer = MediaPlayer().create();
             this.dashPlayer.initialize(this.videoElement, originalDataAttribute, true);
         } else {
-            console.log('=== Vor SignalCef ===');
             signalCef("VIDEO_URL:" + originalDataAttribute);
-            console.log('=== Nach SignalCef ===');
 
-            // let video playback fail, because we already have the video URL
-            // this.videoElement.src = originalDataAttribute; // copy object data url to html5 video tag src attribute ...
-            this.videoElement.src = "http://google.com/400";
+            // this.videoElement.src = originalDataAttribute;
+            // copy object data url to html5 video tag src attribute ...
+            this.videoElement.src = "client://movie/transparent.webm";
         }
 
         this.mapAvControlToHtml5Video();
@@ -143,11 +141,11 @@ export class OipfAVControlMapper {
         // if url of control object changed - change url of video object
         const handleDataChanged = (event) => { // MutationRecord
             if (event.attributeName === "data") {
-                if (this.avControlObject.data.search("http://google.com/400") < 0) { // prevent infinite data change loop
+                if (this.avControlObject.data.search("client://movie/fail") < 0) { // prevent infinite data change loop
                     this.videoElement.src = this.avControlObject.data;
                     // let video playback fail. Modern browsers don't support any handling of media events and methods on <object type="" data=""> tags
                     // setting data to unknown url will cause a GET 40x.. found no better soluttion yet to disable playback
-                    this.avControlObject.data = "http://google.com/400";
+                    this.avControlObject.data = "client://movie/fail";
                     this.videoElement.load();
                 }
             }

@@ -22,6 +22,21 @@
 #include "browser.h"
 #include "schemehandler.h"
 
+// I'm not sure, if this is really needed anymore
+bool NativeJsHandler::Execute(const CefString& name, CefRefPtr<CefV8Value> object, const CefV8ValueList& arguments, CefRefPtr<CefV8Value>& retval, CefString& exception) {
+    if (name == "registerVideo") {
+        if (arguments.size() == 1) {
+            CefV8Value *val = arguments.at(0);
+            fprintf(stderr, "Called registerVideo: %s\n", val->GetStringValue().ToString().c_str());
+        }
+
+        return true;
+    }
+
+    // Function does not exist.
+    return false;
+}
+
 MainApp::MainApp() {
     CefMessageRouterConfig config;
     config.js_query_function = "cefQuery";
@@ -41,14 +56,12 @@ void MainApp::OnBeforeCommandLineProcessing(const CefString& process_type, CefRe
 void MainApp::OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefV8Context> context) {
     renderer_side_router->OnContextCreated(browser, frame, context);
 
-    /*
     // register native javascript function
     CefRefPtr<CefV8Value> object = context->GetGlobal();
 
-    CefRefPtr<CefV8Handler> handler = new MyV8Handler(this);
+    CefRefPtr<CefV8Handler> handler = new NativeJsHandler();
     CefRefPtr<CefV8Value> func = CefV8Value::CreateFunction("registerVideo", handler);
     object->SetValue("registerVideo", func, V8_PROPERTY_ATTRIBUTE_NONE);
-     */
 }
 
 void MainApp::OnContextReleased(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefV8Context> context) {
@@ -89,12 +102,12 @@ void quit_handler(int sig) {
 
 std::string *initUrl = nullptr;
 std::string *ffmpeg  = nullptr;
+std::string *ffprobe  = nullptr;
 
 // Entry point function for all processes.
 int main(int argc, char *argv[]) {
     signal (SIGQUIT, quit_handler);
     signal(SIGINT, quit_handler);
-
 
     bool debugmode = false;
 
@@ -136,13 +149,27 @@ int main(int argc, char *argv[]) {
                     CefString(&settings.locales_dir_path).FromASCII(value.c_str());
                 } else if (key == "frameworkpath") {
                     CefString(&settings.framework_dir_path).FromASCII(value.c_str());
-                } else if (key == "") {
+                } else if (key == "ffmpeg_executable") {
                     ffmpeg = new std::string(value);
+                } else if (key == "ffprobe_executable") {
+                    ffprobe = new std::string(value);
                 }
             }
         }
     }
     infile.close();
+
+    if (ffmpeg == nullptr || ffmpeg->empty()) {
+        // Configuration is missing
+        fprintf(stderr, "Missing configuration entry ffmpeg_executable. Using default value /usr/bin/ffmpeg");
+        ffmpeg = new std::string("/usr/bin/ffmpeg");
+    }
+
+    if (ffprobe == nullptr || ffprobe->empty()) {
+        // Configuration is missing
+        fprintf(stderr, "Missing configuration entry ffprobe_executable. Using default value /usr/bin/ffprobe");
+        ffprobe = new std::string("/usr/bin/ffprobe");
+    }
 
     CefInitialize(main_args, settings, app.get(), nullptr);
 
@@ -150,7 +177,7 @@ int main(int argc, char *argv[]) {
     CefWindowInfo window_info;
     window_info.SetAsWindowless(0);
 
-    CefRefPtr<BrowserClient> browserClient = new BrowserClient(debugmode, ffmpeg);
+    CefRefPtr<BrowserClient> browserClient = new BrowserClient(debugmode, ffmpeg, ffprobe);
     browser = CefBrowserHost::CreateBrowserSync(window_info, browserClient.get(), initUrl ? initUrl->c_str() : "", browserSettings, nullptr, nullptr);
 
     browser->GetHost()->WasHidden(true);
@@ -165,7 +192,6 @@ int main(int argc, char *argv[]) {
     }
 
     browserClient->initJavascriptCallback();
-
     BrowserControl browserControl(browser, browserClient);
 
     {

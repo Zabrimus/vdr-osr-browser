@@ -39,7 +39,7 @@ int write_buffer_to_file(void *opaque, uint8_t *buf, int buf_size) {
     }
 }
 
-TranscodeFFmpeg::TranscodeFFmpeg(const char* ffmpeg, const char* in, const char* out, bool write2File) {
+TranscodeFFmpeg::TranscodeFFmpeg(const char* ffmpeg, const char* ffprobe, const char* in, const char* out, bool write2File) {
     // av_log_set_level(AV_LOG_TRACE);
 
     decoder = (StreamingContext *) calloc(1, sizeof(StreamingContext));
@@ -66,6 +66,7 @@ TranscodeFFmpeg::TranscodeFFmpeg(const char* ffmpeg, const char* in, const char*
     use_short_filter = true;
 
     ffmpeg_executable = strdup(ffmpeg);
+    ffprobe_executable = strdup(ffprobe);
 }
 
 TranscodeFFmpeg::~TranscodeFFmpeg() {
@@ -94,10 +95,15 @@ TranscodeFFmpeg::~TranscodeFFmpeg() {
     if (ffmpeg_executable) {
         free(ffmpeg_executable);
     }
+
+    if (ffprobe_executable) {
+        free(ffprobe_executable);
+    }
 }
 
 bool TranscodeFFmpeg::set_input_file(const char* input) {
     // create pipe
+    int size;
     bool createPipe = false;
 
     struct stat sb{};
@@ -131,6 +137,57 @@ bool TranscodeFFmpeg::set_input_file(const char* input) {
         fprintf(stderr, "Fork ffmpeg...\n");
         execl(ffmpeg_executable, ffmpeg_executable, "-i", input, "-codec", "copy", "-y", FFMPEG_FIFO, (const char*)NULL);
         exit(0);
+    }
+
+    // get duration
+    char *ffprobe;
+    size = asprintf(&ffprobe, "%s -i %s -show_format -v quiet | sed -n 's/duration=//p'", ffprobe_executable, input);
+
+    FILE *durationFile = popen(ffprobe, "r");
+
+    long duration = 0;
+
+    if (durationFile) {
+        char buffer[1024];
+        char *line = fgets(buffer, sizeof(buffer), durationFile);
+        pclose(durationFile);
+
+        if (line != nullptr) {
+            duration = strtol(line, (char **) NULL, 10);
+        } else {
+            duration = 0;
+        }
+    }
+
+    if (duration == 0) {
+        fprintf(stderr, "Unable to determine duration. ffprobe failed.\n");
+    }
+
+    // check if full transparent video exists, otherwise create one (shall not happen)
+    if (access("movie/transparent-full.webm", R_OK) == -1 ) {
+        fprintf(stderr, "Warning: the file movie/transparent-full.webm does not exist!");
+        fprintf(stderr, "         Creation of a new one will be started, but it takes time.");
+
+        char *createvideo;
+        size = asprintf(&createvideo, "%s -y -loop 1 -i movie/transparent-16x16.png -t 21600 -r 1 -c:v libvpx -auto-alt-ref 0 movie/transparent-full.webm", ffmpeg_executable);
+        int result = system(createvideo);
+        free(createvideo);
+
+        if (result == -1) {
+            fprintf(stderr, "Error: Unable to create the file movie/transparent-full.webm!");
+            return false;
+        }
+    }
+
+    // create transparent video with desired duration
+    char *cvd;
+    size = asprintf(&cvd, "%s -y -i movie/transparent-full.webm -t %ld -codec copy movie/transparent.webm", ffmpeg_executable, duration+1);
+    int result = system(cvd);
+    free(cvd);
+
+    if (result == -1) {
+        fprintf(stderr, "Error: Unable to create the file movie/transparent.webm!");
+        return false;
     }
 
     return true;
@@ -840,11 +897,6 @@ int TranscodeFFmpeg::transcode_video(AVPacket *input_packet, AVFrame *input_fram
 
 int TranscodeFFmpeg::transcode(int (*write_packet)(void *opaque, uint8_t *buf, int buf_size)) {
 
-    if (write_packet == NULL && fp_output != NULL) {
-        // use default file writer
-        write_packet = write_buffer_to_file;
-    }
-
     if (open_media(FFMPEG_FIFO, &decoder->avfc)) {
         return -1;
     }
@@ -870,6 +922,11 @@ int TranscodeFFmpeg::transcode(int (*write_packet)(void *opaque, uint8_t *buf, i
 
     if (encoder->avfc->oformat->flags & AVFMT_GLOBALHEADER) {
         encoder->avfc->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
+    }
+
+    if (write_packet == NULL && fp_output != NULL) {
+        // use default file writer
+        write_packet = write_buffer_to_file;
     }
 
     unsigned char* outbuffer = (unsigned char*)av_malloc(32712);
