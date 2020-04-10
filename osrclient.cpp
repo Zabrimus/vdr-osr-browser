@@ -22,6 +22,7 @@
 std::string url;
 std::string call;
 std::string mode;
+std::string key;
 
 char command;
 
@@ -34,6 +35,7 @@ void PrintHelp() {
               "--stream:      read all dirty recs\n"
               "--js:          executed a javascript procedure\n"
               "--connect:     ping the osr server\n"
+              "--key:         send key event\n"
               "--mode:        1 = HTML, 2 = HbbTV\n";
     exit(1);
 }
@@ -51,6 +53,7 @@ void ProcessArgs(int argc, char** argv)
             {"js", required_argument, nullptr, 'j'},
             {"help", no_argument, nullptr, 'h'},
             {"mode", required_argument, nullptr, 'm'},
+            {"key", required_argument, nullptr, 'k'},
             {nullptr, no_argument, nullptr, 0}
     };
 
@@ -104,6 +107,12 @@ void ProcessArgs(int argc, char** argv)
                 // switch mode
                 mode = std::string(optarg);
                 command = 'm';
+                break;
+
+            case 'k':
+                // send key event
+                key = std::string(optarg);
+                command = 'k';
                 break;
 
             case 'h': // -h or --help
@@ -224,6 +233,13 @@ int main(int argc, char **argv)
             std::string modeCmd("MODE ");
             modeCmd.append(mode);
             sendCommand(socketId, modeCmd.c_str());
+            break;
+        }
+
+        case 'k': {
+            std::string keyCmd("KEY ");
+            keyCmd.append(key);
+            sendCommand(socketId, keyCmd.c_str());
             break;
         }
 
