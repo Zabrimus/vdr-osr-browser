@@ -23,6 +23,7 @@ OSRHandler::OSRHandler(BrowserClient *bc, int width, int height) {
     browserClient = bc;
     renderWidth = width;
     renderHeight = height;
+    videoRendering = false;
 }
 
 OSRHandler::~OSRHandler() {
@@ -39,6 +40,11 @@ void OSRHandler::GetViewRect(CefRefPtr<CefBrowser> browser, CefRect &rect) {
 
 void OSRHandler::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList &dirtyRects, const void *buffer, int width, int height) {
     int bytes;
+
+    if (videoRendering) {
+        browserClient->add_overlay_frame(width, height, (uint8_t*)buffer);
+        return;
+    }
 
     auto img = (uint32_t*)buffer;
 
@@ -66,4 +72,8 @@ void OSRHandler::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, c
             }
         }
     }
+}
+
+void OSRHandler::setVideoRendering(bool b) {
+    videoRendering = b;
 }

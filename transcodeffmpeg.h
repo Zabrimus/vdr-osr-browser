@@ -73,6 +73,12 @@ private:
     char *ffmpeg_executable;
     char *ffprobe_executable;
 
+    // flags
+    bool pause_video_flag = false;
+    bool stop_video_flag = false;
+
+    std::thread *transcode_thread;
+
 private:
     // Logging functions
     void logging(const char *fmt, ...);
@@ -109,14 +115,23 @@ private:
     }
 
 public:
+    // don't use this externally
+    int transcode_worker(int (*write_packet)(void *opaque, uint8_t *buf, int buf_size));
+
     // Transcode video stream
     TranscodeFFmpeg(const char* ffmpeg, const char* ffprobe, const char* input, const char* output, bool write2File = true);
     ~TranscodeFFmpeg();
 
     bool set_input_file(const char* input);
-    int transcode(int (*write_packet)(void *opaque, uint8_t *buf, int buf_size));
+    std::thread transcode(int (*write_packet)(void *opaque, uint8_t *buf, int buf_size));
 
     int add_overlay_frame(int width, int height, uint8_t* image);
+
+    void pause_video();
+    void resume_video();
+    void stop_video();
+    int get_video_width();
+    int get_video_height();
 };
 
 

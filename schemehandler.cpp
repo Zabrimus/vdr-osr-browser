@@ -1,3 +1,4 @@
+#include <map>
 #include "include/cef_resource_handler.h"
 #include "include/cef_parser.h"
 #include "include/wrapper/cef_stream_resource_handler.h"
@@ -6,28 +7,29 @@
 CefRefPtr<CefResourceHandler> ClientSchemeHandlerFactory::Create(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, const CefString& scheme_name, CefRefPtr<CefRequest> request) {
     CEF_REQUIRE_IO_THREAD();
 
-    // decide if a video shall be streamed or if the url shall be handled later
-    std::string url = request->GetURL();
-    if (strstr(url.c_str(), "client://movie/transparent.webm") != NULL) {
-        return new CefStreamResourceHandler("video/webm", CefStreamReader::CreateForFile("movie/transparent.webm"));
-    }
-
     return new ClientSchemeHandler();
 }
 
-ClientSchemeHandler:: ClientSchemeHandler() : offset(0) {
+ClientSchemeHandler:: ClientSchemeHandler() : offset(0), binary_offset(0) {
 }
 
-bool ClientSchemeHandler::ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr<CefCallback> callback) {
-    CEF_REQUIRE_IO_THREAD();
+bool ClientSchemeHandler::Open(CefRefPtr<CefRequest> request, bool& handle_request, CefRefPtr<CefCallback> callback) {
+    // TEST
+    printf("ClientSchemeHandler::ProcessRequest: %s\n", request->GetURL().ToString().c_str());
+    printf("Header:\n");
 
-    bool handled = false;
+    std::multimap<CefString, CefString> header;
+    request->GetHeaderMap(header);
+    for(std::multimap<CefString, CefString>::const_iterator it = header.cbegin(); it != header.cend(); it = header.upper_bound(it->first)) {
+        printf("    %s -> %s\n", it->first.ToString().c_str(), it->second.ToString().c_str());
+    }
+    // TEST
 
     std::string url = request->GetURL();
 
     if ((strstr(url.c_str(), "client://js/") != NULL) || (strstr(url.c_str(), "client://css/") != NULL)) {
         if (GetResourceString(url.substr(9), data)) {
-            handled = true;
+            handle_request = true;
 
             if (strstr(url.c_str(), ".js.map")) {
                 mime_type = "application/json";
@@ -38,22 +40,29 @@ bool ClientSchemeHandler::ProcessRequest(CefRefPtr<CefRequest> request, CefRefPt
         }
     } else if (strstr(url.c_str(), "client://movie/fail") != NULL) {
         // return 400
-        handled = true;
+        handle_request = true;
         response_code = 400;
         mime_type = "";
+    } else if (strstr(url.c_str(), "client://movie/transparent.webm") != NULL) {
+        handle_request = true;
+        response_code = 206;
+        mime_type = "video/webm";
+
+        ReadFileToData("movie/transparent.webm");
+
+        printf("Binary size: %ld\n", binary_data_length);
+    } else {
+        handle_request = true;
+        return false;
     }
 
-    if (handled) {
-        // Indicate that the headers are available.
-        callback->Continue();
-        return true;
-    }
-
-    return false;
+    return true;
 }
 
 void ClientSchemeHandler::GetResponseHeaders(CefRefPtr<CefResponse> response, int64& response_length, CefString& redirectUrl) {
     CEF_REQUIRE_IO_THREAD();
+
+    printf("ClientSchemeHandler::GetResponseHeaders\n");
 
     if (!mime_type.empty()) {
         response->SetMimeType(mime_type);
@@ -61,6 +70,9 @@ void ClientSchemeHandler::GetResponseHeaders(CefRefPtr<CefResponse> response, in
 
     if (!data.empty()) {
         response_length = data.length();
+    } else if (binary_data_length > 0) {
+        // response_length = binary_data_length;
+        response_length = -1;
     }
 
     response->SetStatus(response_code);
@@ -70,20 +82,44 @@ void ClientSchemeHandler::Cancel() {
     CEF_REQUIRE_IO_THREAD();
 }
 
-bool ClientSchemeHandler::ReadResponse(void* data_out, int bytes_to_read, int& bytes_read, CefRefPtr<CefCallback> callback) {
-    CEF_REQUIRE_IO_THREAD();
+bool ClientSchemeHandler::Skip(int64 bytes_to_skip, int64& bytes_skipped, CefRefPtr<CefResourceSkipCallback> callback) {
+    printf("==> Bytes to skip: %ld\n", bytes_to_skip);
+    return true;
+}
+
+bool ClientSchemeHandler::Read(void* data_out, int bytes_to_read, int& bytes_read, CefRefPtr<CefResourceReadCallback> callback) {
+    printf("ClientSchemeHandler::ReadResponse to read: %d\n", bytes_to_read);
 
     bool has_data = false;
     bytes_read = 0;
 
-    if (offset < data.length()) {
-        int transfer_size = std::min(bytes_to_read, static_cast<int>(data.length() - offset));
-        memcpy(data_out, data.c_str() + offset, transfer_size);
-        offset += transfer_size;
+    if (data.length() > 0) {
+        if (offset < data.length()) {
+            int transfer_size = std::min(bytes_to_read, static_cast<int>(data.length() - offset));
 
-        bytes_read = transfer_size;
-        has_data = true;
+            printf("Data Offset %ld, Length %ld, transfersize %d\n", offset, data.length(), transfer_size);
+
+            memcpy(data_out, data.c_str() + offset, transfer_size);
+            offset += transfer_size;
+
+            bytes_read = transfer_size;
+            has_data = true;
+        }
+    } else if (binary_data_length > 0) {
+        if (binary_offset < binary_data_length) {
+            int transfer_size = std::min(bytes_to_read, static_cast<int>(binary_data_length - binary_offset));
+
+            printf("Binary Offset %ld, Length %ld, transfersize %d\n", binary_offset, binary_data_length, transfer_size);
+
+            memcpy(data_out, binary_data + binary_offset, transfer_size);
+            binary_offset += transfer_size;
+
+            bytes_read = transfer_size;
+            has_data = true;
+        }
     }
+
+    printf("ClientSchemeHandler::ReadResponse has read: %d, hasData %s\n", bytes_read, has_data ? " Ja" : " Nein");
 
     return has_data;
 }
@@ -157,6 +193,35 @@ bool ClientSchemeHandler::ReadFileToString(const char* path, std::string& data) 
 
     return true;
 }
+
+bool ClientSchemeHandler::ReadFileToData(const char* path) {
+    if (binary_data != nullptr) {
+        free(binary_data);
+        binary_data = nullptr;
+    }
+    binary_data_length = 0;
+
+    if (!FileExists(path)) {
+        return false;
+    }
+
+    FILE* file;
+    file = fopen(path, "rb");
+
+    fseek(file, 0L, SEEK_END);
+    size_t size = ftell(file);
+    fseek(file, 0L, SEEK_SET);
+
+    binary_data = new uint8_t[size];
+
+    fread(binary_data, size, 1, file);
+    fclose(file);
+
+    binary_data_length = size;
+
+    return true;
+}
+
 
 std::string ClientSchemeHandler::GetMimeType(const std::string& resource_path) {
     std::string mime_type;

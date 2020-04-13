@@ -24,6 +24,7 @@
 
 // I'm not sure, if this is really needed anymore
 bool NativeJsHandler::Execute(const CefString& name, CefRefPtr<CefV8Value> object, const CefV8ValueList& arguments, CefRefPtr<CefV8Value>& retval, CefString& exception) {
+    // TODO: Is this really needed?
     if (name == "registerVideo") {
         if (arguments.size() == 1) {
             CefV8Value *val = arguments.at(0);

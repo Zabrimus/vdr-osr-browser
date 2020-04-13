@@ -3,6 +3,7 @@
 
 #include <fstream>
 #include <thread>
+#include <string>
 
 #include "include/cef_app.h"
 #include "include/cef_client.h"
@@ -18,6 +19,7 @@ class OSRHandler : public CefRenderHandler {
 private:
     int renderWidth;
     int renderHeight;
+    bool videoRendering;
 
     static BrowserClient *browserClient;
 
@@ -28,6 +30,7 @@ public:
     void setRenderSize(int width, int height);
     void GetViewRect(CefRefPtr<CefBrowser> browser, CefRect &rect) override;
     void OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList &dirtyRects, const void *buffer, int width, int height) override;
+    void setVideoRendering(bool b);
 
     IMPLEMENT_REFCOUNTING(OSRHandler);
 };
@@ -82,8 +85,7 @@ class BrowserClient : public CefClient,
                       public CefLoadHandler,
                       public CefResourceHandler,
                       public CefResourceRequestHandler,
-                      public CefLifeSpanHandler,
-                      public TranscodeFFmpeg {
+                      public CefLifeSpanHandler {
 
 private:
     CefRefPtr<CefRenderHandler> renderHandler;
@@ -96,6 +98,11 @@ private:
     bool injectJavascript;
 
     JavascriptHandler *handler;
+
+    TranscodeFFmpeg *transcoder;
+    std::thread transcode_thread;
+    std::string ffmpeg_executable;
+    std::string ffprobe_executable;
 
     std::string responseContent;
     std::map<std::string, std::string> responseHeader;
@@ -165,6 +172,16 @@ public:
     void initJavascriptCallback();
     void SetHtmlMode() { mode = 1; };
     void SetHbbtvMode() { mode = 2; };
+
+    // transcode functions
+    bool set_input_file(const char* input);
+    int transcode();
+    int add_overlay_frame(int width, int height, uint8_t* image);
+    void pause_video();
+    void resume_video();
+    void stop_video();
+    int get_video_width();
+    int get_video_height();
 
     //
     void SendToVdrString(uint8_t messageType, const char* message);

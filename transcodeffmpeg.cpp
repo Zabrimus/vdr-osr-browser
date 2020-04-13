@@ -7,12 +7,15 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
+#include <thread>
+#include <mutex>
 #include <inttypes.h>
 #include <fstream>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <nanomsg/nn.h>
 
 #include "transcodeffmpeg.h"
 
@@ -29,6 +32,8 @@
 #define FFMPEG_FIFO "ffmpeg_io.mkv"
 
 FILE *fp_output = NULL;
+
+std::mutex overlay_mutex;
 
 int write_buffer_to_file(void *opaque, uint8_t *buf, int buf_size) {
     if (!feof(fp_output)) {
@@ -67,6 +72,9 @@ TranscodeFFmpeg::TranscodeFFmpeg(const char* ffmpeg, const char* ffprobe, const 
 
     ffmpeg_executable = strdup(ffmpeg);
     ffprobe_executable = strdup(ffprobe);
+
+    swsCtx = nullptr;
+    video_overlay_frame = nullptr;
 }
 
 TranscodeFFmpeg::~TranscodeFFmpeg() {
@@ -127,18 +135,6 @@ bool TranscodeFFmpeg::set_input_file(const char* input) {
         }
     }
 
-    // fork and start ffmpeg
-    pid_t pid = fork();
-    if (pid == -1) {
-        fprintf(stderr, "Fork failed. Aborting...\n");
-        return false;
-    } else if (pid == 0) {
-        // let ffmpeg do the hard work like fixing dts/pts and more
-        fprintf(stderr, "Fork ffmpeg...\n");
-        execl(ffmpeg_executable, ffmpeg_executable, "-i", input, "-codec", "copy", "-y", FFMPEG_FIFO, (const char*)NULL);
-        exit(0);
-    }
-
     // get duration
     char *ffprobe;
     size = asprintf(&ffprobe, "%s -i %s -show_format -v quiet | sed -n 's/duration=//p'", ffprobe_executable, input);
@@ -188,6 +184,18 @@ bool TranscodeFFmpeg::set_input_file(const char* input) {
     if (result == -1) {
         fprintf(stderr, "Error: Unable to create the file movie/transparent.webm!");
         return false;
+    }
+
+    // fork and start ffmpeg
+    pid_t pid = fork();
+    if (pid == -1) {
+        fprintf(stderr, "Fork failed. Aborting...\n");
+        return false;
+    } else if (pid == 0) {
+        // let ffmpeg do the hard work like fixing dts/pts and more
+        fprintf(stderr, "Fork ffmpeg...\n");
+        execl(ffmpeg_executable, ffmpeg_executable, "-i", input, "-codec", "copy", "-y", FFMPEG_FIFO, (const char*)NULL);
+        exit(0);
     }
 
     return true;
@@ -895,7 +903,11 @@ int TranscodeFFmpeg::transcode_video(AVPacket *input_packet, AVFrame *input_fram
     return 0;
 }
 
-int TranscodeFFmpeg::transcode(int (*write_packet)(void *opaque, uint8_t *buf, int buf_size)) {
+std::thread TranscodeFFmpeg::transcode(int (*write_packet)(void *opaque, uint8_t *buf, int buf_size)) {
+    return std::thread(&TranscodeFFmpeg::transcode_worker, this, write_packet);
+}
+
+int TranscodeFFmpeg::transcode_worker(int (*write_packet)(void *opaque, uint8_t *buf, int buf_size)) {
 
     if (open_media(FFMPEG_FIFO, &decoder->avfc)) {
         return -1;
@@ -1041,6 +1053,8 @@ int TranscodeFFmpeg::add_overlay_frame(int width, int height, uint8_t* image) {
         return 0;
     }
 
+    std::lock_guard<std::mutex> guard(overlay_mutex);
+
     // get sws context
     swsCtx = sws_getCachedContext(swsCtx, width, height, AV_PIX_FMT_BGRA,
                                   decoder->video_avcc->width, decoder->video_avcc->height, AV_PIX_FMT_YUVA420P,
@@ -1048,6 +1062,8 @@ int TranscodeFFmpeg::add_overlay_frame(int width, int height, uint8_t* image) {
 
     // if source has been changed, a new AVFrame has to be created
     if (srcWidth != width || srcHeight != height) {
+        printf("==> SIZE mismatch found...\n");
+
         srcWidth = width;
         srcHeight = height;
 
@@ -1067,7 +1083,7 @@ int TranscodeFFmpeg::add_overlay_frame(int width, int height, uint8_t* image) {
         video_overlay_frame->height = decoder->video_avcc->height;
         video_overlay_frame->format = AV_PIX_FMT_YUVA420P;
 
-        int ret = av_image_alloc(video_overlay_frame->data, video_overlay_frame->linesize, video_overlay_frame->width, video_overlay_frame->height, AV_PIX_FMT_YUVA420P, 24);
+        int ret = av_image_alloc(video_overlay_frame->data, video_overlay_frame->linesize, video_overlay_frame->width, video_overlay_frame->height, AV_PIX_FMT_YUVA420P, 32);
         if (ret < 0) {
             av_log(NULL, AV_LOG_ERROR, "Could not allocate raw picture buffer: %d, %s\n", ret, av_err2str(ret));
             return -1;
@@ -1083,4 +1099,31 @@ int TranscodeFFmpeg::add_overlay_frame(int width, int height, uint8_t* image) {
     return 0;
 }
 
+void TranscodeFFmpeg::pause_video() {
+    pause_video_flag = true;
+}
+
+void TranscodeFFmpeg::resume_video() {
+    pause_video_flag = false;
+}
+
+void TranscodeFFmpeg::stop_video() {
+    stop_video_flag = true;
+}
+
+int TranscodeFFmpeg::get_video_width() {
+    if (decoder->video_avcc) {
+        return decoder->video_avcc->width;
+    }
+
+    return 0;
+}
+
+int TranscodeFFmpeg::get_video_height() {
+    if (decoder->video_avcc) {
+        return decoder->video_avcc->height;
+    }
+
+    return 0;
+}
 

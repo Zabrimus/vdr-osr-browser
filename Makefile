@@ -7,9 +7,17 @@
 # make buildjs		(compiles javascript files and install them in Release and js folder)
 # make cleanjs		(deletes all not needed files in thirdparty/HybridTvViewer)
 
-CEF_VERSION   = 80.0.4+g74f7b0c+chromium-80.0.3987.122
+CEF_VERSION   = 81.2.16%2Bgdacda4f%2Bchromium-81.0.4044.92
+CEF_BUILD = http://opensource.spotify.com/cefbuilds/cef_binary_$(CEF_VERSION)_linux64_minimal.tar.bz2
 CEF_INSTALL_DIR = /opt/cef
 
+# TODO:
+BUILD_TEST_EXECUTABLES = 1
+
+# Force using debian package or spotify build
+# Spotify build:  0
+# Debian package: 1
+# PACKAGED_CEF = 0
 
 # Alternative ffmpeg installation.
 # FFMPEG_PKG_CONFIG_PATH=/usr/local/ffmpeg/lib/pkgconfig/
@@ -22,9 +30,6 @@ FFMPEG_EXECUTABLE = /usr/bin/ffmpeg
 
 FFPROBE_EXECUTABLE = /usr/bin/ffprobe
 #FFPROBE_EXECUTABLE = /usr/local/ffmpeg/bin/ffprobe
-
-# 64 bit
-CEF_BUILD = http://opensource.spotify.com/cefbuilds/cef_binary_$(CEF_VERSION)_linux64_minimal.tar.bz2
 
 CC = g++
 #CFLAGS = -g -c -O3  -Wall -std=c++11
@@ -44,20 +49,47 @@ OBJECTS3 = $(SOURCES3:.cpp=.o)
 SOURCES4 = transcodetest.cpp transcodeffmpeg.cpp
 OBJECTS4 = $(SOURCES4:.cpp=.o)
 
+SOURCES5 = schemehandler.cpp thirdparty/cefsimple/cefsimple_linux.cpp thirdparty/cefsimple/simple_app.cpp thirdparty/cefsimple/simple_handler.cpp thirdparty/cefsimple/simple_handler_linux.cpp
+OBJECTS5 = $(SOURCES5:.cpp=.o)
+
 EXECUTABLE  = vdrosrbrowser
 EXECUTABLE2  = vdrosrclient
 EXECUTABLE3  = vdrosrvideo
 EXECUTABLE4  = transcodetest
 
+# Starten mit z.B. ./cefsimple --url="file://<pfad>/movie.html"
+# Transparente Videos mit einer Laufzeit <= 740 Sekunden funktionieren und ab 741 Sekunden gibt es einen Fehler
+# [0413/182556.463463:ERROR:batching_media_log.cc(38)] MediaEvent: {"error":"FFmpegDemuxer: open context failed"}
+# [0413/182556.485737:ERROR:batching_media_log.cc(35)] MediaEvent: {"pipeline_error":12}
+# Warum zum Henker???
+#
+# 740 Minuten ergibt eine Filesize von 65532
+# 741 Minuten ergibt eine Filesize von 65617
+#
+# Im Schemehandler wird in Read ein bytes_to_read von 65536 angefordert.
+# => Das Video mit 740 Sekunden passt genau in den Buffer und bei 741 Sekunden wird Read ein zweites Mal aufgerufen.
+#
+EXECUTABLE5  = cefsimple
+
 # CEF (debian packaged or self-installed version)
-ifeq (exists, $(shell test -e /usr/include/x86_64-linux-gnu/cef/cef_app.h && echo exists))
-	PACKAGED_CEF = 1
-	CFLAGS += -I/usr/include/x86_64-linux-gnu/cef/
-	LDFLAGS += -lcef -lcef_dll_wrapper -lX11
+ifndef PACKAGED_CEF
+	ifeq (exists, $(shell test -e /usr/include/x86_64-linux-gnu/cef/cef_app.h && echo exists))
+		PACKAGED_CEF = 1
+		CFLAGS += -I/usr/include/x86_64-linux-gnu/cef/
+		LDFLAGS += -lcef -lcef_dll_wrapper -lX11
+	else
+		PACKAGED_CEF = 0
+		CFLAGS += $(shell pkg-config --cflags cef)
+		LDFLAGS += $(shell pkg-config --libs cef)
+	endif
 else
-	PACKAGED_CEF = 0
-	CFLAGS += $(shell pkg-config --cflags cef)
-	LDFLAGS += $(shell pkg-config --libs cef)
+	ifeq (1, PACKAGED_CEF)
+		CFLAGS += -I/usr/include/x86_64-linux-gnu/cef/
+		LDFLAGS += -lcef -lcef_dll_wrapper -lX11
+	else
+		CFLAGS += $(shell pkg-config --cflags cef)
+		LDFLAGS += $(shell pkg-config --libs cef)
+	endif
 endif
 
 # libcurl
@@ -65,33 +97,37 @@ CFLAGS += $(shell pkg-config --cflags libcurl)
 LDFLAGS += $(shell pkg-config --libs libcurl)
 
 # nng
-NNGCFLAGS  = -Ithirdparty/nng-1.2.6/include/nng/compat
-NNGLDFLAGS = thirdparty/nng-1.2.6/build/libnng.a
+NNGVERSION = 1.3.0
+NNGCFLAGS  = -Ithirdparty/nng-$(NNGVERSION)/include/nng/compat
+NNGLDFLAGS = thirdparty/nng-$(NNGVERSION)/build/libnng.a
 
 # libav / ffmpeg
 LIBAVCFLAGS += $(shell PKG_CONFIG_PATH=$(FFMPEG_PKG_CONFIG_PATH) pkg-config --cflags libavformat libavcodec libavfilter libavdevice libswresample libswscale libavutil)
 LIBAVLDFLAGS += $(shell PKG_CONFIG_PATH=$(FFMPEG_PKG_CONFIG_PATH) pkg-config --libs libavformat libavcodec libavfilter libavdevice libswresample libswscale libavutil)
 
-all: prepareexe emptyvideo buildnng $(SOURCES) $(EXECUTABLE) $(EXECUTABLE2) $(EXECUTABLE3) $(EXECUTABLE4)
+all: prepareexe emptyvideo buildnng $(SOURCES) $(EXECUTABLE) $(EXECUTABLE2) $(EXECUTABLE3) $(EXECUTABLE4) $(EXECUTABLE5)
 
 $(EXECUTABLE): $(OBJECTS) transcodeffmpeg.h globaldefs.h main.h browser.h
-	$(CC) $(OBJECTS) -o $@ $(LDFLAGS) $(LIBAVLDFLAGS) $(NNGLDFLAGS)
+	$(CC) $(OBJECTS) $(NNGCFLAGS) -o $@ $(LDFLAGS) $(LIBAVLDFLAGS) $(NNGLDFLAGS)
 	mv $(EXECUTABLE) Release
+	cp -r js Release
 
 $(EXECUTABLE2): $(OBJECTS2) transcodeffmpeg.h globaldefs.h
 	$(CC) $(OBJECTS2) $(NNGCFLAGS) -o $@ -pthread $(NNGLDFLAGS)
 	mv $(EXECUTABLE2) Release
-	cp -r js Release
 
 $(EXECUTABLE3): $(OBJECTS3) transcodeffmpeg.h globaldefs.h
 	$(CC) $(OBJECTS3) $(NNGCFLAGS) -o $@ -pthread $(NNGLDFLAGS)
 	mv $(EXECUTABLE3) Release
-	cp -r js Release
 
 $(EXECUTABLE4): $(OBJECTS4) transcodeffmpeg.h globaldefs.h
-	$(CC) -O3 $(OBJECTS4) $(LIBAVCFLAGS) -o $@ -pthread $(LIBAVLDFLAGS)
+	$(CC) -O3 $(OBJECTS4) $(NNGCFLAGS) $(LIBAVCFLAGS) -o $@ -pthread $(LIBAVLDFLAGS) $(NNGLDFLAGS)
 	mv $(EXECUTABLE4) Release
-	cp -r js Release
+
+$(EXECUTABLE5): $(OBJECTS5)
+	$(CC) -O3 $(OBJECTS5) -o $@ -pthread $(LDFLAGS)
+	mv $(EXECUTABLE5) Release
+	cp thirdparty/cefsimple/movie.html Release
 
 prepareexe:
 	mkdir -p Release
@@ -115,10 +151,10 @@ else
 endif
 
 buildnng:
-ifneq (exists, $(shell test -e thirdparty/nng-1.2.6/build/libnng.a && echo exists))
-	mkdir -p thirdparty/nng-1.2.6/build
-	cd thirdparty/nng-1.2.6/build && cmake ..
-	$(MAKE) -C thirdparty/nng-1.2.6/build -j 6
+ifneq (exists, $(shell test -e thirdparty/nng-$(NNGVERSION)/build/libnng.a && echo exists))
+	mkdir -p thirdparty/nng-$(NNGVERSION)/build
+	cd thirdparty/nng-$(NNGVERSION)/build && cmake ..
+	$(MAKE) -C thirdparty/nng-$(NNGVERSION)/build -j 6
 endif
 
 preparejs:
@@ -145,7 +181,7 @@ ifneq (exists, $(shell test -e Release/movie/transparent-full.webm && echo exist
 endif
 
 .cpp.o:
-	$(CC) $(CFLAGS) $(LIBAVCFLAGS) $(NNGCFLAGS) -MMD $< -o $@
+	$(CC) -I. $(CFLAGS) $(LIBAVCFLAGS) $(NNGCFLAGS) -MMD $< -o $@
 
 DEPS := $(OBJECTS:.o=.d)
 -include $(DEPS)
@@ -154,7 +190,7 @@ clean:
 	rm -f $(OBJECTS) $(EXECUTABLE) $(OBJECTS2) $(EXECUTABLE2) $(OBJECTS3) $(EXECUTABLE3) $(OBJECTS4) $(EXECUTABLE4) *.d tests/*.d
 	rm -Rf cef_binary*
 	rm -Rf Release
-	rm -Rf thirdparty/nng-1.2.6/build
+	rm -Rf thirdparty/nng-$(NNGVERSION)/build
 
 # download and install cef binary
 prepare:

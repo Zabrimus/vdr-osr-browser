@@ -236,6 +236,7 @@ bool JavascriptHandler::OnQuery(CefRefPtr<CefBrowser> browser,
     } else {
         if (strncmp(request.ToString().c_str(), "PLAY_VIDEO:", 11) == 0) {
             // FIXME: Das wird nicht mehr aufgerufen, weil die Video-URL geändert wird.
+            // FIXME: Oder wird hier  Pause -> Play signalisiert?
 
             DBG("Play video with duration: %s\n", request.ToString().c_str() + 11);
             // browserClient->SendToVdrString(CMD_STATUS, request.ToString().c_str());
@@ -245,21 +246,41 @@ bool JavascriptHandler::OnQuery(CefRefPtr<CefBrowser> browser,
 
             browserClient->SendToVdrString(CMD_STATUS, "PLAY_VIDEO:");
             browserClient->set_input_file(request.ToString().c_str() + 10);
-            browserClient->transcode(BrowserClient::write_buffer_to_vdr);
-            DBG("Nach Transcode...");
+
+            // get video size and resize browser to prevent scaling images too often
+            int width = browserClient->get_video_width();
+            int height = browserClient->get_video_height();
+
+            printf("==> WIDTH: %d\n", width);
+            printf("==> HEIGHT: %d\n", height);
+
+            if (width > 0 && height > 0) {
+                // resize browser
+                browser->GetHost()->WasHidden(true);
+                browserClient->setRenderSize(width, height);
+                browser->GetHost()->WasHidden(false);
+                browser->GetHost()->WasResized();
+            }
+
+            // frame->ExecuteJavaScript("document.body.style.setProperty('zoom', '100%');", frame->GetURL(), 0);
+
+            browserClient->transcode();
             return true;
         } else if (strncmp(request.ToString().c_str(), "PAUSE_VIDEO:", 11) == 0) {
             DBG("Video streaming paused\n");
 
-            // TODO: Do something useful
+            browserClient->pause_video();
             return true;
         } else if (strncmp(request.ToString().c_str(), "END_VIDEO:", 10) == 0) {
             DBG("Video streaming ended\n");
+
+            browserClient->stop_video();
             return true;
         } else if (strncmp(request.ToString().c_str(), "ERROR_VIDEO:", 12) == 0) {
             DBG("Video playing throws an error\n");
 
-            // TODO: Do something useful
+            // TODO: Gibt es eine bessere Lösung?
+            browserClient->stop_video();
             return true;
         }
     }
@@ -276,7 +297,7 @@ int BrowserClient::write_buffer_to_vdr(void *opaque, uint8_t *buf, int buf_size)
     return buf_size;
 }
 
-BrowserClient::BrowserClient(bool debug, std::string *ffmpeg, std::string *ffprobe) : TranscodeFFmpeg(ffmpeg->c_str(), ffprobe->c_str(), "in", "out", false) {
+BrowserClient::BrowserClient(bool debug, std::string *ffmpeg, std::string *ffprobe) {
     // bind socket
     if ((toVdrSocketId = nn_socket(AF_SP, NN_PUSH)) < 0) {
         fprintf(stderr, "BrowserClient: unable to create nanomsg socket\n");
@@ -293,6 +314,9 @@ BrowserClient::BrowserClient(bool debug, std::string *ffmpeg, std::string *ffpro
 
     debugMode = debug;
     injectJavascript = true;
+
+    ffmpeg_executable.assign(*ffmpeg);
+    ffprobe_executable.assign(*ffprobe);
 
     mimeTypes.insert(std::pair<std::string, std::string>("hbbtv", "application/vnd.hbbtv.xhtml+xml"));
     mimeTypes.insert(std::pair<std::string, std::string>("cehtml", "application/ce-html+xml"));
@@ -651,4 +675,52 @@ void BrowserClient::SendToVdrBuffer(uint8_t messageType, void* message, int size
 
 void BrowserClient::SendToVdrBuffer(void* message, int size) {
     nn_send(toVdrSocketId, message, size, 0);
+}
+
+bool BrowserClient::set_input_file(const char* input) {
+    if (transcoder != nullptr) {
+        delete transcoder;
+    }
+
+    transcoder = new TranscodeFFmpeg(ffmpeg_executable.c_str(), ffprobe_executable.c_str(), "in", "out", false);
+    return transcoder->set_input_file(input);
+}
+
+void BrowserClient::pause_video() {
+    // TODO: implement me
+}
+
+void BrowserClient::resume_video() {
+    // TODO: implement me
+}
+
+void BrowserClient::stop_video() {
+    // TODO: implement me
+}
+
+int BrowserClient::transcode() {
+    osrHandler->setVideoRendering(true);
+
+    if (transcoder == nullptr) {
+        fprintf(stderr, "Internal error: transcoder is null!");
+        return -1;
+    }
+
+    transcode_thread = transcoder->transcode(write_buffer_to_vdr);
+    transcode_thread.detach();
+
+    return 0;
+}
+
+int BrowserClient::add_overlay_frame(int width, int height, uint8_t* image) {
+    transcoder->add_overlay_frame(width, height, image);
+    return 0;
+}
+
+int BrowserClient::get_video_width() {
+    return transcoder->get_video_width();
+}
+
+int BrowserClient::get_video_height() {
+    return transcoder->get_video_height();
 }

@@ -72,8 +72,6 @@ export class OipfAVControlMapper {
         this.avControlObject.playTime = this.videoElement.duration * 1000;
         // ANSI CTA-2014-B - 5.7.1.f - 5
         this.avControlObject.error = -1;
-
-        console.log('=== Und wech ===');
     }
 
     mapAvControlToHtml5Video() {
@@ -232,7 +230,7 @@ export class OipfAVControlMapper {
             _DEBUG_ && console.log('hbbtv-polyfill: )))))) play');
 
             // propagate Video URL
-            signalCef("PLAY_VIDEO:" + objectElement.duration);
+            // signalCef("PLAY_VIDEO:" + objectElement.duration);
 
             objectElement.playState = PLAY_STATES.playing;
             if (objectElement.onPlayStateChange) {

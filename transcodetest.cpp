@@ -1,4 +1,5 @@
 #include <string>
+#include <thread>
 #include "transcodeffmpeg.h"
 
 #define FFMPEG "/usr/bin/ffmpeg"
@@ -38,6 +39,8 @@ int main(int argc, char **argv) {
     */
     // TEST 2
 
-    transcoder->transcode(NULL);
+    std::thread th = transcoder->transcode(NULL);
+    th.join();
+
     delete transcoder;
 }
