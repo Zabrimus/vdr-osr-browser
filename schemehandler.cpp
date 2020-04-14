@@ -14,17 +14,6 @@ ClientSchemeHandler:: ClientSchemeHandler() : offset(0), binary_offset(0) {
 }
 
 bool ClientSchemeHandler::Open(CefRefPtr<CefRequest> request, bool& handle_request, CefRefPtr<CefCallback> callback) {
-    // TEST
-    printf("ClientSchemeHandler::ProcessRequest: %s\n", request->GetURL().ToString().c_str());
-    printf("Header:\n");
-
-    std::multimap<CefString, CefString> header;
-    request->GetHeaderMap(header);
-    for(std::multimap<CefString, CefString>::const_iterator it = header.cbegin(); it != header.cend(); it = header.upper_bound(it->first)) {
-        printf("    %s -> %s\n", it->first.ToString().c_str(), it->second.ToString().c_str());
-    }
-    // TEST
-
     std::string url = request->GetURL();
 
     if ((strstr(url.c_str(), "client://js/") != NULL) || (strstr(url.c_str(), "client://css/") != NULL)) {
@@ -49,8 +38,6 @@ bool ClientSchemeHandler::Open(CefRefPtr<CefRequest> request, bool& handle_reque
         mime_type = "video/webm";
 
         ReadFileToData("movie/transparent.webm");
-
-        printf("Binary size: %ld\n", binary_data_length);
     } else {
         handle_request = true;
         return false;
@@ -61,8 +48,6 @@ bool ClientSchemeHandler::Open(CefRefPtr<CefRequest> request, bool& handle_reque
 
 void ClientSchemeHandler::GetResponseHeaders(CefRefPtr<CefResponse> response, int64& response_length, CefString& redirectUrl) {
     CEF_REQUIRE_IO_THREAD();
-
-    printf("ClientSchemeHandler::GetResponseHeaders\n");
 
     if (!mime_type.empty()) {
         response->SetMimeType(mime_type);
@@ -82,21 +67,19 @@ void ClientSchemeHandler::Cancel() {
 }
 
 bool ClientSchemeHandler::Skip(int64 bytes_to_skip, int64& bytes_skipped, CefRefPtr<CefResourceSkipCallback> callback) {
-    printf("==> Bytes to skip: %ld\n", bytes_to_skip);
+    // data was already read into memory
+    binary_offset = bytes_skipped = bytes_to_skip;
+
     return true;
 }
 
 bool ClientSchemeHandler::Read(void* data_out, int bytes_to_read, int& bytes_read, CefRefPtr<CefResourceReadCallback> callback) {
-    printf("ClientSchemeHandler::ReadResponse to read: %d\n", bytes_to_read);
-
     bool has_data = false;
     bytes_read = 0;
 
     if (data.length() > 0) {
         if (offset < data.length()) {
             int transfer_size = std::min(bytes_to_read, static_cast<int>(data.length() - offset));
-
-            printf("Data Offset %ld, Length %ld, transfersize %d\n", offset, data.length(), transfer_size);
 
             memcpy(data_out, data.c_str() + offset, transfer_size);
             offset += transfer_size;
@@ -108,8 +91,6 @@ bool ClientSchemeHandler::Read(void* data_out, int bytes_to_read, int& bytes_rea
         if (binary_offset < binary_data_length) {
             int transfer_size = std::min(bytes_to_read, static_cast<int>(binary_data_length - binary_offset));
 
-            printf("Binary Offset %ld, Length %ld, transfersize %d\n", binary_offset, binary_data_length, transfer_size);
-
             memcpy(data_out, binary_data + binary_offset, transfer_size);
             binary_offset += transfer_size;
 
@@ -117,8 +98,6 @@ bool ClientSchemeHandler::Read(void* data_out, int bytes_to_read, int& bytes_rea
             has_data = true;
         }
     }
-
-    printf("ClientSchemeHandler::ReadResponse has read: %d, hasData %s\n", bytes_read, has_data ? " Ja" : " Nein");
 
     return has_data;
 }
