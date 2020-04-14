@@ -27,7 +27,7 @@ public:
     bool Read(void* data_out, int bytes_to_read, int& bytes_read, CefRefPtr<CefResourceReadCallback> callback) override;
 
 private:
-    uint8_t* binary_data;
+    uint8_t* binary_data = nullptr;
     unsigned long binary_data_length;
     std::string data;
     std::string mime_type;

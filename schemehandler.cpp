@@ -45,7 +45,7 @@ bool ClientSchemeHandler::Open(CefRefPtr<CefRequest> request, bool& handle_reque
         mime_type = "";
     } else if (strstr(url.c_str(), "client://movie/transparent.webm") != NULL) {
         handle_request = true;
-        response_code = 206;
+        response_code = 200;
         mime_type = "video/webm";
 
         ReadFileToData("movie/transparent.webm");
@@ -71,8 +71,7 @@ void ClientSchemeHandler::GetResponseHeaders(CefRefPtr<CefResponse> response, in
     if (!data.empty()) {
         response_length = data.length();
     } else if (binary_data_length > 0) {
-        // response_length = binary_data_length;
-        response_length = -1;
+        response_length = binary_data_length;
     }
 
     response->SetStatus(response_code);
