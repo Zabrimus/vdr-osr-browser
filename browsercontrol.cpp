@@ -13,7 +13,7 @@
 #include <unistd.h>
 #include <iostream>
 #include <cmath>
-#include "include/cef_app.h"
+#include "include/cef_v8.h"
 #include <nanomsg/nn.h>
 #include <nanomsg/reqrep.h>
 #include "globaldefs.h"
@@ -79,8 +79,6 @@ void BrowserControl::Start() {
         }
 
         if (bytes > 0) {
-            bool successful = true;
-
             if (strncmp("URL", buf, 3) == 0 && bytes >= 5) {
                 fprintf(stderr, "URL: %s\n", buf+4);
 
@@ -117,7 +115,7 @@ void BrowserControl::Start() {
             } else if (strncmp("PING", buf, 4) == 0) {
                 // do nothing, only sends the response
             } else if (strncmp("KEY", buf, 3) == 0) {
-                sendKeyEvent(buf + 3);
+                sendKeyEvent(buf + 4);
             } else if (strncmp("MODE", buf, 4) == 0) {
                 int mode = -1;
                 sscanf(buf + 4, "%d", &mode);
@@ -126,21 +124,6 @@ void BrowserControl::Start() {
                     browserClient->SetHtmlMode();
                 } else if (mode == 2) {
                     browserClient->SetHbbtvMode();
-                }
-            } else {
-                successful = false;
-            }
-
-            char *buffer;
-            if (successful) {
-                asprintf(&buffer, "ok");
-                if ((bytes = nn_send(fromVdrSocketId, buffer, strlen(buffer) + 1, 0)) < 0) {
-                    fprintf(stderr, "unable to send response\n");
-                }
-            } else {
-                asprintf(&buffer, "unknown command '%s'\n", buf);
-                if ((bytes = nn_send(fromVdrSocketId, buffer, strlen(buffer) + 1, 0)) < 0) {
-                    fprintf(stderr, "unable to send response\n");
                 }
             }
         }
@@ -158,9 +141,7 @@ void BrowserControl::Stop() {
 void BrowserControl::sendKeyEvent(const char* keyCode) {
     std::ostringstream stringStream;
 
-    stringStream <<  "document.dispatchEvent(new KeyboardEvent('keydown',{'keyCode':window.";
-    stringStream <<  keyCode;
-    stringStream << "}))";
+    stringStream <<  "window.cefKeyPress('" << keyCode << "');";
 
     auto script = stringStream.str();
     auto frame = browser->GetMainFrame();

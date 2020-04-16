@@ -15,6 +15,8 @@
 #include <chrono>
 #include "browser.h"
 
+// #define DBG_MEASURE_TIME 1
+
 unsigned char CMD_OSD = 2;
 
 BrowserClient* OSRHandler::browserClient;
@@ -42,7 +44,17 @@ void OSRHandler::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, c
     int bytes;
 
     if (videoRendering) {
+
+#ifdef DBG_MEASURE_TIME
+        auto start = std::chrono::high_resolution_clock::now();
         browserClient->add_overlay_frame(width, height, (uint8_t*)buffer);
+        auto stop = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+        printf("Process overlay image took %ld milliseconds, dirtyRecs = %ul, width = %d, height = %d.\n", duration.count(), dirtyRects.size(), width, height);
+#else
+        browserClient->add_overlay_frame(width, height, (uint8_t*)buffer);
+#endif
+
         return;
     }
 

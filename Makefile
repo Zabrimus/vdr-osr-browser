@@ -32,8 +32,8 @@ FFPROBE_EXECUTABLE = /usr/bin/ffprobe
 #FFPROBE_EXECUTABLE = /usr/local/ffmpeg/bin/ffprobe
 
 CC = g++
-#CFLAGS = -g -c -O3  -Wall -std=c++11
-CFLAGS = -c -O0 -g -Wall -std=c++11
+CFLAGS = -g -c -O3  -Wall -std=c++11
+#CFLAGS = -c -O0 -g -Wall -std=c++11
 LDFLAGS = -pthread
 
 # SOURCES = cefsimple_linux.cc simple_app.cc simple_handler.cc simple_handler_linux.cc

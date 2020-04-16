@@ -29407,7 +29407,11 @@ const keyEventInit = function () {
         Object.defineProperty(keypressEvent, "detail", { "value": { hbbInternal: true } });
 
         document.dispatchEvent(keypressEvent);
-    }
+    };
+
+    window.cefKeyPress = function(keyCode) {
+       doKeyPress(keyCode);
+    };
 
 };
 

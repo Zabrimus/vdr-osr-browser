@@ -36,16 +36,12 @@ typedef struct StreamingContext {
 
     // Video stream
     AVFilterContext *video_fsrc;
-    AVFilterContext *video_fsrc_short;
     AVFilterContext *video_fsink;
-    AVFilterContext *video_fsink_short;
     AVFilterContext *video_realtime;
-    AVFilterContext *video_realtime_short;
     AVFilterContext *video_overlay;
     AVFilterContext *video_overlay_fsrc;
     AVFilterContext *video_format;
     AVFilterGraph   *video_fgraph;
-    AVFilterGraph   *video_fgraph_short;
 
     int video_index;
     int audio_index;
@@ -61,8 +57,6 @@ private:
 
     int srcWidth;
     int srcHeight;
-
-    bool use_short_filter = false;
 
     // tempory saved overlay image
     int tmpOverlayWidth = -1;
@@ -108,11 +102,6 @@ private:
     int encode_audio(AVFrame *input_frame);
     int transcode_audio(AVPacket *input_packet, AVFrame *input_frame);
     int transcode_video(AVPacket *input_packet, AVFrame *input_frame);
-
-    // helper function
-    inline int is_buffer_not_empty(uint8_t *buff, size_t size) {
-        return *buff || memcmp(buff, buff+1, size-1);
-    }
 
 public:
     // don't use this externally

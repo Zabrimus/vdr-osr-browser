@@ -248,8 +248,14 @@ bool JavascriptHandler::OnQuery(CefRefPtr<CefBrowser> browser,
             browserClient->set_input_file(request.ToString().c_str() + 10);
 
             // get video size and resize browser to prevent scaling images too often
+
             int width = browserClient->get_video_width();
             int height = browserClient->get_video_height();
+
+            // TEST
+            // int width = 1280;
+            // int height = 720;
+            // TEST
 
             printf("==> WIDTH: %d\n", width);
             printf("==> HEIGHT: %d\n", height);
