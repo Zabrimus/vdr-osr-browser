@@ -47,7 +47,10 @@ export class OipfAVControlMapper {
         this.videoElement = document.createElement('video'); // setup artificial video tag
         this.videoElement.setAttribute('id', 'hbbtv-polyfill-video-player');
         this.videoElement.setAttribute('autoplay', ''); // setting src will start the video and send an event
-        this.videoElement.setAttribute('style', 'top:0px; left:0px; width:100%; height:100%;');
+
+        // the opaque video only has size 16x16. To prevent image scaling set the container size to these values
+        this.videoElement.setAttribute('style', 'top:0px; left:0px; width:16px; height:16px;');
+        // this.videoElement.setAttribute('style', 'top:0px; left:0px; width:100%; height:100%;');
 
         // interval to simulate rewind functionality
         this.rewindInterval;

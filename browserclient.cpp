@@ -249,12 +249,12 @@ bool JavascriptHandler::OnQuery(CefRefPtr<CefBrowser> browser,
 
             // get video size and resize browser to prevent scaling images too often
 
-            int width = browserClient->get_video_width();
-            int height = browserClient->get_video_height();
+            // int width = browserClient->get_video_width();
+            // int height = browserClient->get_video_height();
 
             // TEST
-            // int width = 1280;
-            // int height = 720;
+            int width = 1280;
+            int height = 720;
             // TEST
 
             printf("==> WIDTH: %d\n", width);
@@ -268,7 +268,7 @@ bool JavascriptHandler::OnQuery(CefRefPtr<CefBrowser> browser,
                 browser->GetHost()->WasResized();
             }
 
-            // frame->ExecuteJavaScript("document.body.style.setProperty('zoom', '100%');", frame->GetURL(), 0);
+            frame->ExecuteJavaScript("document.body.style.setProperty('zoom', '100%');", frame->GetURL(), 0);
 
             browserClient->transcode();
             return true;
