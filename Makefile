@@ -11,9 +11,6 @@ CEF_VERSION   = 81.2.16%2Bgdacda4f%2Bchromium-81.0.4044.92
 CEF_BUILD = http://opensource.spotify.com/cefbuilds/cef_binary_$(CEF_VERSION)_linux64_minimal.tar.bz2
 CEF_INSTALL_DIR = /opt/cef
 
-# TODO:
-BUILD_TEST_EXECUTABLES = 1
-
 # Force using debian package or spotify build
 # Spotify build:  0
 # Debian package: 1
