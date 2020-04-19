@@ -19,6 +19,9 @@ extern "C" {
 }
 #endif
 
+#include <thread>
+#include <mutex>
+
 typedef struct StreamingContext {
     AVFormatContext *avfc;
     AVCodec *video_avc;
@@ -73,6 +76,10 @@ private:
 
     std::thread *transcode_thread;
 
+    int shmid;
+    uint8_t *shmp;
+    std::mutex shm_mutex;
+
 private:
     // Logging functions
     void logging(const char *fmt, ...);
@@ -121,6 +128,8 @@ public:
     void stop_video();
     int get_video_width();
     int get_video_height();
+
+    void frameProcessed() { shm_mutex.unlock(); };
 };
 
 

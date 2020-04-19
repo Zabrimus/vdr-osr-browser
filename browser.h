@@ -3,8 +3,8 @@
 
 #include <fstream>
 #include <thread>
+#include <mutex>
 #include <string>
-
 #include "include/cef_app.h"
 #include "include/cef_client.h"
 #include "include/cef_render_handler.h"
@@ -21,6 +21,10 @@ private:
     int renderHeight;
     bool videoRendering;
 
+    int shmid;
+    uint8_t *shmp;
+    std::mutex shm_mutex;
+
     static BrowserClient *browserClient;
 
 public:
@@ -30,11 +34,12 @@ public:
     void setRenderSize(int width, int height);
     void GetViewRect(CefRefPtr<CefBrowser> browser, CefRect &rect) override;
     void OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList &dirtyRects, const void *buffer, int width, int height) override;
-    void setVideoRendering(bool b);
+
+    void setVideoRendering(bool b) { videoRendering = b; };
+    void osdProcessed() { shm_mutex.unlock(); };
 
     IMPLEMENT_REFCOUNTING(OSRHandler);
 };
-
 
 class HbbtvCurl {
 public:
@@ -172,6 +177,8 @@ public:
     void initJavascriptCallback();
     void SetHtmlMode() { mode = 1; };
     void SetHbbtvMode() { mode = 2; };
+    void osdProcessed() { if (osrHandler != nullptr) osrHandler->osdProcessed(); };
+    void frameProcessed() { if (transcoder != nullptr) transcoder->frameProcessed(); };
 
     // transcode functions
     bool set_input_file(const char* input);

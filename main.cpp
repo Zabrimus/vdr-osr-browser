@@ -97,7 +97,21 @@ void startBrowserControl(BrowserControl ctrl) {
 }
 
 void quit_handler(int sig) {
+    /*
     CefQuitMessageLoop();
+
+    if (browser != nullptr) {
+        delete browser;
+        browser = nullptr;
+    }
+    */
+
+    /*
+    signal(SIGINT, SIG_DFL);
+    signal(SIGQUIT, SIG_DFL);
+
+    raise(sig);
+    */
 }
 
 std::string *initUrl = nullptr;
@@ -106,9 +120,6 @@ std::string *ffprobe  = nullptr;
 
 // Entry point function for all processes.
 int main(int argc, char *argv[]) {
-    signal (SIGQUIT, quit_handler);
-    signal(SIGINT, quit_handler);
-
     bool debugmode = false;
 
     // try to find some parameters
@@ -195,10 +206,21 @@ int main(int argc, char *argv[]) {
     BrowserControl browserControl(browser, browserClient);
 
     {
+        /*
+         * Wird zwar aufgerufen, aber funktioniert nicht, wie gewünscht
+         * Eine weitere Analyse wird auf später verschoben.
+         */
+        /*
+        signal(SIGINT, quit_handler);
+        signal(SIGQUIT, quit_handler);
+        */
+
         std::thread controlThread(startBrowserControl, browserControl);
         CefRunMessageLoop();
         controlThread.detach();
     }
+
+    printf("Shutdown...");
 
     CefShutdown();
 

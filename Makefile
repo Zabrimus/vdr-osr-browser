@@ -34,7 +34,7 @@ FFPROBE_EXECUTABLE = /usr/bin/ffprobe
 CC = g++
 CFLAGS = -g -c -O3  -Wall -std=c++11
 #CFLAGS = -c -O0 -g -Wall -std=c++11
-LDFLAGS = -pthread
+LDFLAGS = -pthread -lrt
 
 # SOURCES = cefsimple_linux.cc simple_app.cc simple_handler.cc simple_handler_linux.cc
 SOURCES = main.cpp osrhandler.cpp browserclient.cpp browsercontrol.cpp transcodeffmpeg.cpp schemehandler.cpp

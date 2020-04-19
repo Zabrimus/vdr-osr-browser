@@ -8,7 +8,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <thread>
-#include <mutex>
 #include <inttypes.h>
 #include <fstream>
 #include <sys/stat.h>
@@ -1056,4 +1055,3 @@ int TranscodeFFmpeg::get_video_height() {
 
     return 0;
 }
-

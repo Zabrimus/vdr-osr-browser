@@ -299,6 +299,8 @@ void JavascriptHandler::OnQueryCanceled(CefRefPtr<CefBrowser> browser, CefRefPtr
 }
 
 int BrowserClient::write_buffer_to_vdr(void *opaque, uint8_t *buf, int buf_size) {
+    printf("TS Size %d\n", buf_size);
+
     browserClient->SendToVdrBuffer(CMD_VIDEO, buf, buf_size);
     return buf_size;
 }

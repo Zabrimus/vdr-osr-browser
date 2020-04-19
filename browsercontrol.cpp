@@ -94,7 +94,7 @@ void BrowserControl::Start() {
                 int w, h;
                 sscanf(buf + 4,"%d %d",&w, &h);
 
-                browserClient->setRenderSize(w, h);
+                browserClient->setRenderSize(std::min(w, 1920), std::min(h, 1080));
                 browser->GetHost()->WasResized();
             } else if (strncmp("ZOOM", buf, 4) == 0) {
                 double level;
@@ -125,6 +125,10 @@ void BrowserControl::Start() {
                 } else if (mode == 2) {
                     browserClient->SetHbbtvMode();
                 }
+            } else if (strncmp("OSDU", buf, 4) == 0) {
+                browserClient->osdProcessed();
+            } else if (strncmp("TSU", buf, 3) == 0) {
+                browserClient->frameProcessed();
             }
         }
 
