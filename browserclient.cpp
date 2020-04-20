@@ -12,13 +12,13 @@
 
 #include <iostream>
 #include <map>
+#include <sys/shm.h>
 #include <nanomsg/nn.h>
 #include <nanomsg/pipeline.h>
 #include <curl/curl.h>
 #include "include/wrapper/cef_helpers.h"
 #include "globaldefs.h"
 #include "browser.h"
-
 
 // to enable much more debug data output to stderr, set this variable to true
 static bool DumpDebugData = true;
@@ -38,6 +38,10 @@ struct MemoryStruct {
 
 std::map<std::string, std::string> HbbtvCurl::response_header;
 std::string HbbtvCurl::response_content;
+
+int shmid;
+uint8_t *shmp;
+std::mutex shm_mutex;
 
 HbbtvCurl::HbbtvCurl() {
     curl_global_init(CURL_GLOBAL_ALL);
@@ -115,7 +119,6 @@ void HbbtvCurl::LoadUrl(std::string url, CefRequest::HeaderMap headers) {
 
     // set headers as requested
     struct curl_slist *headerChunk = NULL;
-
 
     // DBG("Headers:\n");
     for (auto itr = headers.begin(); itr != headers.end(); itr++) {
@@ -246,30 +249,6 @@ bool JavascriptHandler::OnQuery(CefRefPtr<CefBrowser> browser,
 
             browserClient->SendToVdrString(CMD_STATUS, "PLAY_VIDEO:");
             browserClient->set_input_file(request.ToString().c_str() + 10);
-
-            // get video size and resize browser to prevent scaling images too often
-
-            // int width = browserClient->get_video_width();
-            // int height = browserClient->get_video_height();
-
-            // TEST
-            int width = 1280;
-            int height = 720;
-            // TEST
-
-            printf("==> WIDTH: %d\n", width);
-            printf("==> HEIGHT: %d\n", height);
-
-            if (width > 0 && height > 0) {
-                // resize browser
-                browser->GetHost()->WasHidden(true);
-                browserClient->setRenderSize(width, height);
-                browser->GetHost()->WasHidden(false);
-                browser->GetHost()->WasResized();
-            }
-
-            frame->ExecuteJavaScript("document.body.style.setProperty('zoom', '100%');", frame->GetURL(), 0);
-
             browserClient->transcode();
             return true;
         } else if (strncmp(request.ToString().c_str(), "PAUSE_VIDEO:", 11) == 0) {
@@ -299,8 +278,6 @@ void JavascriptHandler::OnQueryCanceled(CefRefPtr<CefBrowser> browser, CefRefPtr
 }
 
 int BrowserClient::write_buffer_to_vdr(void *opaque, uint8_t *buf, int buf_size) {
-    printf("TS Size %d\n", buf_size);
-
     browserClient->SendToVdrBuffer(CMD_VIDEO, buf, buf_size);
     return buf_size;
 }
@@ -707,8 +684,6 @@ void BrowserClient::stop_video() {
 }
 
 int BrowserClient::transcode() {
-    osrHandler->setVideoRendering(true);
-
     if (transcoder == nullptr) {
         fprintf(stderr, "Internal error: transcoder is null!");
         return -1;
@@ -717,11 +692,6 @@ int BrowserClient::transcode() {
     transcode_thread = transcoder->transcode(write_buffer_to_vdr);
     transcode_thread.detach();
 
-    return 0;
-}
-
-int BrowserClient::add_overlay_frame(int width, int height, uint8_t* image) {
-    transcoder->add_overlay_frame(width, height, image);
     return 0;
 }
 

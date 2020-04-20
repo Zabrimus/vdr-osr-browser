@@ -127,8 +127,6 @@ void BrowserControl::Start() {
                 }
             } else if (strncmp("OSDU", buf, 4) == 0) {
                 browserClient->osdProcessed();
-            } else if (strncmp("TSU", buf, 3) == 0) {
-                browserClient->frameProcessed();
             }
         }
 

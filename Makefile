@@ -55,17 +55,6 @@ EXECUTABLE3  = vdrosrvideo
 EXECUTABLE4  = transcodetest
 
 # Starten mit z.B. ./cefsimple --url="file://<pfad>/movie.html"
-# Transparente Videos mit einer Laufzeit <= 740 Sekunden funktionieren und ab 741 Sekunden gibt es einen Fehler
-# [0413/182556.463463:ERROR:batching_media_log.cc(38)] MediaEvent: {"error":"FFmpegDemuxer: open context failed"}
-# [0413/182556.485737:ERROR:batching_media_log.cc(35)] MediaEvent: {"pipeline_error":12}
-# Warum zum Henker???
-#
-# 740 Minuten ergibt eine Filesize von 65532
-# 741 Minuten ergibt eine Filesize von 65617
-#
-# Im Schemehandler wird in Read ein bytes_to_read von 65536 angefordert.
-# => Das Video mit 740 Sekunden passt genau in den Buffer und bei 741 Sekunden wird Read ein zweites Mal aufgerufen.
-#
 EXECUTABLE5  = cefsimple
 
 # CEF (debian packaged or self-installed version)

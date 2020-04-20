@@ -41,9 +41,6 @@ typedef struct StreamingContext {
     AVFilterContext *video_fsrc;
     AVFilterContext *video_fsink;
     AVFilterContext *video_realtime;
-    AVFilterContext *video_overlay;
-    AVFilterContext *video_overlay_fsrc;
-    AVFilterContext *video_format;
     AVFilterGraph   *video_fgraph;
 
     int video_index;
@@ -56,15 +53,9 @@ private:
     StreamingContext *decoder;
     StreamingContext *encoder;
     SwsContext* swsCtx;
-    AVFrame *video_overlay_frame;
 
     int srcWidth;
     int srcHeight;
-
-    // tempory saved overlay image
-    int tmpOverlayWidth = -1;
-    int tmpOverlayHeight = -1;
-    uint8_t* tmpOverlayImage = NULL;
 
     // ffmpeg
     char *ffmpeg_executable;
@@ -76,10 +67,6 @@ private:
 
     std::thread *transcode_thread;
 
-    int shmid;
-    uint8_t *shmp;
-    std::mutex shm_mutex;
-
 private:
     // Logging functions
     void logging(const char *fmt, ...);
@@ -88,16 +75,12 @@ private:
 
     // create all filters
     int create_video_buffersrc_filter(StreamingContext *decoder, AVFilterContext **filt_ctx, AVFilterGraph *graph_ctx);
-    int create_video_image_buffersrc_filter(StreamingContext *decoder, AVFilterContext **filt_ctx, AVFilterGraph *graph_ctx);
     int create_video_realtime_filter(StreamingContext *decoder, AVFilterContext **filt_ctx, AVFilterGraph *graph_ctx);
-    int create_video_format_filter(StreamingContext *decoder, AVFilterContext **filt_ctx, AVFilterGraph *graph_ctx);
-    int create_video_overlay_filter(StreamingContext *decoder, AVFilterContext **filt_ctx, AVFilterGraph *graph_ctx);
     int create_video_buffersink_filter(StreamingContext *decoder, AVFilterContext **filt_ctx, AVFilterGraph *graph_ctx);
 
     // build filter graphs
     int init_audio_filter_graph(StreamingContext *decoder);
     int init_full_video_filter_graph(StreamingContext *decoder);
-    int init_short_video_filter_graph(StreamingContext *decoder);
 
     // decode/encode/transcode
     int fill_stream_info(AVStream *avs, AVCodec **avc, AVCodecContext **avcc);
@@ -121,15 +104,11 @@ public:
     bool set_input_file(const char* input);
     std::thread transcode(int (*write_packet)(void *opaque, uint8_t *buf, int buf_size));
 
-    int add_overlay_frame(int width, int height, uint8_t* image);
-
     void pause_video();
     void resume_video();
     void stop_video();
     int get_video_width();
     int get_video_height();
-
-    void frameProcessed() { shm_mutex.unlock(); };
 };
 
 

@@ -289,7 +289,7 @@ int main(int argc, char **argv)
 
                     // read buffer
                     unsigned long *buffer = (unsigned long*) malloc(4 * w);
-                    for (unsigned j = 0; j < h; ++j) {
+                    for (int j = 0; j < h; ++j) {
                         if ((bytes = nn_recv(streamSocketId, buffer, 4 * w, 0)) > 0) {
                             // printf("Line %u, size %lu\n", j, bytes);
                         }

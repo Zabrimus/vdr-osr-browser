@@ -19,7 +19,6 @@ class OSRHandler : public CefRenderHandler {
 private:
     int renderWidth;
     int renderHeight;
-    bool videoRendering;
 
     int shmid;
     uint8_t *shmp;
@@ -35,7 +34,6 @@ public:
     void GetViewRect(CefRefPtr<CefBrowser> browser, CefRect &rect) override;
     void OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList &dirtyRects, const void *buffer, int width, int height) override;
 
-    void setVideoRendering(bool b) { videoRendering = b; };
     void osdProcessed() { shm_mutex.unlock(); };
 
     IMPLEMENT_REFCOUNTING(OSRHandler);
@@ -178,7 +176,6 @@ public:
     void SetHtmlMode() { mode = 1; };
     void SetHbbtvMode() { mode = 2; };
     void osdProcessed() { if (osrHandler != nullptr) osrHandler->osdProcessed(); };
-    void frameProcessed() { if (transcoder != nullptr) transcoder->frameProcessed(); };
 
     // transcode functions
     bool set_input_file(const char* input);
