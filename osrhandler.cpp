@@ -91,12 +91,10 @@ void OSRHandler::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, c
         int w = std::min(width, 1920);
         int h = std::min(height, 1080);
 
-        printf("OSD Lock\n");
         shm_mutex.lock();
         memcpy(shmp, buffer, w * h * 4);
         browserClient->SendToVdrString(CMD_OSD, "OSDU");
         browserClient->SendToVdrBuffer(&w, sizeof(w));
         browserClient->SendToVdrBuffer(&h, sizeof(h));
-        printf("OSD gesendet\n");
     }
 }
