@@ -237,31 +237,44 @@ bool JavascriptHandler::OnQuery(CefRefPtr<CefBrowser> browser,
         browserClient->SendToVdrString(CMD_STATUS, request.ToString().c_str() + 4);
         return true;
     } else {
-        if (strncmp(request.ToString().c_str(), "PLAY_VIDEO:", 11) == 0) {
-            // FIXME: Das wird nicht mehr aufgerufen, weil die Video-URL geändert wird.
-            // FIXME: Oder wird hier  Pause -> Play signalisiert?
-
-            DBG("Play video with duration: %s\n", request.ToString().c_str() + 11);
-            // browserClient->SendToVdrString(CMD_STATUS, request.ToString().c_str());
-            return true;
-        } else if (strncmp(request.ToString().c_str(), "VIDEO_URL:", 10) == 0) {
+        if (strncmp(request.ToString().c_str(), "VIDEO_URL:", 10) == 0) {
             DBG("Video URL: %s\n", request.ToString().c_str() + 10);
 
             browserClient->SendToVdrString(CMD_STATUS, "PLAY_VIDEO:");
             browserClient->set_input_file(request.ToString().c_str() + 10);
             browserClient->transcode();
             return true;
-        } else if (strncmp(request.ToString().c_str(), "PAUSE_VIDEO:", 11) == 0) {
-            DBG("Video streaming paused\n");
+        } else if (strncmp(request.ToString().c_str(), "PAUSE_VIDEO", 11) == 0) {
+            DBG("Video streaming pause\n");
 
             browserClient->pause_video();
             return true;
-        } else if (strncmp(request.ToString().c_str(), "END_VIDEO:", 10) == 0) {
+        } else if (strncmp(request.ToString().c_str(), "RESUME_VIDEO", 12) == 0) {
+            DBG("Video streaming resume\n");
+
+            browserClient->resume_video();
+            return true;
+        } else if (strncmp(request.ToString().c_str(), "END_VIDEO", 9) == 0) {
             DBG("Video streaming ended\n");
 
             browserClient->stop_video();
             return true;
-        } else if (strncmp(request.ToString().c_str(), "ERROR_VIDEO:", 12) == 0) {
+        } else if (strncmp(request.ToString().c_str(), "STOP_VIDEO", 10) == 0) {
+            DBG("Video streaming stopped\n");
+
+            browserClient->stop_video();
+            return true;
+        } else if (strncmp(request.ToString().c_str(), "SEEK_VIDEO ", 11) == 0) {
+            DBG("Video streaming seeked to %s\n", request.ToString().c_str() + 11);
+
+            browserClient->seek_video(request.ToString().c_str() + 11);
+            return true;
+        } else if (strncmp(request.ToString().c_str(), "SPEED_VIDEO ", 12) == 0) {
+            DBG("Video streaming speed change to %s\n", request.ToString().c_str() + 12);
+
+            browserClient->speed_video(request.ToString().c_str() + 12);
+            return true;
+        } else if (strncmp(request.ToString().c_str(), "ERROR_VIDEO", 11) == 0) {
             DBG("Video playing throws an error\n");
 
             // TODO: Gibt es eine bessere Lösung?
@@ -664,7 +677,10 @@ void BrowserClient::SendToVdrBuffer(void* message, int size) {
 
 bool BrowserClient::set_input_file(const char* input) {
     if (transcoder != nullptr) {
+        stop_video();
+
         delete transcoder;
+        transcoder = nullptr;
     }
 
     transcoder = new TranscodeFFmpeg(ffmpeg_executable.c_str(), ffprobe_executable.c_str(), "in", "out", false);
@@ -672,15 +688,27 @@ bool BrowserClient::set_input_file(const char* input) {
 }
 
 void BrowserClient::pause_video() {
-    // TODO: implement me
+    transcoder->pause_video();
 }
 
 void BrowserClient::resume_video() {
-    // TODO: implement me
+    transcoder->resume_video();
 }
 
 void BrowserClient::stop_video() {
-    // TODO: implement me
+    transcoder->stop_video();
+
+    if (transcode_thread.joinable()) {
+        transcode_thread.join();
+    }
+}
+
+void BrowserClient::seek_video(const char* ms) {
+    transcoder->seek_video(ms);
+}
+
+void BrowserClient::speed_video(const char* speed) {
+    transcoder->speed_video(speed);
 }
 
 int BrowserClient::transcode() {
@@ -693,12 +721,4 @@ int BrowserClient::transcode() {
     transcode_thread.detach();
 
     return 0;
-}
-
-int BrowserClient::get_video_width() {
-    return transcoder->get_video_width();
-}
-
-int BrowserClient::get_video_height() {
-    return transcoder->get_video_height();
 }

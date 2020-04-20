@@ -107,6 +107,9 @@ public:
     void pause_video();
     void resume_video();
     void stop_video();
+    void seek_video(const char* ms);
+    void speed_video(const char* speed);
+
     int get_video_width();
     int get_video_height();
 };

@@ -81,14 +81,24 @@ export class OipfAVControlMapper {
         clearInterval(this.rewindInterval);
         // ANSI CTA-2014-B
         // 5.7.1.f
-        this.avControlObject.play = (speed) => { // number 
+        this.avControlObject.play = (speed) => { // number
+            console.log("Im Mapping, Play, speed = " + speed);
+
             if (speed === 0) {
+                signalCef("PAUSE_VIDEO");
+
                 setTimeout(() => {
                     this.videoElement.pause();
                     this.avControlObject.speed = 0;
                 }, 0);
             }
             else if (speed > 0) {
+                if (speed === 1) {
+                    signalCef("RESUME_VIDEO");
+                } else {
+                    signalCef("SPEED_VIDEO " + speed);
+                }
+
                 // delay play as some code may made some initializations beforehand in same event loop
                 setTimeout(() => {
                     this.avControlObject.speed = speed;
@@ -101,6 +111,8 @@ export class OipfAVControlMapper {
                 }, 0);
             }
             else if (speed < 0) {
+                signalCef("SPEED_VIDEO " + speed);
+
                 this.avControlObject.speed = speed;
                 this.videoElement.playbackRate = 1.0;
                 this.videoElement.play().catch((e) => {
@@ -122,6 +134,8 @@ export class OipfAVControlMapper {
             return true;
         };
         this.avControlObject.stop = () => {
+            signalCef("STOP_VIDEO");
+
             this.videoElement.pause();
             this.videoElement.currentTime = 0;
             this.avControlObject.playState = 0;
@@ -130,6 +144,8 @@ export class OipfAVControlMapper {
             return true;
         };
         this.avControlObject.seek = (posInMs) => {
+            signalCef("SEEK_VIDEO " + posInMs);
+
             // need seconds HTMLMediaElement.currentTime
             this.videoElement.currentTime = posInMs / 1000;
             this.avControlObject.playPosition = posInMs;
@@ -232,9 +248,6 @@ export class OipfAVControlMapper {
         videoElement && videoElement.addEventListener && videoElement.addEventListener('playing', function () {
             _DEBUG_ && console.log('hbbtv-polyfill: )))))) play');
 
-            // propagate Video URL
-            // signalCef("PLAY_VIDEO:" + objectElement.duration);
-
             objectElement.playState = PLAY_STATES.playing;
             if (objectElement.onPlayStateChange) {
                 objectElement.onPlayStateChange(objectElement.playState);
@@ -248,8 +261,6 @@ export class OipfAVControlMapper {
 
         videoElement && videoElement.addEventListener && videoElement.addEventListener('pause', function () {
             _DEBUG_ && console.log('hbbtv-polyfill: pause');
-
-            signalCef("PAUSE_VIDEO");
 
             // ANSI CTA-2014-B
             // 5.7.1.f1 
@@ -268,6 +279,8 @@ export class OipfAVControlMapper {
         videoElement && videoElement.addEventListener && videoElement.addEventListener('ended', function () {
             _DEBUG_ && console.log('hbbtv-polyfill: ended');
 
+            console.log("ENDED: " + objectElement.playState + " --> " + 5)
+
             signalCef("END_VIDEO");
 
             objectElement.playState = 5;
@@ -283,6 +296,8 @@ export class OipfAVControlMapper {
 
         videoElement && videoElement.addEventListener && videoElement.addEventListener('error', function (e) {
             _DEBUG_ && console.log('hbbtv-polyfill: error', e.message, e);
+
+            console.log("ENDED: " + objectElement.playState + " --> " + PLAY_STATES.error)
 
             signalCef("ERROR_VIDEO");
 

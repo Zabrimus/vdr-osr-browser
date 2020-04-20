@@ -15,6 +15,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <nanomsg/nn.h>
+#include <signal.h>
 
 #include "transcodeffmpeg.h"
 
@@ -33,6 +34,9 @@
 #define FFMPEG_FIFO "ffmpeg_io.mkv"
 
 FILE *fp_output = NULL;
+
+static pid_t ffmpeg_pid;
+std::mutex play_video_lock;
 
 int write_buffer_to_file(void *opaque, uint8_t *buf, int buf_size) {
     if (!feof(fp_output)) {
@@ -70,7 +74,12 @@ TranscodeFFmpeg::TranscodeFFmpeg(const char* ffmpeg, const char* ffprobe, const 
     ffmpeg_executable = strdup(ffmpeg);
     ffprobe_executable = strdup(ffprobe);
 
+    stop_video_flag = false;
+    pause_video_flag = false;
+
     swsCtx = nullptr;
+
+    ffmpeg_pid = 0;
 }
 
 TranscodeFFmpeg::~TranscodeFFmpeg() {
@@ -104,6 +113,11 @@ TranscodeFFmpeg::~TranscodeFFmpeg() {
 }
 
 bool TranscodeFFmpeg::set_input_file(const char* input) {
+    play_video_lock.lock();
+
+    stop_video_flag = false;
+    pause_video_flag = false;
+
     // create pipe
     bool createPipe = false;
 
@@ -190,6 +204,8 @@ bool TranscodeFFmpeg::set_input_file(const char* input) {
         execl(ffmpeg_executable, ffmpeg_executable, "-i", input, "-codec", "copy", "-y", FFMPEG_FIFO, (const char*)NULL);
         exit(0);
     }
+
+    ffmpeg_pid = pid;
 
     return true;
 }
@@ -834,7 +850,7 @@ int TranscodeFFmpeg::transcode_worker(int (*write_packet)(void *opaque, uint8_t 
         return -1;
     }
 
-    while (av_read_frame(decoder->avfc, input_packet) >= 0) {
+    while (!stop_video_flag && av_read_frame(decoder->avfc, input_packet) >= 0) {
         if (decoder->avfc->streams[input_packet->stream_index]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
             if (transcode_video(input_packet, input_frame)) {
                 return -1;
@@ -867,23 +883,49 @@ int TranscodeFFmpeg::transcode_worker(int (*write_packet)(void *opaque, uint8_t 
     avfilter_graph_free(&decoder->audio_fgraph);
     avfilter_graph_free(&decoder->video_fgraph);
     avformat_close_input(&decoder->avfc);
-
     av_free(outbuffer);
+
+    stop_video_flag = false;
+    play_video_lock.unlock();
 
     return 0;
 }
 
 void TranscodeFFmpeg::pause_video() {
     pause_video_flag = true;
+
+    kill(ffmpeg_pid, SIGSTOP);
 }
 
 void TranscodeFFmpeg::resume_video() {
     pause_video_flag = false;
+
+    kill(ffmpeg_pid, SIGCONT);
 }
 
 void TranscodeFFmpeg::stop_video() {
     stop_video_flag = true;
+
+    if (ffmpeg_pid > 0) {
+        kill(ffmpeg_pid, SIGKILL);
+    }
+
+    ffmpeg_pid = 0;
+
+    play_video_lock.lock();
+    play_video_lock.unlock();
 }
+
+void TranscodeFFmpeg::seek_video(const char* ms) {
+    // TODO: implement me
+    printf("Seek requested: %s\n", ms);
+}
+
+void TranscodeFFmpeg::speed_video(const char* speed) {
+    // TODO: implement me
+    printf("Speed requested: %s\n", speed);
+}
+
 
 int TranscodeFFmpeg::get_video_width() {
     if (decoder->video_avcc) {

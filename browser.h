@@ -180,12 +180,11 @@ public:
     // transcode functions
     bool set_input_file(const char* input);
     int transcode();
-    int add_overlay_frame(int width, int height, uint8_t* image);
     void pause_video();
     void resume_video();
     void stop_video();
-    int get_video_width();
-    int get_video_height();
+    void seek_video(const char* ms);
+    void speed_video(const char* speed);
 
     //
     void SendToVdrString(uint8_t messageType, const char* message);
