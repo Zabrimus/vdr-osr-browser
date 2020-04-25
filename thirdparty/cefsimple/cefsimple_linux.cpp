@@ -8,8 +8,6 @@
 #include <X11/Xlib.h>
 #endif
 
-#include "include/base/cef_logging.h"
-
 #if defined(CEF_X11)
 namespace {
 

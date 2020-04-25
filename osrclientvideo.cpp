@@ -13,9 +13,7 @@
 #include <getopt.h>
 #include <iostream>
 #include <cstring>
-#include <sys/time.h>
 #include <thread>
-#include <chrono>
 #include <nanomsg/nn.h>
 #include <nanomsg/pipeline.h>
 #include "globaldefs.h"

@@ -2,8 +2,12 @@
 #include <thread>
 #include "transcodeffmpeg.h"
 
-#define FFMPEG "/usr/bin/ffmpeg"
-#define FFPROBE "/usr/bin/ffprobe"
+FILE* out;
+
+int write_buffer(uint8_t *buf, int buf_size) {
+    fwrite(buf, 1, buf_size, out);
+    return buf_size;
+}
 
 int main(int argc, char **argv) {
     if (argc < 3) {
@@ -11,36 +15,23 @@ int main(int argc, char **argv) {
         exit(1);
     }
 
-    TranscodeFFmpeg *transcoder = new TranscodeFFmpeg(FFMPEG, FFPROBE, argv[1], argv[2], true);
+    out = fopen(argv[2], "wb");
+    if (out == nullptr) {
+        fprintf(stderr, "Unable to open output file %s\n", argv[2]);
+        exit(1);
+    }
 
-    if (!transcoder->set_input_file(argv[1])) {
+    TranscodeFFmpeg *transcoder = new TranscodeFFmpeg();
+
+    if (!transcoder->set_input(argv[1], true)) {
         fprintf(stderr, "Some error occured. Aborting...\n");
         exit(1);
     }
 
-    // TEST 1
-    // push transparent image into  overlay input buffer
-    /*
-    uint8_t transparent[4096];
-    memset(&transparent, 0, 4096);
-    transcoder->add_overlay_frame(16, 16, &transparent[0]);
-    */
-    // TEST 1
-
-    // TEST 2
-    // push existing bgra image into overlay input buffer
-    /*
-    uint8_t transparent[1280 * 720 * 4];
-    FILE * filp = fopen("../../test_image.bgra", "rb");
-    int bytes_read = fread(transparent, sizeof(uint8_t), 1280 * 720 * 4, filp);
-    printf("Read Buffer: %d\n", bytes_read);
-    fclose(filp);
-    transcoder->add_overlay_frame(1280,720, &transparent[0]);
-    */
-    // TEST 2
-
-    std::thread th = transcoder->transcode(NULL);
+    std::thread th = transcoder->transcode(write_buffer, false);
     th.join();
 
     delete transcoder;
+
+    fclose(out);
 }

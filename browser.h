@@ -28,7 +28,7 @@ private:
 
 public:
     OSRHandler(BrowserClient *bc, int width, int height);
-    ~OSRHandler();
+    ~OSRHandler() override;
 
     void setRenderSize(int width, int height);
     void GetViewRect(CefRefPtr<CefBrowser> browser, CefRect &rect) override;
@@ -46,8 +46,8 @@ public:
 
     std::string ReadContentType(std::string url, CefRequest::HeaderMap headers);
     void LoadUrl(std::string url, CefRequest::HeaderMap headers);
-    std::map<std::string, std::string> GetResponseHeader() { return response_header; }
-    std::string GetResponseContent() { return response_content; }
+    static std::map<std::string, std::string> GetResponseHeader() { return response_header; }
+    static std::string GetResponseContent() { return response_content; }
     std::string GetRedirectUrl() { return redirect_url; }
 
 private:
@@ -62,7 +62,7 @@ private:
 class JavascriptHandler : public CefMessageRouterBrowserSide::Handler {
 public:
     JavascriptHandler();
-    ~JavascriptHandler();
+    ~JavascriptHandler() override;
 
     bool OnQuery(CefRefPtr<CefBrowser> browser,
                  CefRefPtr<CefFrame> frame,
@@ -104,8 +104,6 @@ private:
 
     TranscodeFFmpeg *transcoder;
     std::thread transcode_thread;
-    std::string ffmpeg_executable;
-    std::string ffprobe_executable;
 
     std::string responseContent;
     std::map<std::string, std::string> responseHeader;
@@ -131,7 +129,7 @@ private:
     }
 
 public:
-    explicit BrowserClient(bool debug, std::string* ffmpeg, std::string* ffprobe);
+    explicit BrowserClient(bool debug);
     ~BrowserClient();
 
     void setLoadingStart(bool loading);
@@ -192,7 +190,7 @@ public:
     void SendToVdrBuffer(void* message, int size);
 
     void setRenderSize(int width, int height) { osrHandler->setRenderSize(width, height); };
-    static int write_buffer_to_vdr(void *opaque, uint8_t *buf, int buf_size);
+    static int write_buffer_to_vdr(uint8_t *buf, int buf_size);
 
     IMPLEMENT_REFCOUNTING(BrowserClient);
 };

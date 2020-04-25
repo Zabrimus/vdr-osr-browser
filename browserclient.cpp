@@ -12,7 +12,6 @@
 
 #include <iostream>
 #include <map>
-#include <sys/shm.h>
 #include <nanomsg/nn.h>
 #include <nanomsg/pipeline.h>
 #include <curl/curl.h>
@@ -290,12 +289,12 @@ void JavascriptHandler::OnQueryCanceled(CefRefPtr<CefBrowser> browser, CefRefPtr
     // TODO: cancel our async query task...
 }
 
-int BrowserClient::write_buffer_to_vdr(void *opaque, uint8_t *buf, int buf_size) {
+int BrowserClient::write_buffer_to_vdr(uint8_t *buf, int buf_size) {
     browserClient->SendToVdrBuffer(CMD_VIDEO, buf, buf_size);
     return buf_size;
 }
 
-BrowserClient::BrowserClient(bool debug, std::string *ffmpeg, std::string *ffprobe) {
+BrowserClient::BrowserClient(bool debug) {
     // bind socket
     if ((toVdrSocketId = nn_socket(AF_SP, NN_PUSH)) < 0) {
         fprintf(stderr, "BrowserClient: unable to create nanomsg socket\n");
@@ -312,9 +311,6 @@ BrowserClient::BrowserClient(bool debug, std::string *ffmpeg, std::string *ffpro
 
     debugMode = debug;
     injectJavascript = true;
-
-    ffmpeg_executable.assign(*ffmpeg);
-    ffprobe_executable.assign(*ffprobe);
 
     mimeTypes.insert(std::pair<std::string, std::string>("hbbtv", "application/vnd.hbbtv.xhtml+xml"));
     mimeTypes.insert(std::pair<std::string, std::string>("cehtml", "application/ce-html+xml"));
@@ -683,8 +679,8 @@ bool BrowserClient::set_input_file(const char* input) {
         transcoder = nullptr;
     }
 
-    transcoder = new TranscodeFFmpeg(ffmpeg_executable.c_str(), ffprobe_executable.c_str(), "in", "out", false);
-    return transcoder->set_input_file(input);
+    transcoder = new TranscodeFFmpeg();
+    return transcoder->set_input(input, true);
 }
 
 void BrowserClient::pause_video() {
@@ -704,7 +700,11 @@ void BrowserClient::stop_video() {
 }
 
 void BrowserClient::seek_video(const char* ms) {
-    transcoder->seek_video(ms);
+    /* funktioniert nicht */
+    /*
+    transcode_thread = transcoder->seek_video(ms, write_buffer_to_vdr);
+    transcode_thread.detach();
+    */
 }
 
 void BrowserClient::speed_video(const char* speed) {

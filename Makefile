@@ -120,20 +120,19 @@ prepareexe:
 ifeq ($(PACKAGED_CEF),1)
 	cd Release && \
 	echo "resourcepath = /usr/share/cef/Resources" > vdr-osr-browser.config && \
-	echo "localespath = /usr/share/cef/Resources/locales" >> vdr-osr-browser.config && \
-	echo "ffmpeg_executable = $(FFMPEG_EXECUTABLE)" >> vdr-osr-browser.config && \
-	echo "ffprobe_executable = $(FFPROBE_EXECUTABLE)" >> vdr-osr-browser.config
+	echo "localespath = /usr/share/cef/Resources/locales" >> vdr-osr-browser.config
 else
 	cd Release && \
 	echo "resourcepath = $(CEF_INSTALL_DIR)/lib" > vdr-osr-browser.config && \
 	echo "localespath = $(CEF_INSTALL_DIR)/lib/locales" >> vdr-osr-browser.config && \
 	echo "frameworkpath  = $(CEF_INSTALL_DIR)/lib" >> vdr-osr-browser.config && \
-	echo "ffmpeg_executable = $(FFMPEG_EXECUTABLE)" >> vdr-osr-browser.config && \
-	echo "ffprobe_executable = $(FFPROBE_EXECUTABLE)" >> vdr-osr-browser.config && \
 	rm -f icudtl.dat natives_blob.bin v8_context_snapshot.bin && \
 	ln -s $(CEF_INSTALL_DIR)/lib/icudtl.dat && \
 	ln -s $(CEF_INSTALL_DIR)/lib/natives_blob.bin && \
 	ln -s $(CEF_INSTALL_DIR)/lib/v8_context_snapshot.bin
+endif
+ifneq (exists, $(shell test -e Release/vdr-osr-ffmpeg.config && echo exists))
+	sed -e "s#FFMPEG_EXECUTABLE#$(FFMPEG_EXECUTABLE)#" -e "s#FFPROBE_EXECUTABLE#$(FFPROBE_EXECUTABLE)#" vdr-osr-ffmpeg.config.sample > Release/vdr-osr-ffmpeg.config
 endif
 
 buildnng:

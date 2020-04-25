@@ -4,9 +4,6 @@
 
 #include "simple_handler.h"
 
-#include <sstream>
-#include <string>
-
 #include "include/base/cef_bind.h"
 #include "include/cef_app.h"
 #include "include/cef_parser.h"

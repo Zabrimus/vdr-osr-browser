@@ -12,7 +12,6 @@
 
 #include <cstdint>
 #include <thread>
-#include <chrono>
 #include <algorithm>
 #include <sys/shm.h>
 #include <mutex>

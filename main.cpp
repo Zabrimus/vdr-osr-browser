@@ -115,8 +115,6 @@ void quit_handler(int sig) {
 }
 
 std::string *initUrl = nullptr;
-std::string *ffmpeg  = nullptr;
-std::string *ffprobe  = nullptr;
 
 // Entry point function for all processes.
 int main(int argc, char *argv[]) {
@@ -147,7 +145,7 @@ int main(int argc, char *argv[]) {
     // read configuration and set CEF global settings
     std::string exepath = getexepath();
 
-    std::ifstream infile(exepath.substr(0, exepath.find_last_of("/")) + "/vdr-osr-browser.config");
+    std::ifstream infile(exepath.substr(0, exepath.find_last_of('/')) + "/vdr-osr-browser.config");
     if (infile.is_open()) {
         std::string key;
         std::string value;
@@ -160,27 +158,11 @@ int main(int argc, char *argv[]) {
                     CefString(&settings.locales_dir_path).FromASCII(value.c_str());
                 } else if (key == "frameworkpath") {
                     CefString(&settings.framework_dir_path).FromASCII(value.c_str());
-                } else if (key == "ffmpeg_executable") {
-                    ffmpeg = new std::string(value);
-                } else if (key == "ffprobe_executable") {
-                    ffprobe = new std::string(value);
                 }
             }
         }
     }
     infile.close();
-
-    if (ffmpeg == nullptr || ffmpeg->empty()) {
-        // Configuration is missing
-        fprintf(stderr, "Missing configuration entry ffmpeg_executable. Using default value /usr/bin/ffmpeg");
-        ffmpeg = new std::string("/usr/bin/ffmpeg");
-    }
-
-    if (ffprobe == nullptr || ffprobe->empty()) {
-        // Configuration is missing
-        fprintf(stderr, "Missing configuration entry ffprobe_executable. Using default value /usr/bin/ffprobe");
-        ffprobe = new std::string("/usr/bin/ffprobe");
-    }
 
     CefInitialize(main_args, settings, app.get(), nullptr);
 
@@ -188,18 +170,14 @@ int main(int argc, char *argv[]) {
     CefWindowInfo window_info;
     window_info.SetAsWindowless(0);
 
-    CefRefPtr<BrowserClient> browserClient = new BrowserClient(debugmode, ffmpeg, ffprobe);
+    CefRefPtr<BrowserClient> browserClient = new BrowserClient(debugmode);
     browser = CefBrowserHost::CreateBrowserSync(window_info, browserClient.get(), initUrl ? initUrl->c_str() : "", browserSettings, nullptr, nullptr);
 
     browser->GetHost()->WasHidden(true);
     browser->GetHost()->SetAudioMuted(true);
 
-    if (initUrl) {
+    if (initUrl != nullptr) {
         delete initUrl;
-    }
-
-    if (ffmpeg) {
-        delete ffmpeg;
     }
 
     browserClient->initJavascriptCallback();

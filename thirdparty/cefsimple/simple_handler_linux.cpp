@@ -5,14 +5,9 @@
 #include "simple_handler.h"
 
 #if defined(CEF_X11)
-#include <X11/Xatom.h>
+
 #include <X11/Xlib.h>
 #endif
-
-#include <string>
-
-#include "include/base/cef_logging.h"
-#include "include/cef_browser.h"
 
 void SimpleHandler::PlatformTitleChange(CefRefPtr<CefBrowser> browser,
                                         const CefString& title) {
