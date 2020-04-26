@@ -16,11 +16,14 @@
 #include <iostream>
 #include <thread>
 #include <csignal>
-
+#include <sys/stat.h>
+#include <nanomsg/nn.h>
+#include <nanomsg/pipeline.h>
+#include <nanomsg/reqrep.h>
 #include "main.h"
 #include "browser.h"
 #include "schemehandler.h"
-
+#include "globaldefs.h"
 #include "logger.h"
 
 // I'm not sure, if this is really needed anymore
@@ -116,6 +119,117 @@ void quit_handler(int sig) {
     */
 }
 
+// do some very first checks
+inline bool file_exists(const char* name) {
+    std::ifstream f(name);
+    return f.good();
+}
+
+void checkInstallation() {
+    std::string exepath = getexepath();
+
+    // check if configuration files exists
+    std::ifstream infile1(exepath.substr(0, exepath.find_last_of('/')) + "/vdr-osr-browser.config");
+    if (!infile1.is_open()) {
+        fprintf(stderr, "Unable to open configuration file 'vdr-osr-browser.config'. Aborting...");
+        exit(1);
+    }
+    infile1.close();
+
+    std::ifstream infile2(exepath.substr(0, exepath.find_last_of("/")) + "/vdr-osr-ffmpeg.config");
+    if (infile2.is_open()) {
+        std::string key;
+        std::string value;
+        char c;
+        while (infile2 >> key >> c >> value && c == '=') {
+            if (key.at(0) != '#') {
+                if (key == "ffmpeg_executable") {
+                    if (!file_exists(value.c_str())) {
+                        fprintf(stderr, "Configured ffmpeg executable '%s' does not exists. Aborting...\n",
+                                value.c_str());
+                        exit(1);
+                    }
+                } else if (key == "ffprobe_executable") {
+                    if (!file_exists(value.c_str())) {
+                        fprintf(stderr, "Configured ffprobe executable '%s' does not exists. Aborting...\n",
+                                value.c_str());
+                        exit(1);
+                    }
+                }
+            }
+        }
+    } else {
+        fprintf(stderr, "Unable to open configuration file 'vdr-osr-ffmpeg.config'. Aborting...");
+        exit(1);
+    }
+    infile2.close();
+
+    // check if sockets can be opened
+    int socketId;
+    int endpointId;
+
+    if ((socketId = nn_socket(AF_SP, NN_PUSH)) < 0) {
+        fprintf(stderr, "Unable to create nanomsg NN_PUSH socket. Aborting...\n");
+        exit(1);
+    }
+
+    if ((endpointId = nn_bind(socketId, TO_VDR_CHANNEL)) < 0) {
+        fprintf(stderr, "Unable to bind nanomsg socket to %s. Please check the file permissions. Aborting...\n",
+                TO_VDR_CHANNEL);
+        exit(1);
+    }
+
+    nn_close(socketId);
+
+    if ((socketId = nn_socket(AF_SP, NN_REQ)) < 0) {
+        fprintf(stderr, "Unable to create nanomsg NN_REQ socket. Aborting...\n");
+        exit(1);
+    }
+
+    if ((endpointId = nn_connect(socketId, FROM_VDR_CHANNEL)) < 0) {
+        fprintf(stderr, "Unable to bind nanomsg socket to %s. Please check the file permissions. Aborting...\n",
+                FROM_VDR_CHANNEL);
+        exit(1);
+    }
+
+    nn_close(socketId);
+
+    // create pipe
+    bool createPipe = false;
+
+    const std::string output_file = "ffmpeg_putput.ts";
+    struct stat sb{};
+    if (stat(output_file.c_str(), &sb) != -1) {
+        if (!S_ISFIFO(sb.st_mode) != 0) {
+            if (remove(output_file.c_str()) != 0) {
+                fprintf(stderr, "File %s exists and is not a pipe. Delete failed. Aborting...\n", output_file.c_str());
+                exit(1);
+            } else {
+                createPipe = true;
+            }
+        }
+    } else {
+        createPipe = true;
+    }
+
+    if (createPipe) {
+        if (mkfifo(output_file.c_str(), 0666) < 0) {
+            fprintf(stderr, "Unable to create pipe %s. Aborting...\n", output_file.c_str());
+            exit(1);
+        }
+    }
+
+    if (access(output_file.c_str(), R_OK) < 0) {
+        fprintf(stderr, "Don't have read access to pipe %s. Aborting...\n", output_file.c_str());
+        exit(1);
+    }
+
+    if (access(output_file.c_str(), W_OK) < 0) {
+        fprintf(stderr, "Don't have write access to pipe %s. Aborting...\n", output_file.c_str());
+        exit(1);
+    }
+}
+
 std::string *initUrl = nullptr;
 
 // Entry point function for all processes.
@@ -158,6 +272,8 @@ int main(int argc, char *argv[]) {
 
     settings.windowless_rendering_enabled = true;
     settings.no_sandbox = true;
+
+    checkInstallation();
 
     // read configuration and set CEF global settings
     std::string exepath = getexepath();
