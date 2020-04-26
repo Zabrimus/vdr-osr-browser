@@ -14,7 +14,7 @@ CEF_INSTALL_DIR = /opt/cef
 # Force using debian package or spotify build
 # Spotify build:  0
 # Debian package: 1
-# PACKAGED_CEF = 0
+# PACKAGED_CEF = 1
 
 # Alternative ffmpeg installation.
 # FFMPEG_PKG_CONFIG_PATH=/usr/local/ffmpeg/lib/pkgconfig/
@@ -58,20 +58,29 @@ EXECUTABLE5  = cefsimple
 
 # CEF (debian packaged or self-installed version)
 ifndef PACKAGED_CEF
+    $(info PACKAGED_CEF is undefined. Try to find CEF installation.)
 	ifeq (exists, $(shell test -e /usr/include/x86_64-linux-gnu/cef/cef_app.h && echo exists))
+        $(info Found CEF header, use debian package)
+
 		PACKAGED_CEF = 1
 		CFLAGS += -I/usr/include/x86_64-linux-gnu/cef/
 		LDFLAGS += -lcef -lcef_dll_wrapper -lX11
 	else
+        $(info Debian package for CEF not found. Use spotify build)
+
 		PACKAGED_CEF = 0
 		CFLAGS += $(shell pkg-config --cflags cef)
 		LDFLAGS += $(shell pkg-config --libs cef)
 	endif
 else
-	ifeq (1, PACKAGED_CEF)
+	ifeq (1, $(PACKAGED_CEF))
+        $(info CEF Debian package forced)
+
 		CFLAGS += -I/usr/include/x86_64-linux-gnu/cef/
 		LDFLAGS += -lcef -lcef_dll_wrapper -lX11
 	else
+        $(info CEF Spotify build forced)
+
 		CFLAGS += $(shell pkg-config --cflags cef)
 		LDFLAGS += $(shell pkg-config --libs cef)
 	endif
