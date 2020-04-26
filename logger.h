@@ -8,7 +8,6 @@
 #define CONSOLE_TRACE(...)     logger.console()->trace(__VA_ARGS__);
 #define CONSOLE_DEBUG(...)     logger.console()->debug(__VA_ARGS__);
 #define CONSOLE_INFO(...)      logger.console()->info(__VA_ARGS__);
-#define CONSOLE_INFO(...)      logger.console()->info(__VA_ARGS__);
 #define CONSOLE_ERROR(...)     logger.console()->error(__VA_ARGS__);
 #define CONSOLE_CRITICAL(...)  logger.console()->critical(__VA_ARGS__);
 
@@ -19,6 +18,10 @@ private:
 public:
     Logger();
     ~Logger();
+
+    void set_level(spdlog::level::level_enum level) {
+        logger_console->set_level(level);
+    }
 
     inline std::shared_ptr<spdlog::logger> console() {
         return logger_console;

@@ -10,6 +10,7 @@
 #include "include/cef_render_handler.h"
 #include "include/wrapper/cef_message_router.h"
 #include "transcodeffmpeg.h"
+#include "logger.h"
 
 class BrowserClient;
 class BrowserControl;
@@ -97,7 +98,6 @@ private:
 
     std::string exePath;
     HbbtvCurl hbbtvCurl;
-    bool debugMode;
     bool injectJavascript;
 
     JavascriptHandler *handler;
@@ -129,8 +129,8 @@ private:
     }
 
 public:
-    explicit BrowserClient(bool debug);
-    ~BrowserClient();
+    explicit BrowserClient(spdlog::level::level_enum log_level);
+    ~BrowserClient() override;
 
     void setLoadingStart(bool loading);
     void setBrowserControl(BrowserControl *ctl) { this->handler->SetBrowserControl(ctl); }

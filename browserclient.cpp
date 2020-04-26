@@ -20,10 +20,6 @@
 #include "browser.h"
 #include "logger.h"
 
-// to enable much more debug data output to stderr, set this variable to true
-static bool DumpDebugData = true;
-#define DBG(a...) if (DumpDebugData) fprintf(stderr, a)
-
 #define HEADERSIZE (4 * 1024)
 
 uint8_t CMD_STATUS = 1;
@@ -59,6 +55,8 @@ HbbtvCurl::~HbbtvCurl() {
 }
 
 std::string HbbtvCurl::ReadContentType(std::string url, CefRequest::HeaderMap headers) {
+    CONSOLE_DEBUG("ReadContentType {}", url);
+
     char *headerdata = (char*)malloc(HEADERSIZE);
     memset(headerdata, 0, HEADERSIZE);
 
@@ -117,6 +115,8 @@ std::string HbbtvCurl::ReadContentType(std::string url, CefRequest::HeaderMap he
 }
 
 void HbbtvCurl::LoadUrl(std::string url, CefRequest::HeaderMap headers) {
+    CONSOLE_DEBUG("LoadUrl {}", url);
+
     struct MemoryStruct contentdata {
             (char*)malloc(1), 0
     };
@@ -238,51 +238,51 @@ bool JavascriptHandler::OnQuery(CefRefPtr<CefBrowser> browser,
              CefRefPtr<Callback> callback) {
 
     // process the javascript callback
-    DBG("Javascript called me: %s\n", request.ToString().c_str());
+    CONSOLE_DEBUG("Javascript called me: {}", request.ToString());
 
     if (strncmp(request.ToString().c_str(), "VDR:", 4) == 0) {
         browserClient->SendToVdrString(CMD_STATUS, request.ToString().c_str() + 4);
         return true;
     } else {
         if (strncmp(request.ToString().c_str(), "VIDEO_URL:", 10) == 0) {
-            DBG("Video URL: %s\n", request.ToString().c_str() + 10);
+            CONSOLE_DEBUG("Video URL: {}", request.ToString().c_str() + 10);
 
             browserClient->SendToVdrString(CMD_STATUS, "PLAY_VIDEO:");
             browserClient->set_input_file(request.ToString().c_str() + 10);
             browserClient->transcode();
             return true;
         } else if (strncmp(request.ToString().c_str(), "PAUSE_VIDEO", 11) == 0) {
-            DBG("Video streaming pause\n");
+            CONSOLE_DEBUG("Video streaming pause");
 
             browserClient->pause_video();
             return true;
         } else if (strncmp(request.ToString().c_str(), "RESUME_VIDEO", 12) == 0) {
-            DBG("Video streaming resume\n");
+            CONSOLE_DEBUG("Video streaming resume");
 
             browserClient->resume_video();
             return true;
         } else if (strncmp(request.ToString().c_str(), "END_VIDEO", 9) == 0) {
-            DBG("Video streaming ended\n");
+            CONSOLE_DEBUG("Video streaming ended");
 
             browserClient->stop_video();
             return true;
         } else if (strncmp(request.ToString().c_str(), "STOP_VIDEO", 10) == 0) {
-            DBG("Video streaming stopped\n");
+            CONSOLE_DEBUG("Video streaming stopped");
 
             browserClient->stop_video();
             return true;
         } else if (strncmp(request.ToString().c_str(), "SEEK_VIDEO ", 11) == 0) {
-            DBG("Video streaming seeked to %s\n", request.ToString().c_str() + 11);
+            CONSOLE_DEBUG("Video streaming seeked to {}", request.ToString().c_str() + 11);
 
             browserClient->seek_video(request.ToString().c_str() + 11);
             return true;
         } else if (strncmp(request.ToString().c_str(), "SPEED_VIDEO ", 12) == 0) {
-            DBG("Video streaming speed change to %s\n", request.ToString().c_str() + 12);
+            CONSOLE_DEBUG("Video streaming speed change to {}", request.ToString().c_str() + 12);
 
             browserClient->speed_video(request.ToString().c_str() + 12);
             return true;
         } else if (strncmp(request.ToString().c_str(), "ERROR_VIDEO", 11) == 0) {
-            DBG("Video playing throws an error\n");
+            CONSOLE_ERROR("Video playing throws an error");
 
             // TODO: Gibt es eine bessere Lösung?
             browserClient->stop_video();
@@ -302,7 +302,9 @@ int BrowserClient::write_buffer_to_vdr(uint8_t *buf, int buf_size) {
     return buf_size;
 }
 
-BrowserClient::BrowserClient(bool debug) {
+BrowserClient::BrowserClient(spdlog::level::level_enum log_level) {
+    logger.set_level(log_level);
+
     // bind socket
     if ((toVdrSocketId = nn_socket(AF_SP, NN_PUSH)) < 0) {
         fprintf(stderr, "BrowserClient: unable to create nanomsg socket\n");
@@ -317,7 +319,6 @@ BrowserClient::BrowserClient(bool debug) {
     osrHandler = new OSRHandler(this,1920, 1080);
     renderHandler = osrHandler;
 
-    debugMode = debug;
     injectJavascript = true;
 
     mimeTypes.insert(std::pair<std::string, std::string>("hbbtv", "application/vnd.hbbtv.xhtml+xml"));
@@ -459,20 +460,19 @@ CefRefPtr<CefResourceHandler> BrowserClient::GetResourceHandler(CefRefPtr<CefBro
 
 // CefLoadHandler
 void BrowserClient::OnLoadStart(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefLoadHandler::TransitionType transition_type) {
-    DBG("ON LOAD START\n");
+    CONSOLE_TRACE("ON LOAD START");
 
     CefLoadHandler::OnLoadStart(browser, frame, transition_type);
 }
 
 void BrowserClient::OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, int httpStatusCode) {
-    DBG("ON LOAD END mode=%d, injectJavascript=%s\n", mode, injectJavascript ? "ja" : "nein");
+    CONSOLE_TRACE("ON LOAD END mode={}, injectJavascript={}", mode, injectJavascript ? "ja" : "nein");
 
     CEF_REQUIRE_UI_THREAD();
     loadingStart = false;
 
     if (mode == 2 && injectJavascript) {
         // inject Javascript
-        DBG("Inject javascript\n");
         injectJs(browser, "client://js/hbbtv_polyfill.js", false, false, "hbbtvpolyfill");
 
         injectJavascript = false;
@@ -491,7 +491,7 @@ void BrowserClient::OnLoadError(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFram
 
 // CefResourceHandler
 bool BrowserClient::ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr<CefCallback> callback) {
-    DBG("PROCESS REQUEST %s\n", request->GetURL().ToString().c_str());
+    CONSOLE_DEBUG("PROCESS REQUEST {}", request->GetURL().ToString().c_str());
 
     {
         // distinguish between local files and remote files using cUrl
@@ -719,14 +719,20 @@ bool BrowserClient::set_input_file(const char* input) {
 }
 
 void BrowserClient::pause_video() {
+    CONSOLE_DEBUG("Pause video");
+
     transcoder->pause_video();
 }
 
 void BrowserClient::resume_video() {
+    CONSOLE_DEBUG("Resume video");
+
     transcoder->resume_video();
 }
 
 void BrowserClient::stop_video() {
+    CONSOLE_DEBUG("Stop video");
+
     transcoder->stop_video();
 
     if (transcode_thread.joinable()) {
@@ -735,6 +741,8 @@ void BrowserClient::stop_video() {
 }
 
 void BrowserClient::seek_video(const char* ms) {
+    CONSOLE_DEBUG("Seek video to {} ms", ms);
+
     /* funktioniert nicht */
     /*
     transcode_thread = transcoder->seek_video(ms, write_buffer_to_vdr);
@@ -743,6 +751,8 @@ void BrowserClient::seek_video(const char* ms) {
 }
 
 void BrowserClient::speed_video(const char* speed) {
+    CONSOLE_DEBUG("Speed video to speed {}", speed);
+
     transcoder->speed_video(speed);
 }
 

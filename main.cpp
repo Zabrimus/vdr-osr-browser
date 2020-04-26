@@ -120,22 +120,31 @@ std::string *initUrl = nullptr;
 
 // Entry point function for all processes.
 int main(int argc, char *argv[]) {
-    bool debugmode = false;
+    CONSOLE_INFO("In Main, argc={}, Parameter:", argc);
+    for (int i = 0; i < argc; ++i) {
+            CONSOLE_INFO("   {}", argv[i]);
+    };
 
-    CONSOLE_TRACE("Trace in main()");
-    CONSOLE_DEBUG("Debug in main()");
-    CONSOLE_INFO("Info in main()");
-    CONSOLE_ERROR("Error in main()");
-    CONSOLE_CRITICAL("Critical in main()");
+    spdlog::level::level_enum log_level = spdlog::level::err;
 
     // try to find some parameters
     for (int i = 0; i < argc; ++i) {
         if (strncmp(argv[i], "--skinurl=", 10) == 0) {
             initUrl = new std::string(argv[i] + 10);
         } else if (strncmp(argv[i], "--debug", 7) == 0) {
-            debugmode = true;
+            log_level = spdlog::level::debug;
+        } else if (strncmp(argv[i], "--trace", 7) == 0) {
+            log_level = spdlog::level::trace;
+        } else if (strncmp(argv[i], "--info", 6) == 0) {
+            log_level = spdlog::level::info;
+        } else if (strncmp(argv[i], "--error", 7) == 0) {
+            log_level = spdlog::level::err;
+        } else if (strncmp(argv[i], "--critical", 7) == 0) {
+            log_level = spdlog::level::critical;
         }
     }
+
+    logger.set_level(log_level);
 
     CefMainArgs main_args(argc, argv);
     CefRefPtr<MainApp> app(new MainApp);
@@ -178,7 +187,7 @@ int main(int argc, char *argv[]) {
     CefWindowInfo window_info;
     window_info.SetAsWindowless(0);
 
-    CefRefPtr<BrowserClient> browserClient = new BrowserClient(debugmode);
+    CefRefPtr<BrowserClient> browserClient = new BrowserClient(log_level);
     browser = CefBrowserHost::CreateBrowserSync(window_info, browserClient.get(), initUrl ? initUrl->c_str() : "", browserSettings, nullptr, nullptr);
 
     browser->GetHost()->WasHidden(true);

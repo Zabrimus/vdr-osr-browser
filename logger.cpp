@@ -3,7 +3,7 @@
 
 Logger::Logger() {
     spdlog::cfg::load_env_levels();
-    logger_console =  spdlog::stdout_color_mt("console");
+    logger_console =  spdlog::stdout_color_mt("vdrosrbrowser");
 
     logger_console->set_level(spdlog::level::trace);
 }
