@@ -5,7 +5,7 @@
 FILE* out;
 
 int write_buffer(uint8_t *buf, int buf_size) {
-    fwrite(buf, 1, buf_size, out);
+    fwrite(buf+1, 1, buf_size-1, out);
     return buf_size;
 }
 

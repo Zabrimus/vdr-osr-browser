@@ -21,6 +21,8 @@
 #include "browser.h"
 #include "schemehandler.h"
 
+#include "logger.h"
+
 // I'm not sure, if this is really needed anymore
 bool NativeJsHandler::Execute(const CefString& name, CefRefPtr<CefV8Value> object, const CefV8ValueList& arguments, CefRefPtr<CefV8Value>& retval, CefString& exception) {
     // TODO: Is this really needed?
@@ -119,6 +121,12 @@ std::string *initUrl = nullptr;
 // Entry point function for all processes.
 int main(int argc, char *argv[]) {
     bool debugmode = false;
+
+    CONSOLE_TRACE("Trace in main()");
+    CONSOLE_DEBUG("Debug in main()");
+    CONSOLE_INFO("Info in main()");
+    CONSOLE_ERROR("Error in main()");
+    CONSOLE_CRITICAL("Critical in main()");
 
     // try to find some parameters
     for (int i = 0; i < argc; ++i) {

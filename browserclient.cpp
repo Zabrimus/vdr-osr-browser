@@ -18,6 +18,7 @@
 #include "include/wrapper/cef_helpers.h"
 #include "globaldefs.h"
 #include "browser.h"
+#include "logger.h"
 
 // to enable much more debug data output to stderr, set this variable to true
 static bool DumpDebugData = true;
@@ -26,6 +27,7 @@ static bool DumpDebugData = true;
 #define HEADERSIZE (4 * 1024)
 
 uint8_t CMD_STATUS = 1;
+uint8_t CMD_OSD = 2;
 uint8_t CMD_VIDEO = 3;
 
 BrowserClient *browserClient;
@@ -33,6 +35,12 @@ BrowserClient *browserClient;
 struct MemoryStruct {
     char *memory;
     size_t size;
+};
+
+struct OsdStruct {
+    char    message[20];
+    int     width;
+    int     height;
 };
 
 std::map<std::string, std::string> HbbtvCurl::response_header;
@@ -290,7 +298,7 @@ void JavascriptHandler::OnQueryCanceled(CefRefPtr<CefBrowser> browser, CefRefPtr
 }
 
 int BrowserClient::write_buffer_to_vdr(uint8_t *buf, int buf_size) {
-    browserClient->SendToVdrBuffer(CMD_VIDEO, buf, buf_size);
+    browserClient->SendToVdrVideoData(buf, buf_size);
     return buf_size;
 }
 
@@ -349,7 +357,6 @@ CefRefPtr<CefRenderHandler> BrowserClient::GetRenderHandler() {
 }
 
 CefRefPtr<CefResourceRequestHandler> BrowserClient::GetResourceRequestHandler(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, bool is_navigation, bool is_download, const CefString &request_initiator, bool &disable_default_handling) {
-
     auto url = request->GetURL().ToString();
 
     // disable xiti and ioam
@@ -658,20 +665,48 @@ void BrowserClient::initJavascriptCallback() {
 }
 
 void BrowserClient::SendToVdrString(uint8_t messageType, const char* message) {
-    nn_send(toVdrSocketId, &messageType, 1, 0);
-    nn_send(toVdrSocketId, message, strlen(message) + 1, 0);
+    CONSOLE_TRACE("Send String to VDR, Message {}", message);
+
+    char* buffer = (char*)malloc(2 + strlen(message));
+
+    buffer[0] = messageType;
+    strcpy(buffer + 1, message);
+    nn_send(toVdrSocketId, buffer, strlen(message) + 2, 0);
+
+    printf("Send string %2d %s\n", buffer[0], buffer + 1);
+
+    free(buffer);
 }
 
-void BrowserClient::SendToVdrBuffer(uint8_t messageType, void* message, int size) {
-    nn_send(toVdrSocketId, &messageType, 1, 0);
+void BrowserClient::SendToVdrVideoData(uint8_t* message, int size) {
+    CONSOLE_TRACE("Send video buffer to VDR, size of buffer {}", size);
+
+    message[0] = CMD_VIDEO;
     nn_send(toVdrSocketId, message, size, 0);
 }
 
-void BrowserClient::SendToVdrBuffer(void* message, int size) {
-    nn_send(toVdrSocketId, message, size, 0);
+void BrowserClient::SendToVdrOsd(const char* message, int width, int height) {
+    CONSOLE_TRACE("Send OSD update to VDR, Message {}, Width {}, Height {}", message, width, height);
+
+    struct OsdStruct osdStruct = {};
+    auto *buffer = new uint8_t[1 + sizeof(struct OsdStruct)];
+
+    osdStruct.width = width;
+    osdStruct.height = height;
+    memset(osdStruct.message, 0, 20);
+    strncpy(osdStruct.message, message, 19);
+
+    buffer[0] = CMD_OSD;
+    memcpy((void*)(buffer + 1), &osdStruct, sizeof(struct OsdStruct));
+
+    nn_send(toVdrSocketId, buffer, sizeof(struct OsdStruct) + 1, 0);
+
+    delete[] buffer;
 }
 
 bool BrowserClient::set_input_file(const char* input) {
+    CONSOLE_DEBUG("Set Input video {}", input);
+
     if (transcoder != nullptr) {
         stop_video();
 
@@ -680,7 +715,7 @@ bool BrowserClient::set_input_file(const char* input) {
     }
 
     transcoder = new TranscodeFFmpeg();
-    return transcoder->set_input(input, true);
+    return transcoder->set_input(input, false);
 }
 
 void BrowserClient::pause_video() {

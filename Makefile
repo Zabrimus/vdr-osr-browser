@@ -33,20 +33,19 @@ CFLAGS = -g -c -O3  -Wall -std=c++11
 #CFLAGS = -c -O0 -g -Wall -std=c++11
 LDFLAGS = -pthread -lrt
 
-# SOURCES = cefsimple_linux.cc simple_app.cc simple_handler.cc simple_handler_linux.cc
-SOURCES = main.cpp osrhandler.cpp browserclient.cpp browsercontrol.cpp transcodeffmpeg.cpp schemehandler.cpp
+SOURCES = main.cpp osrhandler.cpp browserclient.cpp browsercontrol.cpp transcodeffmpeg.cpp schemehandler.cpp logger.cpp
 OBJECTS = $(SOURCES:.cpp=.o)
 
-SOURCES2 = osrclient.cpp
+SOURCES2 = osrclient.cpp logger.cpp
 OBJECTS2 = $(SOURCES2:.cpp=.o)
 
-SOURCES3 = osrclientvideo.cpp
+SOURCES3 = osrclientvideo.cpp logger.cpp
 OBJECTS3 = $(SOURCES3:.cpp=.o)
 
-SOURCES4 = transcodetest.cpp transcodeffmpeg.cpp
+SOURCES4 = transcodetest.cpp transcodeffmpeg.cpp logger.cpp
 OBJECTS4 = $(SOURCES4:.cpp=.o)
 
-SOURCES5 = schemehandler.cpp thirdparty/cefsimple/cefsimple_linux.cpp thirdparty/cefsimple/simple_app.cpp thirdparty/cefsimple/simple_handler.cpp thirdparty/cefsimple/simple_handler_linux.cpp
+SOURCES5 = schemehandler.cpp logger.cpp thirdparty/cefsimple/cefsimple_linux.cpp thirdparty/cefsimple/simple_app.cpp thirdparty/cefsimple/simple_handler.cpp thirdparty/cefsimple/simple_handler_linux.cpp
 OBJECTS5 = $(SOURCES5:.cpp=.o)
 
 EXECUTABLE  = vdrosrbrowser
@@ -87,31 +86,31 @@ NNGVERSION = 1.3.0
 NNGCFLAGS  = -Ithirdparty/nng-$(NNGVERSION)/include/nng/compat
 NNGLDFLAGS = thirdparty/nng-$(NNGVERSION)/build/libnng.a
 
-# libav / ffmpeg
-LIBAVCFLAGS += $(shell PKG_CONFIG_PATH=$(FFMPEG_PKG_CONFIG_PATH) pkg-config --cflags libavformat libavcodec libavfilter libavdevice libswresample libswscale libavutil)
-LIBAVLDFLAGS += $(shell PKG_CONFIG_PATH=$(FFMPEG_PKG_CONFIG_PATH) pkg-config --libs libavformat libavcodec libavfilter libavdevice libswresample libswscale libavutil)
+# spdlog
+LOGCFLAGS = -Ithirdparty/spdlog/buildbin/include -DSPDLOG_COMPILED_LIB
+LOGLDFLAGS = thirdparty/spdlog/buildbin/lib/libspdlog.a
 
-all: prepareexe emptyvideo buildnng $(SOURCES) $(EXECUTABLE) $(EXECUTABLE2) $(EXECUTABLE3) $(EXECUTABLE4) $(EXECUTABLE5)
+all: prepareexe emptyvideo buildnng buildspdlog $(SOURCES) $(EXECUTABLE) $(EXECUTABLE2) $(EXECUTABLE3) $(EXECUTABLE4) $(EXECUTABLE5)
 
 $(EXECUTABLE): $(OBJECTS) transcodeffmpeg.h globaldefs.h main.h browser.h
-	$(CC) $(OBJECTS) $(NNGCFLAGS) -o $@ $(LDFLAGS) $(LIBAVLDFLAGS) $(NNGLDFLAGS)
+	$(CC) $(OBJECTS) $(NNGCFLAGS) $(LOGCFLAGS) -o $@ $(LDFLAGS) $(NNGLDFLAGS) $(LOGLDFLAGS)
 	mv $(EXECUTABLE) Release
 	cp -r js Release
 
 $(EXECUTABLE2): $(OBJECTS2) transcodeffmpeg.h globaldefs.h
-	$(CC) $(OBJECTS2) $(NNGCFLAGS) -o $@ -pthread $(NNGLDFLAGS)
+	$(CC) $(OBJECTS2) $(NNGCFLAGS) $(LOGCFLAGS) -o $@ -pthread $(NNGLDFLAGS) $(LOGLDFLAGS)
 	mv $(EXECUTABLE2) Release
 
 $(EXECUTABLE3): $(OBJECTS3) transcodeffmpeg.h globaldefs.h
-	$(CC) $(OBJECTS3) $(NNGCFLAGS) -o $@ -pthread $(NNGLDFLAGS)
+	$(CC) $(OBJECTS3) $(NNGCFLAGS) $(LOGCFLAGS) -o $@ -pthread $(NNGLDFLAGS) $(LOGLDFLAGS)
 	mv $(EXECUTABLE3) Release
 
 $(EXECUTABLE4): $(OBJECTS4) transcodeffmpeg.h globaldefs.h
-	$(CC) -O3 $(OBJECTS4) $(NNGCFLAGS) $(LIBAVCFLAGS) -o $@ -pthread $(LIBAVLDFLAGS) $(NNGLDFLAGS)
+	$(CC) -O3 $(OBJECTS4) $(NNGCFLAGS) $(LOGCFLAGS) -o $@ -pthread $(NNGLDFLAGS) $(LOGLDFLAGS)
 	mv $(EXECUTABLE4) Release
 
 $(EXECUTABLE5): $(OBJECTS5)
-	$(CC) -O3 $(OBJECTS5) -o $@ -pthread $(LDFLAGS)
+	$(CC) -O3 $(OBJECTS5) $(LOGCFLAGS) -o $@ -pthread $(LDFLAGS) $(LOGLDFLAGS)
 	mv $(EXECUTABLE5) Release
 	cp thirdparty/cefsimple/movie.html Release
 
@@ -142,6 +141,13 @@ ifneq (exists, $(shell test -e thirdparty/nng-$(NNGVERSION)/build/libnng.a && ec
 	$(MAKE) -C thirdparty/nng-$(NNGVERSION)/build -j 6
 endif
 
+buildspdlog:
+ifneq (exists, $(shell test -e thirdparty/spdlog/buildbin/lib/libspdlog.a && echo exists))
+	mkdir -p thirdparty/spdlog/build
+	cd thirdparty/spdlog/build && cmake -DCMAKE_INSTALL_PREFIX=../buildbin ..
+	$(MAKE) -C thirdparty/spdlog/build -j 6 install
+endif
+
 preparejs:
 	cd thirdparty/HybridTvViewer && npm i
 
@@ -166,7 +172,7 @@ ifneq (exists, $(shell test -e Release/movie/transparent-full.webm && echo exist
 endif
 
 .cpp.o:
-	$(CC) -I. $(CFLAGS) $(LIBAVCFLAGS) $(NNGCFLAGS) -MMD $< -o $@
+	$(CC) -I. $(CFLAGS) $(NNGCFLAGS) $(LOGCFLAGS) -MMD $< -o $@
 
 DEPS := $(OBJECTS:.o=.d)
 -include $(DEPS)

@@ -1,0 +1,19 @@
+cefsimple:
+URL:      https://bitbucket.org/chromiumembedded/cef/src/master/
+License:  License.cef.txt
+
+HybridTvViewer:
+URL:      https://github.com/karl-rousseau/HybridTvViewer
+License:  Licence.HybridTvViewer.txt
+
+nng:
+URL:      https://github.com/nanomsg/nng
+License:  License.nng.txt
+
+spdlog:
+URL:      https://github.com/gabime/spdlog
+License:  License.spdlog.txt
+
+fmt:
+URL:      https://github.com/fmtlib/fmt
+License:  License.fmt.txt

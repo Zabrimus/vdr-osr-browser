@@ -23,8 +23,6 @@
 #define OSD_BUF_SIZE (1920 * 1080 * 4)
 #define OSD_KEY 0xDEADC0DE
 
-uint8_t CMD_OSD = 2;
-
 BrowserClient* OSRHandler::browserClient;
 
 OSRHandler::OSRHandler(BrowserClient *bc, int width, int height) {
@@ -92,8 +90,6 @@ void OSRHandler::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, c
 
         shm_mutex.lock();
         memcpy(shmp, buffer, w * h * 4);
-        browserClient->SendToVdrString(CMD_OSD, "OSDU");
-        browserClient->SendToVdrBuffer(&w, sizeof(w));
-        browserClient->SendToVdrBuffer(&h, sizeof(h));
+        browserClient->SendToVdrOsd("OSDU", w, h);
     }
 }

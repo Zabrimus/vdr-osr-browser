@@ -11,9 +11,11 @@
 #include <fcntl.h>
 #include <limits.h>
 
+#include "logger.h"
+
 static pid_t ffmpeg_pid;
 bool stop_worker = false;
-const int buffer_size = 32712; // 188 * 174
+const int buffer_size = 32712 + 1; // 188 * 174 + 1 (first byte is reserved)
 const std::string output_file = "ffmpeg_putput.ts";
 
 inline char* ms_to_ffmpeg_time(long millis) {
@@ -46,6 +48,8 @@ TranscodeFFmpeg::~TranscodeFFmpeg() {
 }
 
 void TranscodeFFmpeg::read_configuration() {
+    CONSOLE_TRACE("====== Loading configuration... ======");
+
     std::string exepath = getbrowserexepath();
 
     std::ifstream infile(exepath.substr(0, exepath.find_last_of("/")) + "/vdr-osr-ffmpeg.config");
@@ -274,7 +278,8 @@ int TranscodeFFmpeg::transcode_worker(int (*write_packet)(uint8_t *buf, int buf_
     fcntl(fd, F_SETFL, O_NONBLOCK);
 
     while (!stop_worker) {
-        int bytes = read(fd, &buffer[0], buffer_size);
+        // first byte is reserved
+        int bytes = read(fd, &buffer[1], buffer_size - 1);
 
         if (bytes == -1) {
             if (errno == EAGAIN) {
@@ -285,7 +290,7 @@ int TranscodeFFmpeg::transcode_worker(int (*write_packet)(uint8_t *buf, int buf_
         } else if (bytes == 0) {
             stop_worker = true;
         } else {
-            write_packet(&buffer[0], bytes);
+            write_packet(&buffer[0], bytes + 1);
         }
     }
 

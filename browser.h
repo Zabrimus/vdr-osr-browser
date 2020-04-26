@@ -186,8 +186,8 @@ public:
 
     //
     void SendToVdrString(uint8_t messageType, const char* message);
-    void SendToVdrBuffer(uint8_t messageType, void* message, int size);
-    void SendToVdrBuffer(void* message, int size);
+    void SendToVdrVideoData(uint8_t* message, int size);
+    void SendToVdrOsd(const char* message, int width, int height);
 
     void setRenderSize(int width, int height) { osrHandler->setRenderSize(width, height); };
     static int write_buffer_to_vdr(uint8_t *buf, int buf_size);
