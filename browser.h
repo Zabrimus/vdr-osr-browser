@@ -191,6 +191,7 @@ public:
 
     void setRenderSize(int width, int height) { osrHandler->setRenderSize(width, height); };
     static int write_buffer_to_vdr(uint8_t *buf, int buf_size);
+    static void eventCallback(std::string cmd);
 
     IMPLEMENT_REFCOUNTING(BrowserClient);
 };

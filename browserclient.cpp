@@ -297,11 +297,6 @@ void JavascriptHandler::OnQueryCanceled(CefRefPtr<CefBrowser> browser, CefRefPtr
     // TODO: cancel our async query task...
 }
 
-int BrowserClient::write_buffer_to_vdr(uint8_t *buf, int buf_size) {
-    browserClient->SendToVdrVideoData(buf, buf_size);
-    return buf_size;
-}
-
 BrowserClient::BrowserClient(spdlog::level::level_enum log_level) {
     logger.set_level(log_level);
 
@@ -664,6 +659,15 @@ void BrowserClient::initJavascriptCallback() {
     browser_side_router->AddHandler(handler, true);
 }
 
+void BrowserClient::eventCallback(std::string cmd) {
+    browserClient->SendToVdrString(CMD_STATUS, cmd.c_str());
+}
+
+int BrowserClient::write_buffer_to_vdr(uint8_t *buf, int buf_size) {
+    browserClient->SendToVdrVideoData(buf, buf_size);
+    return buf_size;
+}
+
 void BrowserClient::SendToVdrString(uint8_t messageType, const char* message) {
     CONSOLE_TRACE("Send String to VDR, Message {}", message);
 
@@ -715,6 +719,7 @@ bool BrowserClient::set_input_file(const char* input) {
     }
 
     transcoder = new TranscodeFFmpeg();
+    transcoder->set_event_callback(eventCallback);
     return transcoder->set_input(input, false);
 }
 
@@ -743,11 +748,8 @@ void BrowserClient::stop_video() {
 void BrowserClient::seek_video(const char* ms) {
     CONSOLE_DEBUG("Seek video to {} ms", ms);
 
-    /* funktioniert nicht */
-    /*
     transcode_thread = transcoder->seek_video(ms, write_buffer_to_vdr);
     transcode_thread.detach();
-    */
 }
 
 void BrowserClient::speed_video(const char* speed) {

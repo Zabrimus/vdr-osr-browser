@@ -17,6 +17,10 @@ static pid_t ffmpeg_pid;
 bool stop_worker = false;
 const int buffer_size = 32712 + 1; // 188 * 174 + 1 (first byte is reserved)
 const std::string output_file = "ffmpeg_putput.ts";
+int output_fd;
+std::mutex stop_mutex;
+
+void (*event_callback)(std::string cmd)  = nullptr;
 
 inline char* ms_to_ffmpeg_time(long millis) {
     char *result;
@@ -45,6 +49,10 @@ TranscodeFFmpeg::TranscodeFFmpeg() {
 }
 
 TranscodeFFmpeg::~TranscodeFFmpeg() {
+}
+
+void TranscodeFFmpeg::set_event_callback(void (*event_callback_)(std::string cmd)) {
+    event_callback = event_callback_;
 }
 
 void TranscodeFFmpeg::read_configuration() {
@@ -241,6 +249,8 @@ bool TranscodeFFmpeg::fork_ffmpeg(long start_at_ms) {
 
         cmdline += "-y " + output_file;
 
+        /* 1st Try */
+        /* */
         // create the final commandline parameter for execv
         std::vector <char*> cmd_params;
         std::stringstream cmd(cmdline);
@@ -258,6 +268,18 @@ bool TranscodeFFmpeg::fork_ffmpeg(long start_at_ms) {
         char **command = cmd_params.data();
         execv(command[0], &command[0]);
         exit(0);
+        /* */
+
+        /* 2nd try */
+        /*
+        std::string ncmd = ffmpeg_executable + " " + cmdline;
+
+        CONSOLE_TRACE("Ffmpeg command line: {}", ncmd)
+
+        setsid();
+        system(ncmd.c_str());
+        return true;
+        */
     }
 
     ffmpeg_pid = pid;
@@ -270,16 +292,38 @@ std::thread TranscodeFFmpeg::transcode(int (*write_packet)(uint8_t *buf, int buf
     return std::thread(&TranscodeFFmpeg::transcode_worker, this, write_packet);
 }
 
+std::thread TranscodeFFmpeg::seek_video(const char* ms, int (*write_packet)(uint8_t *buf, int buf_size)) {
+    CONSOLE_TRACE("seek_video, stop video");
+    stop_video();
+
+    if (event_callback != nullptr) {
+        event_callback("SEEK");
+    }
+
+    CONSOLE_TRACE("seek_video, fork_ffmpeg");
+    fork_ffmpeg(strtol(ms, (char **)nullptr, 10));
+
+    // give ffmpeg some time to start
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000)); // TODO: test for the lowest possible value
+
+    CONSOLE_TRACE("seek_video, return thread");
+    return std::thread(&TranscodeFFmpeg::transcode_worker, this, write_packet);
+}
+
 int TranscodeFFmpeg::transcode_worker(int (*write_packet)(uint8_t *buf, int buf_size)) {
     uint8_t buffer[buffer_size];
     stop_worker = false;
 
-    int fd = open("ffmpeg_putput.ts", O_RDONLY);
-    fcntl(fd, F_SETFL, O_NONBLOCK);
+    stop_mutex.lock();
+
+    CONSOLE_TRACE("transcode_worker start");
+
+    output_fd = open("ffmpeg_putput.ts", O_RDONLY);
+    fcntl(output_fd, F_SETFL, O_NONBLOCK);
 
     while (!stop_worker) {
         // first byte is reserved
-        int bytes = read(fd, &buffer[1], buffer_size - 1);
+        int bytes = read(output_fd, &buffer[1], buffer_size - 1);
 
         if (bytes == -1) {
             if (errno == EAGAIN) {
@@ -288,13 +332,18 @@ int TranscodeFFmpeg::transcode_worker(int (*write_packet)(uint8_t *buf, int buf_
                 stop_worker = true;
             }
         } else if (bytes == 0) {
+            CONSOLE_TRACE("transcode_worker no more bytes, stop");
             stop_worker = true;
         } else {
             write_packet(&buffer[0], bytes + 1);
         }
     }
 
-    close(fd);
+    CONSOLE_TRACE("Close output of transcode_worker");
+
+    close(output_fd);
+
+    stop_mutex.unlock();
 
     return 0;
 }
@@ -310,15 +359,24 @@ void TranscodeFFmpeg::resume_video() {
 void TranscodeFFmpeg::stop_video() {
     stop_worker = true;
 
+    stop_mutex.lock();
+    stop_mutex.unlock();
+
+    CONSOLE_TRACE("stop video, kill ffmpeg with pid {}", ffmpeg_pid);
+
     if (ffmpeg_pid > 0) {
-        kill(ffmpeg_pid, SIGKILL);
+        /* 1st try */
+        /* */
+        kill(ffmpeg_pid, SIGTERM);
+        /* */
+
+        /* 2nd try */
+        /*
+        killpg(ffmpeg_pid, SIGKILL);
+        */
     }
 
     ffmpeg_pid = 0;
-}
-
-void TranscodeFFmpeg::seek_video(const char* ms, int (*write_packet)(uint8_t *buf, int buf_size)) {
-
 }
 
 void TranscodeFFmpeg::speed_video(const char* speed) {

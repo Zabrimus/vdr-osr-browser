@@ -28,7 +28,7 @@ private:
     std::string encode_audio_param;
 
 private:
-    // forks ffmpeg and processes the input file
+    // fork ffmpeg and processes the input file
     bool fork_ffmpeg(long start_at_ms);
 
     // read the configuration file
@@ -45,10 +45,12 @@ public:
 
     std::thread transcode(int (*write_packet)(uint8_t *buf, int buf_size), bool realtime = true);
 
+    void set_event_callback(void (*event_callback_)(std::string cmd));
+
     void pause_video();
     void resume_video();
     void stop_video();
-    void seek_video(const char* ms, int (*write_packet)(uint8_t *buf, int buf_size));
+    std::thread seek_video(const char* ms, int (*write_packet)(uint8_t *buf, int buf_size));
     void speed_video(const char* speed);
 };
 
