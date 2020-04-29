@@ -7,14 +7,14 @@
 # make buildjs		(compiles javascript files and install them in Release and js folder)
 # make cleanjs		(deletes all not needed files in thirdparty/HybridTvViewer)
 
-CEF_VERSION   = 81.2.16%2Bgdacda4f%2Bchromium-81.0.4044.92
+CEF_VERSION   = 81.2.25%2Bg3afea62%2Bchromium-81.0.4044.113
 CEF_BUILD = http://opensource.spotify.com/cefbuilds/cef_binary_$(CEF_VERSION)_linux64_minimal.tar.bz2
 CEF_INSTALL_DIR = /opt/cef
 
 # Force using debian package or spotify build
 # Spotify build:  0
 # Debian package: 1
-# PACKAGED_CEF = 1
+# PACKAGED_CEF = 0
 
 # Alternative ffmpeg installation.
 # FFMPEG_PKG_CONFIG_PATH=/usr/local/ffmpeg/lib/pkgconfig/
