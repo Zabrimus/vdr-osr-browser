@@ -291,7 +291,7 @@ std::thread TranscodeFFmpeg::seek_video(const char* ms, int (*write_packet)(uint
     fork_ffmpeg(strtol(ms, (char **)nullptr, 10));
 
     // give ffmpeg some time to start
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000)); // TODO: test for the lowest possible value
+    std::this_thread::sleep_for(std::chrono::milliseconds(100)); // TODO: test for the lowest possible value
 
     CONSOLE_TRACE("seek_video, return thread");
     return std::thread(&TranscodeFFmpeg::transcode_worker, this, write_packet);
