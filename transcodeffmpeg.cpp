@@ -1,5 +1,6 @@
 #include "transcodeffmpeg.h"
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <unistd.h>
 #include <iostream>
 #include <fstream>
@@ -249,8 +250,6 @@ bool TranscodeFFmpeg::fork_ffmpeg(long start_at_ms) {
 
         cmdline += "-y " + output_file;
 
-        /* 1st Try */
-        /* */
         // create the final commandline parameter for execv
         std::vector <char*> cmd_params;
         std::stringstream cmd(cmdline);
@@ -268,18 +267,6 @@ bool TranscodeFFmpeg::fork_ffmpeg(long start_at_ms) {
         char **command = cmd_params.data();
         execv(command[0], &command[0]);
         exit(0);
-        /* */
-
-        /* 2nd try */
-        /*
-        std::string ncmd = ffmpeg_executable + " " + cmdline;
-
-        CONSOLE_TRACE("Ffmpeg command line: {}", ncmd)
-
-        setsid();
-        system(ncmd.c_str());
-        return true;
-        */
     }
 
     ffmpeg_pid = pid;
@@ -365,16 +352,13 @@ void TranscodeFFmpeg::stop_video() {
     CONSOLE_TRACE("stop video, kill ffmpeg with pid {}", ffmpeg_pid);
 
     if (ffmpeg_pid > 0) {
-        /* 1st try */
-        /* */
         kill(ffmpeg_pid, SIGTERM);
-        /* */
 
-        /* 2nd try */
-        /*
-        killpg(ffmpeg_pid, SIGKILL);
-        */
+        int status;
+        waitpid(ffmpeg_pid, &status, 0);
     }
+
+    CONSOLE_TRACE("ffmpeg with pid {} is hopefully not running anymore", ffmpeg_pid);
 
     ffmpeg_pid = 0;
 }
