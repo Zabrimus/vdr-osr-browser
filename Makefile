@@ -11,10 +11,15 @@ CEF_VERSION   = 81.2.25%2Bg3afea62%2Bchromium-81.0.4044.113
 CEF_BUILD = http://opensource.spotify.com/cefbuilds/cef_binary_$(CEF_VERSION)_linux64_minimal.tar.bz2
 CEF_INSTALL_DIR = /opt/cef
 
-# Force using debian package or spotify build
+# Force using
+#    debian package or
+#    spotify build (installed in cef) or
+#    spotify build (installed in thirdparty)
+#
 # Spotify build:  0
 # Debian package: 1
-# PACKAGED_CEF = 0
+# Local Cef:      2
+# PACKAGED_CEF =  2
 
 # Alternative ffmpeg installation.
 # FFMPEG_PKG_CONFIG_PATH=/usr/local/ffmpeg/lib/pkgconfig/
@@ -59,36 +64,55 @@ EXECUTABLE5  = cefsimple
 # CEF (debian packaged or self-installed version)
 ifndef PACKAGED_CEF
     $(info PACKAGED_CEF is undefined. Try to find CEF installation.)
-	ifeq (exists, $(shell test -e /usr/include/x86_64-linux-gnu/cef/cef_app.h && echo exists))
+    ifeq (exists, $(shell test -e /usr/include/x86_64-linux-gnu/cef/cef_app.h && echo exists))
         $(info Found CEF header, use debian package)
 
-		PACKAGED_CEF = 1
-		CFLAGS += -I/usr/include/x86_64-linux-gnu/cef/
-		LDFLAGS += -lcef -lcef_dll_wrapper -lX11
-	else
-        $(info Debian package for CEF not found. Use spotify build)
+        PACKAGED_CEF = 1
+        CEFCFLAGS += -I/usr/include/x86_64-linux-gnu/cef/
+        CEFLDFLAGS += -lcef -lcef_dll_wrapper -lX11
+    else ifeq (exists, $(shell pkg-config --exists cef && echo exists))
+        $(info Use CEF found with pkg-config)
 
-		PACKAGED_CEF = 0
-		CFLAGS += $(shell pkg-config --cflags cef)
-		LDFLAGS += $(shell pkg-config --libs cef)
-	endif
+        PACKAGED_CEF = 0
+        CEFCFLAGS += $(shell pkg-config --cflags cef)
+        CEFLDFLAGS += $(shell pkg-config --libs cef)
+    else ifeq (exists, $(shell test -e thirdparty/cef/include/cef_app.h  && echo exists))
+        $(info Use locally install CEF in thirdparty directory)
+
+        PACKAGED_CEF = 2
+        CEFCFLAGS += -Ithirdparty/cef/include
+        CEFLDFLAGS += -Lthirdparty/cef/build/libcef_dll_wrapper -Lthirdparty/cef/Release -lcef -lcef_dll_wrapper -lX11
+    else
+        $(error Unable to find a CEF installation)
+    endif
 else
-	ifeq (1, $(PACKAGED_CEF))
+    ifeq (1, $(PACKAGED_CEF))
         $(info CEF Debian package forced)
 
-		CFLAGS += -I/usr/include/x86_64-linux-gnu/cef/
-		LDFLAGS += -lcef -lcef_dll_wrapper -lX11
-	else
-        $(info CEF Spotify build forced)
+	CEFCFLAGS += -I/usr/include/x86_64-linux-gnu/cef/
+        CEFLDFLAGS += -lcef -lcef_dll_wrapper -lX11
+    else ifeq (0, $(PACKAGED_CEF))
+        $(info CEF installation found by pkg-config forced)
 
-		CFLAGS += $(shell pkg-config --cflags cef)
-		LDFLAGS += $(shell pkg-config --libs cef)
-	endif
+        CEFCFLAGS += $(shell pkg-config --cflags cef)
+        CEFLDFLAGS += $(shell pkg-config --libs cef)
+    else ifeq (2, $(PACKAGED_CEF))
+        $(info Local CEF installation in directory thirdparty forced)
+
+        CEFCFLAGS += -Ithirdparty/cef/include -Ithirdparty/cef
+        CEFLDFLAGS += -Lthirdparty/cef/build/libcef_dll_wrapper -Lthirdparty/cef/Release -Wl,-rpath,. -lcef -lcef_dll_wrapper -lX11
+    else
+        $(error PACKAGED_CEF=$(PACKAGED_CEF) is not defined)
+    endif
 endif
 
 # libcurl
 CFLAGS += $(shell pkg-config --cflags libcurl)
 LDFLAGS += $(shell pkg-config --libs libcurl)
+
+# CEF
+CFLAGS += $(CEFCFLAGS)
+LDFLAGS += $(CEFLDFLAGS)
 
 # nng
 NNGVERSION = 1.3.0
@@ -100,6 +124,9 @@ LOGCFLAGS = -Ithirdparty/spdlog/buildbin/include -DSPDLOG_COMPILED_LIB
 LOGLDFLAGS = thirdparty/spdlog/buildbin/lib/libspdlog.a
 
 all: prepareexe emptyvideo buildnng buildspdlog $(SOURCES) $(EXECUTABLE) $(EXECUTABLE2) $(EXECUTABLE3) $(EXECUTABLE4) $(EXECUTABLE5)
+
+release:
+	$(MAKE) PACKAGED_CEF=2
 
 $(EXECUTABLE): $(OBJECTS) transcodeffmpeg.h globaldefs.h main.h browser.h
 	$(CC) $(OBJECTS) $(NNGCFLAGS) $(LOGCFLAGS) -o $@ $(LDFLAGS) $(NNGLDFLAGS) $(LOGLDFLAGS)
@@ -119,7 +146,7 @@ $(EXECUTABLE4): $(OBJECTS4) transcodeffmpeg.h globaldefs.h
 	mv $(EXECUTABLE4) Release
 
 $(EXECUTABLE5): $(OBJECTS5)
-	$(CC) -O3 $(OBJECTS5) $(LOGCFLAGS) -o $@ -pthread $(LDFLAGS) $(LOGLDFLAGS)
+	$(CC) -O3 $(OBJECTS5) $(LOGCFLAGS) $(CEFCFLAGS) -o $@ -pthread $(LDFLAGS) $(LOGLDFLAGS) $(CEFLDFLAGS)
 	mv $(EXECUTABLE5) Release
 	cp thirdparty/cefsimple/movie.html Release
 
@@ -129,7 +156,7 @@ ifeq ($(PACKAGED_CEF),1)
 	cd Release && \
 	echo "resourcepath = /usr/share/cef/Resources" > vdr-osr-browser.config && \
 	echo "localespath = /usr/share/cef/Resources/locales" >> vdr-osr-browser.config
-else
+else ifeq ($(PACKAGED_CEF),0)
 	cd Release && \
 	echo "resourcepath = $(CEF_INSTALL_DIR)/lib" > vdr-osr-browser.config && \
 	echo "localespath = $(CEF_INSTALL_DIR)/lib/locales" >> vdr-osr-browser.config && \
@@ -138,6 +165,14 @@ else
 	ln -s $(CEF_INSTALL_DIR)/lib/icudtl.dat && \
 	ln -s $(CEF_INSTALL_DIR)/lib/natives_blob.bin && \
 	ln -s $(CEF_INSTALL_DIR)/lib/v8_context_snapshot.bin
+else ifeq ($(PACKAGED_CEF),2)
+	echo "resourcepath = ." > Release/vdr-osr-browser.config && \
+	echo "localespath = ." >> Release/vdr-osr-browser.config && \
+	echo "frameworkpath  = ." >> Release/vdr-osr-browser.config && \
+	cp -a thirdparty/cef/Resources/* Release && \
+	cp -a thirdparty/cef/Release/* Release && \
+	strip thirdparty/cef/Release/*.so && \
+	strip thirdparty/cef/Release/swiftshader/*.so
 endif
 ifneq (exists, $(shell test -e Release/vdr-osr-ffmpeg.config && echo exists))
 	sed -e "s#FFMPEG_EXECUTABLE#$(FFMPEG_EXECUTABLE)#" -e "s#FFPROBE_EXECUTABLE#$(FFPROBE_EXECUTABLE)#" vdr-osr-ffmpeg.config.sample > Release/vdr-osr-ffmpeg.config
@@ -176,8 +211,8 @@ cleanjs:
 emptyvideo: prepareexe
 	mkdir -p Release/movie
 	cp -r movie/* Release/movie/
-ifneq (exists, $(shell test -e Release/movie/transparent-full.webm && echo exists))
-	$(FFMPEG_EXECUTABLE) -y -loop 1 -i Release/movie/transparent-16x16.png -t 21600 -r 1 -c:v libvpx -auto-alt-ref 0 Release/movie/transparent-full.webm
+ifneq (exists, $(shell test -e movie/transparent-full.webm && echo exists))
+	$(FFMPEG_EXECUTABLE) -y -loop 1 -i movie/transparent-16x16.png -t 21600 -r 1 -c:v libvpx -auto-alt-ref 0 movie/transparent-full.webm
 endif
 
 .cpp.o:
@@ -191,8 +226,12 @@ clean:
 	rm -Rf cef_binary*
 	rm -Rf Release
 	rm -Rf thirdparty/nng-$(NNGVERSION)/build
+	rm -Rf thirdparty/spdlog/build
+	rm -Rf thirdparty/spdlog/buildbin
+	rm -Rf thirdparty/cef/build
+	rm -f *.d
 
-# download and install cef binary
+# download and install cef binary in directory /opt/cef
 prepare:
 	mkdir -p $(CEF_INSTALL_DIR)/lib
 	mkdir -p /usr/local/lib/pkgconfig
@@ -209,6 +248,19 @@ prepare:
 	echo "$(CEF_INSTALL_DIR)/lib" > /etc/ld.so.conf.d/cef.conf
 	ldconfig
 
+# download and install cef binary in directory thirdparty/cef
+prepare_release:
+ifneq (exists, $(shell test -e thirdparty/cef && echo exists))
+	cd thirdparty && \
+	curl -L $(CEF_BUILD)  -o - | tar -xjf -
+	mv thirdparty/cef_binary* thirdparty/cef
+endif
+ifneq (exists, $(shell test -e thirdparty/cef/build/libcef_dll_wrapper/libcef_dll_wrapper.a && echo exists))
+	mkdir -p thirdparty/cef/build && \
+	cd thirdparty/cef/build && \
+	cmake .. && \
+	make -j 6
+endif
+
 debugremote: all
 	cd Release && gdbserver localhost:2345  ./vdrosrbrowser --debug --autoplay --remote-debugging-port=9222 --user-data-dir=remote-profile
-
