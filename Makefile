@@ -11,6 +11,8 @@ CEF_VERSION   = 81.2.25%2Bg3afea62%2Bchromium-81.0.4044.113
 CEF_BUILD = http://opensource.spotify.com/cefbuilds/cef_binary_$(CEF_VERSION)_linux64_minimal.tar.bz2
 CEF_INSTALL_DIR = /opt/cef
 
+VERSION = 0.0.1
+
 # Force using
 #    debian package or
 #    spotify build (installed in cef) or
@@ -127,6 +129,9 @@ all: prepareexe emptyvideo buildnng buildspdlog $(SOURCES) $(EXECUTABLE) $(EXECU
 
 release:
 	$(MAKE) PACKAGED_CEF=2
+
+dist:
+	tar -cJf vdr-osr-browser-$(VERSION).tar.xz Release
 
 $(EXECUTABLE): $(OBJECTS) transcodeffmpeg.h globaldefs.h main.h browser.h
 	$(CC) $(OBJECTS) $(NNGCFLAGS) $(LOGCFLAGS) -o $@ $(LDFLAGS) $(NNGLDFLAGS) $(LOGLDFLAGS)
