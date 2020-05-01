@@ -15,6 +15,8 @@
 class BrowserClient;
 class BrowserControl;
 
+const int HTML_MODE = 1;
+const int HBBTV_MODE = 2;
 
 class OSRHandler : public CefRenderHandler {
 private:
@@ -113,7 +115,7 @@ private:
     std::map<std::string, std::string> mimeTypes;
 
     // default HTML mode
-    int mode = 1;
+    int mode = HTML_MODE;
 
     // sockets
     int toVdrSocketId;
@@ -171,8 +173,9 @@ public:
 
     //
     void initJavascriptCallback();
-    void SetHtmlMode() { mode = 1; };
-    void SetHbbtvMode() { mode = 2; };
+    void SetHtmlMode() { mode = HTML_MODE; };
+    void SetHbbtvMode() { mode = HBBTV_MODE; };
+    int  getDisplayMode() { return mode; };
     void osdProcessed() { if (osrHandler != nullptr) osrHandler->osdProcessed(); };
 
     // transcode functions

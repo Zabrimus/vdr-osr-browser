@@ -91,18 +91,31 @@ void BrowserControl::Start() {
             } else if (strncmp("STOP", buf, 4) == 0) {
                 Stop();
             } else if (strncmp("SIZE", buf, 4) == 0 && bytes >= 6)  {
-                int w, h;
-                sscanf(buf + 4,"%d %d",&w, &h);
+                if (browserClient->getDisplayMode() == HBBTV_MODE) {
+                    CONSOLE_INFO("Command SIZE in HbbTV mode is not possible.");
 
-                browserClient->setRenderSize(std::min(w, 1920), std::min(h, 1080));
-                browser->GetHost()->WasResized();
+                    browserClient->setRenderSize(1280, 720);
+                    browser->GetHost()->WasResized();
+                } else {
+                    int w, h;
+                    sscanf(buf + 4, "%d %d", &w, &h);
+
+                    browserClient->setRenderSize(std::min(w, 1920), std::min(h, 1080));
+                    browser->GetHost()->WasResized();
+                }
             } else if (strncmp("ZOOM", buf, 4) == 0) {
-                double level;
-                sscanf(buf + 4, "%lf", &level);
+                if (browserClient->getDisplayMode() == HBBTV_MODE) {
+                    CONSOLE_INFO("Command ZOOM in HbbTV mode is not possible.");
 
-                // calculate cef zoom level
-                double cefLevel = log(level) / log(1.2f);
-                browser->GetHost()->SetZoomLevel(cefLevel);
+                    browser->GetHost()->SetZoomLevel(1);
+                } else {
+                    double level;
+                    sscanf(buf + 4, "%lf", &level);
+
+                    // calculate cef zoom level
+                    double cefLevel = log(level) / log(1.2f);
+                    browser->GetHost()->SetZoomLevel(cefLevel);
+                }
             } else if (strncmp("JS", buf, 2) == 0) {
                 CefString call(buf + 3);
 

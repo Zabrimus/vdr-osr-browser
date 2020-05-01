@@ -311,7 +311,7 @@ BrowserClient::BrowserClient(spdlog::level::level_enum log_level) {
 
     browserClient = this;
 
-    osrHandler = new OSRHandler(this,1920, 1080);
+    osrHandler = new OSRHandler(this,1280, 720);
     renderHandler = osrHandler;
 
     injectJavascript = true;
@@ -474,7 +474,10 @@ void BrowserClient::OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame>
     }
 
     // set zoom level: 150% means Full HD 1920 x 1080 px
-    frame->ExecuteJavaScript("document.body.style.setProperty('zoom', '150%');", frame->GetURL(), 0);
+    // frame->ExecuteJavaScript("document.body.style.setProperty('zoom', '150%');", frame->GetURL(), 0);
+
+    // disable scrollbars
+    frame->ExecuteJavaScript("document.body.style.setProperty('overflow', 'hidden');", frame->GetURL(), 0);
 }
 
 void BrowserClient::OnLoadError(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefLoadHandler::ErrorCode errorCode, const CefString &errorText, const CefString &failedUrl) {
