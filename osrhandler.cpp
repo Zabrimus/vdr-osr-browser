@@ -26,6 +26,8 @@
 BrowserClient* OSRHandler::browserClient;
 
 OSRHandler::OSRHandler(BrowserClient *bc, int width, int height) {
+    CONSOLE_TRACE("Create OSRHandler and open shared memory");
+
     browserClient = bc;
     renderWidth = width;
     renderHeight = height;
@@ -91,5 +93,28 @@ void OSRHandler::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, c
         shm_mutex.lock();
         memcpy(shmp, buffer, w * h * 4);
         browserClient->SendToVdrOsd("OSDU", w, h);
+
+        // TEST
+        /*
+        static int i = 0;
+        char *filename = nullptr;
+        asprintf(&filename, "image_%d.rgba", i);
+        FILE *f = fopen(filename, "wb");
+        fwrite(buffer, width * height * 4, 1, f);
+        fclose(f);
+
+        char *pngfile = nullptr;
+        asprintf(&pngfile, "gm convert -size 1280x720 -depth 8 %s %s.png", filename, filename);
+        system(pngfile);
+
+        free(filename);
+        free(pngfile);
+        pngfile = nullptr;
+        filename = nullptr;
+        ++i;
+        */
+        // TEST
+    } else {
+        CONSOLE_CRITICAL("Shared memory does not exists!");
     }
 }

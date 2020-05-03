@@ -38,6 +38,8 @@ void BrowserControl::LoadURL(const CefString& url) {
     if (browser->GetMainFrame()->GetURL().compare(url)) {
         browserClient->setLoadingStart(true);
         browser->GetMainFrame()->LoadURL(url);
+    } else {
+        browser->GetHost()->Invalidate(PET_VIEW);
     }
 }
 
@@ -79,6 +81,8 @@ void BrowserControl::Start() {
         }
 
         if (bytes > 0) {
+            CONSOLE_TRACE("Received command from VDR: {}", buf);
+
             if (strncmp("URL", buf, 3) == 0 && bytes >= 5) {
                 fprintf(stderr, "URL: %s\n", buf+4);
 
