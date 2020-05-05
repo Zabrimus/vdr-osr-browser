@@ -83,7 +83,11 @@ void BrowserControl::Start() {
         if (bytes > 0) {
             CONSOLE_TRACE("Received command from VDR: {}", buf);
 
-            if (strncmp("URL", buf, 3) == 0 && bytes >= 5) {
+            if (strncmp("OSDU", buf, 4) == 0) {
+                browserClient->osdProcessed();
+            } else if (strncmp("SENDOSD", buf, 7) == 0) {
+                browser->GetHost()->Invalidate(PET_VIEW);
+            } else if (strncmp("URL", buf, 3) == 0 && bytes >= 5) {
                 fprintf(stderr, "URL: %s\n", buf+4);
 
                 CefString url(buf + 4);
@@ -142,8 +146,6 @@ void BrowserControl::Start() {
                 } else if (mode == 2) {
                     browserClient->SetHbbtvMode();
                 }
-            } else if (strncmp("OSDU", buf, 4) == 0) {
-                browserClient->osdProcessed();
             }
         }
 
