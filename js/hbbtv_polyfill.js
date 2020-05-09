@@ -29060,10 +29060,17 @@ const hbbtvFn = function () {
     window.oipfConfiguration = window.oipfConfiguration || {};
 
     oipfConfiguration.configuration = {};
+    /* We don't have a localStorage
     oipfConfiguration.configuration.preferredAudioLanguage = window.localStorage.getItem('tvViewer_country') || 'ENG';
     oipfConfiguration.configuration.preferredSubtitleLanguage = window.localStorage.getItem('tvViewer_country') || 'ENG,FRA';
     oipfConfiguration.configuration.preferredUILanguage = window.localStorage.getItem('tvViewer_country') || 'ENG,FRA';
     oipfConfiguration.configuration.countryId = window.localStorage.getItem('tvViewer_country') || 'ENG';
+     */
+    oipfConfiguration.configuration.preferredAudioLanguage = 'DEU';
+    oipfConfiguration.configuration.preferredSubtitleLanguage = 'DEU';
+    oipfConfiguration.configuration.preferredUILanguage = 'DEU';
+    oipfConfiguration.configuration.countryId = 'DEU';
+
     //oipfConfiguration.configuration.regionId = 0;
     //oipfConfiguration.localSystem = {};
     oipfConfiguration.getText = function (key) {
@@ -29074,7 +29081,9 @@ const hbbtvFn = function () {
 
     // 7.15.3 The application/oipfCapabilities embedded object ---------------------
     window.oipfCapabilities = window.oipfCapabilities || {};
-    var storedCapabilities = window.localStorage.getItem('tvViewer_capabilities'); // FIXME: use tvViewer_caps object
+    // we don't have a local storage
+    // var storedCapabilities = window.localStorage.getItem('tvViewer_capabilities'); // FIXME: use tvViewer_caps object
+    var storedCapabilities = null;
     var currentCapabilities = storedCapabilities ||
         '<profilelist>' +
         '<ui_profile name="OITF_HD_UIPROF+META_SI+META_EIT+TRICKMODE+RTSP+AVCAD+DRM+DVB_T">' +
