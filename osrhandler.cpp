@@ -90,7 +90,12 @@ void OSRHandler::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, c
         int w = std::min(width, 1920);
         int h = std::min(height, 1080);
 
+        CONSOLE_TRACE("Try to get shm_mutek.lock");
+
         shm_mutex.lock();
+
+        CONSOLE_TRACE("Got shm_mutek.lock");
+
         memcpy(shmp, buffer, w * h * 4);
         browserClient->SendToVdrOsd("OSDU", w, h);
 

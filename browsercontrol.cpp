@@ -86,6 +86,7 @@ void BrowserControl::Start() {
             if (strncmp("OSDU", buf, 4) == 0) {
                 browserClient->osdProcessed();
             } else if (strncmp("SENDOSD", buf, 7) == 0) {
+                browserClient->osdProcessed();
                 browser->GetHost()->Invalidate(PET_VIEW);
             } else if (strncmp("URL", buf, 3) == 0 && bytes >= 5) {
                 fprintf(stderr, "URL: %s\n", buf+4);
