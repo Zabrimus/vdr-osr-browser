@@ -98,6 +98,8 @@ std::string HbbtvCurl::ReadContentType(std::string url, CefRequest::HeaderMap he
             response_header.clear();
 
             // reload url
+            CONSOLE_DEBUG("HbbtvCurl::ReadContentType: Redirect URL {}", redir_url);
+
             redirect_url = redir_url;
             curl_easy_setopt(curl_handle, CURLOPT_URL, redir_url);
             curl_easy_perform(curl_handle);
@@ -115,7 +117,7 @@ std::string HbbtvCurl::ReadContentType(std::string url, CefRequest::HeaderMap he
 }
 
 void HbbtvCurl::LoadUrl(std::string url, CefRequest::HeaderMap headers) {
-    CONSOLE_DEBUG("LoadUrl {}", url);
+    CONSOLE_DEBUG("HbbtvCurl::LoadUrl {}", url);
 
     struct MemoryStruct contentdata {
             (char*)malloc(1), 0
@@ -172,6 +174,8 @@ void HbbtvCurl::LoadUrl(std::string url, CefRequest::HeaderMap headers) {
             response_header.clear();
 
             // reload url
+            CONSOLE_TRACE("HbbtvCurl::LoadUrl, Redirect URL {}", redir_url);
+
             redirect_url = redir_url;
             curl_easy_setopt(curl_handle, CURLOPT_URL, redir_url);
             res = curl_easy_perform(curl_handle);
@@ -371,6 +375,8 @@ CefRefPtr<CefResourceRequestHandler> BrowserClient::GetResourceRequestHandler(Ce
 }
 
 CefRefPtr<CefResourceHandler> BrowserClient::GetResourceHandler(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request) {
+    CONSOLE_TRACE("GetResourceHandler: {}", request->GetURL().ToString());
+
     if (mode == 1) {
         // HTML -> Default handler
         return CefResourceRequestHandler::GetResourceHandler(browser, frame, request);
@@ -489,7 +495,7 @@ void BrowserClient::OnLoadError(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFram
 
 // CefResourceHandler
 bool BrowserClient::ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr<CefCallback> callback) {
-    CONSOLE_DEBUG("PROCESS REQUEST {}", request->GetURL().ToString().c_str());
+    CONSOLE_DEBUG("BrowserClient::ProcessRequest: {}", request->GetURL().ToString());
 
     {
         // distinguish between local files and remote files using cUrl
@@ -570,6 +576,14 @@ bool BrowserClient::ReadResponse(void *data_out, int bytes_to_read, int &bytes_r
 }
 
 BrowserClient::ReturnValue BrowserClient::OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, CefRefPtr<CefRequestCallback> callback) {
+    auto url = request->GetURL().ToString();
+    CONSOLE_TRACE("BrowserClient::OnBeforeResourceLoad: New {}", url);
+    CONSOLE_TRACE("BrowserClient::OnBeforeResourceLoad: Current {}", browser->GetMainFrame()->GetURL().ToString());
+    if (url.find(".xiti.com") != std::string::npos || url.find(".ioam.de") != std::string::npos) {
+        CONSOLE_TRACE("BrowserClient::OnBeforeResourceLoad, Cancel");
+        return RV_CANCEL;
+    }
+
     // Customize the request header
     CefRequest::HeaderMap hdrMap;
     request->GetHeaderMap(hdrMap);

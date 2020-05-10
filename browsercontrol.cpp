@@ -35,6 +35,8 @@ BrowserControl::~BrowserControl() {
 };
 
 void BrowserControl::LoadURL(const CefString& url) {
+    CONSOLE_TRACE("Current URL: {}, New URL: {}", browser->GetMainFrame()->GetURL().ToString(), url.ToString());
+
     if (browser->GetMainFrame()->GetURL().compare(url)) {
         browserClient->setLoadingStart(true);
         browser->GetMainFrame()->LoadURL(url);
