@@ -343,6 +343,8 @@ BrowserClient::BrowserClient(spdlog::level::level_enum log_level) {
         auto exe = std::string(result, static_cast<unsigned long>((count > 0) ? count : 0));
         exePath = exe.substr(0, exe.find_last_of("/"));
     }
+
+    transcoder = nullptr;
 }
 
 BrowserClient::~BrowserClient() {

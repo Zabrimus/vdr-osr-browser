@@ -102,6 +102,8 @@ void TranscodeFFmpeg::read_configuration() {
 }
 
 bool TranscodeFFmpeg::set_input(const char* input, bool verbose) {
+    CONSOLE_TRACE("TranscodeFFmpeg::set_input, input = {}", input);
+
     input_file = std::string(input);
 
     verbose_ffmpeg = verbose;
