@@ -29044,6 +29044,13 @@ const hbbtvFn = function () {
 
     Application.prototype.createApplication = function (uri, createChild) {
 
+        // ignore uris starting with dvb://
+        // this works with HbbTV of ZDF. If there are some channels, which now have issues,
+        // further investigation must take place.
+        if (uri.startsWith("dvb://")) {
+            return false;
+        }
+
         // "dvb://current.ait/11.2?select=special%3Asett%3Bsel%3Aidxok%3A6"
         const query = uri.split("?")[1] || "";
         window.location.href = window.location.origin + (query ? "?" + query : "");

@@ -113,6 +113,8 @@ std::string HbbtvCurl::ReadContentType(std::string url, CefRequest::HeaderMap he
     response_header.clear();
     free(headerdata);
 
+    CONSOLE_TRACE("HbbtvCurl::ReadContentType, Result {}", contentType);
+
     return contentType;
 }
 
@@ -163,6 +165,10 @@ void HbbtvCurl::LoadUrl(std::string url, CefRequest::HeaderMap headers) {
     if (res == CURLE_OK) {
         char *redir_url = nullptr;
         curl_easy_getinfo(curl_handle, CURLINFO_REDIRECT_URL, &redir_url);
+        curl_easy_getinfo(curl_handle, CURLINFO_RESPONSE_CODE, &response_code);
+
+        CONSOLE_TRACE("HbbtvCurl::LoadUrl, Response code {}, Redir_Url {}", response_code, redir_url != nullptr ? redir_url : "<none>");
+
         while (res == CURLE_OK && redir_url) {
             // clear buffer
             memset(headerdata, 0, HEADERSIZE);
@@ -174,12 +180,15 @@ void HbbtvCurl::LoadUrl(std::string url, CefRequest::HeaderMap headers) {
             response_header.clear();
 
             // reload url
-            CONSOLE_TRACE("HbbtvCurl::LoadUrl, Redirect URL {}", redir_url);
+            CONSOLE_DEBUG("HbbtvCurl::LoadUrl, Redirect URL {}", redir_url);
 
             redirect_url = redir_url;
             curl_easy_setopt(curl_handle, CURLOPT_URL, redir_url);
             res = curl_easy_perform(curl_handle);
             curl_easy_getinfo(curl_handle, CURLINFO_REDIRECT_URL, &redir_url);
+            curl_easy_getinfo(curl_handle, CURLINFO_RESPONSE_CODE, &response_code);
+
+            CONSOLE_TRACE("HbbtvCurl::LoadUrl, Response code {}, Redir_Url {}", response_code, redir_url != nullptr ? redir_url : "<none>");
         }
 
         response_content =  std::string(contentdata.memory, contentdata.size);
@@ -364,9 +373,12 @@ CefRefPtr<CefResourceRequestHandler> BrowserClient::GetResourceRequestHandler(Ce
         return this;
     }
 
+    CONSOLE_TRACE("BrowserClient::GetResourceRequestHandler for {}, is_navigation {}, request_initiator {}", url, is_navigation, request_initiator.ToString());
+
     if (is_navigation) {
         injectJavascript = true;
     } else {
+        CONSOLE_TRACE("BrowserClient::GetResourceRequestHandler, use default ResourceRequestHandler");
         return CefRequestHandler::GetResourceRequestHandler(browser, frame, request, is_navigation, is_download,
                                                             request_initiator, disable_default_handling);
     }
@@ -495,7 +507,7 @@ void BrowserClient::OnLoadError(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFram
 
 // CefResourceHandler
 bool BrowserClient::ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr<CefCallback> callback) {
-    CONSOLE_DEBUG("BrowserClient::ProcessRequest: {}", request->GetURL().ToString());
+    CONSOLE_DEBUG("BrowserClient::ProcessRequest: {}, Method: {}", request->GetURL().ToString(), request->GetMethod().ToString());
 
     {
         // distinguish between local files and remote files using cUrl
@@ -508,11 +520,21 @@ bool BrowserClient::ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr<CefC
         CefRequest::HeaderMap headers;
         request->GetHeaderMap(headers);
 
+        CONSOLE_TRACE("BrowserClient::ProcessRequest, Request Headers");
+        for (auto itra = headers.begin(); itra != headers.end(); itra++) {
+            CONSOLE_TRACE("   {}: {}", itra->first.ToString().c_str(), itra->second.ToString().c_str());
+        }
+
         hbbtvCurl.LoadUrl(url, headers);
 
         responseHeader = hbbtvCurl.GetResponseHeader();
         responseContent = hbbtvCurl.GetResponseContent();
         redirectUrl = hbbtvCurl.GetRedirectUrl();
+
+        CONSOLE_TRACE("BrowserClient::ProcessRequest, Response Headers");
+        for (auto itrb = responseHeader.begin(); itrb != responseHeader.end(); itrb++) {
+            CONSOLE_TRACE("   {}: {}", itrb->first, itrb->second);
+        }
     }
 
     callback->Continue();
@@ -577,8 +599,7 @@ bool BrowserClient::ReadResponse(void *data_out, int bytes_to_read, int &bytes_r
 
 BrowserClient::ReturnValue BrowserClient::OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, CefRefPtr<CefRequestCallback> callback) {
     auto url = request->GetURL().ToString();
-    CONSOLE_TRACE("BrowserClient::OnBeforeResourceLoad: New {}", url);
-    CONSOLE_TRACE("BrowserClient::OnBeforeResourceLoad: Current {}", browser->GetMainFrame()->GetURL().ToString());
+    CONSOLE_TRACE("BrowserClient::OnBeforeResourceLoad: Current {}, New {}", browser->GetMainFrame()->GetURL().ToString(), url);
     if (url.find(".xiti.com") != std::string::npos || url.find(".ioam.de") != std::string::npos) {
         CONSOLE_TRACE("BrowserClient::OnBeforeResourceLoad, Cancel");
         return RV_CANCEL;

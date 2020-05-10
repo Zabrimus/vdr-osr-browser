@@ -52,6 +52,7 @@ public:
     static std::map<std::string, std::string> GetResponseHeader() { return response_header; }
     static std::string GetResponseContent() { return response_content; }
     std::string GetRedirectUrl() { return redirect_url; }
+    long GetResponseCode() { return response_code; }
 
 private:
     static size_t WriteContentCallback(void *contents, size_t size, size_t nmemb, void *userp);
@@ -59,6 +60,7 @@ private:
 
     static std::map<std::string, std::string> response_header;
     static std::string response_content;
+    long response_code;
     std::string redirect_url;
 };
 
