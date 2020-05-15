@@ -277,11 +277,13 @@ bool JavascriptHandler::OnQuery(CefRefPtr<CefBrowser> browser,
         } else if (strncmp(request.ToString().c_str(), "END_VIDEO", 9) == 0) {
             CONSOLE_DEBUG("Video streaming ended");
 
+            browserClient->SendToVdrString(CMD_STATUS, "STOP_VIDEO");
             browserClient->stop_video();
             return true;
         } else if (strncmp(request.ToString().c_str(), "STOP_VIDEO", 10) == 0) {
             CONSOLE_DEBUG("Video streaming stopped");
 
+            browserClient->SendToVdrString(CMD_STATUS, "STOP_VIDEO");
             browserClient->stop_video();
             return true;
         } else if (strncmp(request.ToString().c_str(), "SEEK_VIDEO ", 11) == 0) {
