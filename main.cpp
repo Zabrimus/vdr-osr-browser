@@ -279,6 +279,9 @@ int main(int argc, char *argv[]) {
     std::string exepath = getexepath();
     std::string path = exepath.substr(0, exepath.find_last_of('/'));
     std::string localespath = exepath.substr(0, exepath.find_last_of('/')) + "/locales";
+    std::string cache_path = exepath.substr(0, exepath.find_last_of('/')) + "/cache";
+
+    CefString(&settings.cache_path).FromASCII(cache_path.c_str());
 
     std::ifstream infile(path + "/vdr-osr-browser.config");
     if (infile.is_open()) {
@@ -289,8 +292,6 @@ int main(int argc, char *argv[]) {
             if (key.at(0) != '#') {
                 if (key == "resourcepath") {
                     if (value == ".") {
-                        printf("PATH: '%s'\n",  path.c_str());
-
                         CefString(&settings.resources_dir_path).FromASCII(path.c_str());
                     } else {
                         CefString(&settings.resources_dir_path).FromASCII(value.c_str());

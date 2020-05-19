@@ -8,6 +8,7 @@
 #include "include/cef_app.h"
 #include "include/cef_client.h"
 #include "include/cef_render_handler.h"
+#include "include/cef_callback.h"
 #include "include/wrapper/cef_message_router.h"
 #include "transcodeffmpeg.h"
 #include "logger.h"
@@ -43,6 +44,9 @@ public:
 };
 
 class HbbtvCurl {
+public:
+    static std::map<std::string, std::string> cookies;
+
 public:
     HbbtvCurl();
     ~HbbtvCurl();
@@ -111,6 +115,7 @@ private:
 
     std::string responseContent;
     std::map<std::string, std::string> responseHeader;
+    int responseCode;
     size_t offset;
     std::string redirectUrl;
 
@@ -169,6 +174,7 @@ public:
     void OnLoadStart(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, TransitionType transition_type) override;
     void OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, int httpStatusCode) override;
     void OnLoadError(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, ErrorCode errorCode, const CefString &errorText, const CefString &failedUrl) override;
+    void OnLoadingStateChange(CefRefPtr<CefBrowser> browser, bool isLoading, bool canGoBack, bool canGoForward);
 
     // CefLifeSpanHandler
     void OnBeforeClose(CefRefPtr< CefBrowser > browser) override;

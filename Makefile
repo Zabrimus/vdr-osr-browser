@@ -157,6 +157,7 @@ $(EXECUTABLE5): $(OBJECTS5)
 
 prepareexe:
 	mkdir -p Release
+	mkdir -p Release/cache
 ifeq ($(PACKAGED_CEF),1)
 	cd Release && \
 	echo "resourcepath = /usr/share/cef/Resources" > vdr-osr-browser.config && \

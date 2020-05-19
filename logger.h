@@ -5,7 +5,7 @@
 #include "spdlog/sinks/stdout_color_sinks.h"
 #include "spdlog/fmt/bin_to_hex.h"
 
-#define CONSOLE_TRACE(...)     logger.console()->trace(__VA_ARGS__);
+#define CONSOLE_TRACE(...)     if (logger.level() == spdlog::level::trace) logger.console()->trace(__VA_ARGS__);
 #define CONSOLE_DEBUG(...)     logger.console()->debug(__VA_ARGS__);
 #define CONSOLE_INFO(...)      logger.console()->info(__VA_ARGS__);
 #define CONSOLE_ERROR(...)     logger.console()->error(__VA_ARGS__);
@@ -21,6 +21,14 @@ public:
 
     void set_level(spdlog::level::level_enum level) {
         logger_console->set_level(level);
+    }
+
+    bool isTraceEnabled() {
+        return logger_console->level() == spdlog::level::trace;
+    }
+
+    spdlog::level::level_enum level() {
+        return logger_console->level();
     }
 
     inline std::shared_ptr<spdlog::logger> console() {
