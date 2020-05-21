@@ -151,6 +151,8 @@ void BrowserControl::Start() {
                 } else if (mode == 2) {
                     browserClient->SetHbbtvMode();
                 }
+            } else if (strncmp("PLAYER_DETACHED", buf, 15) == 0) {
+                browserClient->stop_video();
             }
         }
 

@@ -282,6 +282,7 @@ int main(int argc, char *argv[]) {
     std::string cache_path = exepath.substr(0, exepath.find_last_of('/')) + "/cache";
 
     CefString(&settings.cache_path).FromASCII(cache_path.c_str());
+    CefString(&settings.user_agent).FromASCII(USER_AGENT);
 
     std::ifstream infile(path + "/vdr-osr-browser.config");
     if (infile.is_open()) {

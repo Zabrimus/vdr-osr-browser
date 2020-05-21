@@ -541,7 +541,7 @@ void BrowserClient::OnLoadStart(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFram
 void BrowserClient::OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, int httpStatusCode) {
     CONSOLE_TRACE("ON LOAD END mode={}, injectJavascript={}, responseCode={}", mode, injectJavascript ? "ja" : "nein", responseCode);
 
-    if (responseCode == 302) {
+    if (responseCode >= 300 && responseCode <= 399) {
         // redirect
         return;
     }
