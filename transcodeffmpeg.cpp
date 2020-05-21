@@ -351,16 +351,15 @@ void TranscodeFFmpeg::stop_video() {
     stop_mutex.lock();
     stop_mutex.unlock();
 
-    CONSOLE_TRACE("stop video, kill ffmpeg with pid {}", ffmpeg_pid);
-
     if (ffmpeg_pid > 0) {
+        CONSOLE_TRACE("stop video, kill ffmpeg with pid {}", ffmpeg_pid);
         kill(ffmpeg_pid, SIGTERM);
 
         int status;
         waitpid(ffmpeg_pid, &status, 0);
-    }
 
-    CONSOLE_TRACE("ffmpeg with pid {} is hopefully not running anymore", ffmpeg_pid);
+        CONSOLE_TRACE("ffmpeg with pid {} is hopefully not running anymore", ffmpeg_pid);
+    }
 
     ffmpeg_pid = 0;
 }
