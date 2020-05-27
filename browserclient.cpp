@@ -432,7 +432,6 @@ CefRefPtr<CefResourceRequestHandler> BrowserClient::GetResourceRequestHandler(Ce
     CONSOLE_TRACE("BrowserClient::GetResourceRequestHandler for {}, is_navigation {}, request_initiator {}", request->GetURL().ToString(), is_navigation, request_initiator.ToString());
 
     CefRefPtr<BrowserCookieVisitor> visitor = new BrowserCookieVisitor(logger.isTraceEnabled());
-    // cookieManager->VisitAllCookies(visitor);
     cookieManager->VisitUrlCookies(request->GetURL(), false, visitor);
 
     if (is_navigation) {
@@ -553,6 +552,7 @@ void BrowserClient::OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame>
         // inject Javascript
         // injectJs(browser, "client://js/hbbtv_polyfill.js", false, false, "hbbtvpolyfill");
         injectJs(browser, "client://js/hbbtv_polyfill.js", false, true, "hbbtvpolyfill");
+        injectJs(browser, "client://js/font.js", false, true, "hbbtvfont");
         injectJavascript = false;
     }
 
@@ -638,7 +638,6 @@ void BrowserClient::GetResponseHeaders(CefRefPtr<CefResponse> response, int64 &r
         }
     }
 
-    // response->SetStatus(200);
     response->SetStatus(responseCode);
 
     // add all other headers
@@ -653,6 +652,8 @@ void BrowserClient::GetResponseHeaders(CefRefPtr<CefResponse> response, int64 &r
 }
 
 bool BrowserClient::ReadResponse(void *data_out, int bytes_to_read, int &bytes_read, CefRefPtr<CefCallback> callback) {
+    CONSOLE_DEBUG("BrowserClient::ReadResponse, bytes_to_read {}", bytes_to_read);
+
     CEF_REQUIRE_IO_THREAD();
 
     static int fileno = 0;
@@ -746,24 +747,6 @@ void BrowserClient::injectJs(CefRefPtr<CefBrowser> browser, std::string url, boo
     auto frame = browser->GetMainFrame();
     frame->ExecuteJavaScript(script, frame->GetURL(), 0);
 }
-
-void BrowserClient::injectJsModule(CefRefPtr<CefBrowser> browser, std::string url, std::string htmlid) {
-    std::ostringstream stringStream;
-
-    stringStream << "(function(d){if (document.getElementById('" << htmlid << "') == null) {";
-    stringStream << "var e=d.createElement('script');";
-    stringStream << "e.setAttribute('type','module');";
-    stringStream << "e.setAttribute('src','" << url <<"');";
-    stringStream << "e.setAttribute('id','" << htmlid <<"');";
-    // stringStream << "d.head.insertBefore(e, d.head.firstChild)";
-    stringStream << "d.head.appendChild(e)";
-    stringStream << "}}(document));";
-
-    auto script = stringStream.str();
-    auto frame = browser->GetMainFrame();
-    frame->ExecuteJavaScript(script, frame->GetURL(), 0);
-}
-
 
 void BrowserClient::initJavascriptCallback() {
     // register javascript callback

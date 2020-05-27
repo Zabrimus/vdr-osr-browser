@@ -28382,7 +28382,8 @@ __webpack_require__.r(__webpack_exports__);
 // import dashjs file --> we want it sync so don't pull from cdn ->  downside is we need a copy in repo TODO: fetch latest in build process
 
 
-var _DEBUG_ = false;
+// var _DEBUG_ = false;
+var _DEBUG_ = true;
 
 const PLAY_STATES = {
     stopped: 0,
@@ -28757,7 +28758,8 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
-var _DEBUG_ = false;
+// var _DEBUG_ = false;
+var _DEBUG_ = true;
 
 // append play method to <object> tag
 HTMLObjectElement.prototype.play = () => {};
@@ -28894,7 +28896,8 @@ __webpack_require__.r(__webpack_exports__);
 */
 /** global Application, oipfObjectFactory, oipfApplicationManager, oipfConfiguration, oipfCapabilities */
 
-var _DEBUG_ = false;
+// var _DEBUG_ = false;
+var _DEBUG_ = true;
 
 const hbbtvFn = function () {
     window.oipf = window.oipf || {};
@@ -29196,7 +29199,8 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
-var _DEBUG_ = false;
+// var _DEBUG_ = false;
+var _DEBUG_ = true;
 
 function init() {
     _DEBUG_ && console.log("hbbtv-polyfill: load");

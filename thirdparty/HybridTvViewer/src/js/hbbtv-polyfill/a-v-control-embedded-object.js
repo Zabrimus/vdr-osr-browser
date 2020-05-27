@@ -8,7 +8,8 @@
 // import dashjs file --> we want it sync so don't pull from cdn ->  downside is we need a copy in repo TODO: fetch latest in build process
 import { MediaPlayer } from "dashjs";
 
-var _DEBUG_ = false;
+// var _DEBUG_ = false;
+var _DEBUG_ = true;
 
 const PLAY_STATES = {
     stopped: 0,

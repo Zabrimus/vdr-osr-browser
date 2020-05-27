@@ -31,7 +31,8 @@
 */
 /** global Application, oipfObjectFactory, oipfApplicationManager, oipfConfiguration, oipfCapabilities */
 
-var _DEBUG_ = false;
+// var _DEBUG_ = false;
+var _DEBUG_ = true;
 
 export const hbbtvFn = function () {
     window.oipf = window.oipf || {};

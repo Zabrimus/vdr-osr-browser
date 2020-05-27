@@ -64,6 +64,8 @@ void BrowserControl::BrowserStopLoad() {
 }
 
 void BrowserControl::Start() {
+    bool sendResponse;
+
     isRunning = true;
 
     // bind socket
@@ -79,6 +81,8 @@ void BrowserControl::Start() {
     while (isRunning) {
         char *buf = nullptr;
         int bytes;
+
+        sendResponse = false;
 
         if ((bytes = nn_recv(fromVdrSocketId, &buf, NN_MSG, 0)) < 0) {
             fprintf(stderr, "BrowserControl: unable to read command from socket %d, %d, %s\n", bytes, nn_errno(), nn_strerror(nn_errno()));
@@ -140,6 +144,7 @@ void BrowserControl::Start() {
                 frame->ExecuteJavaScript(call, frame->GetURL(), 0);
             } else if (strncmp("PING", buf, 4) == 0) {
                 // do nothing, only sends the response
+                sendResponse = true;
             } else if (strncmp("KEY", buf, 3) == 0) {
                 sendKeyEvent(buf + 4);
             } else if (strncmp("MODE", buf, 4) == 0) {
@@ -153,6 +158,13 @@ void BrowserControl::Start() {
                 }
             } else if (strncmp("PLAYER_DETACHED", buf, 15) == 0) {
                 browserClient->stop_video();
+            }
+        }
+
+        if (sendResponse) {
+            char buffer[] = {4, 'o', 'k', 0};
+            if ((bytes = nn_send(fromVdrSocketId, buffer, 4, 0)) < 0) {
+                CONSOLE_ERROR("unable to send response\n");
             }
         }
 

@@ -124,8 +124,9 @@ void ProcessArgs(int argc, char** argv)
     }
 }
 
-void sendCommand(int socketId, const char *buffer) {
+bool sendCommand(int socketId, const char *buffer) {
     char *response = nullptr;
+    bool result;
     int bytes = -1;
 
     if ((bytes = nn_send(socketId, buffer, strlen(buffer) + 1, 0)) < 0) {
@@ -134,15 +135,24 @@ void sendCommand(int socketId, const char *buffer) {
         fprintf(stderr, "Send command '%s'\n", buffer);
     }
 
+    result = true;
+
     if (bytes > 0 && (bytes = nn_recv(socketId, &response, NN_MSG, 0)) < 0) {
         fprintf(stderr, "Unable to read response for '%s'\n", buffer);
+        result = false;
     } else {
         fprintf(stderr, "Response read: '%s'\n", response);
+
+        if (strncmp(response, "ok", 2) != 0) {
+            result = false;
+        }
     }
 
     if (response) {
         nn_freemsg(response);
     }
+
+    return result;
 }
 
 int main(int argc, char **argv)

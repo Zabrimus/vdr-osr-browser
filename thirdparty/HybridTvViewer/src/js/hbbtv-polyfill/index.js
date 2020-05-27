@@ -2,7 +2,8 @@ import { keyEventInit } from "./keyevent-init.js";
 import { hbbtvFn } from "./hbbtv.js";
 import { VideoHandler } from "./hbb-video-handler.js";
 
-var _DEBUG_ = false;
+// var _DEBUG_ = false;
+var _DEBUG_ = true;
 
 function init() {
     _DEBUG_ && console.log("hbbtv-polyfill: load");
