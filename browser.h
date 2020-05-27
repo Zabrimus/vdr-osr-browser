@@ -131,7 +131,6 @@ private:
     bool loadingStart;
 
     void injectJs(CefRefPtr<CefBrowser> browser, std::string url, bool sync, bool headerStart, std::string htmlid);
-    void injectJsModule(CefRefPtr<CefBrowser> browser, std::string url, std::string htmlid);
 
     inline std::string readFile(const std::string path) {
         std::ostringstream buf; std::ifstream input (path.c_str()); buf << input.rdbuf(); return buf.str();
