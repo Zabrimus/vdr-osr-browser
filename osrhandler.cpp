@@ -36,10 +36,10 @@ OSRHandler::OSRHandler(BrowserClient *bc, int width, int height) {
     shmid = -1;
     shmp = nullptr;
 
-    shmid = shmget(OSD_KEY, OSD_BUF_SIZE, 0644 | IPC_CREAT | IPC_EXCL) ;
+    shmid = shmget(OSD_KEY, OSD_BUF_SIZE, 0666 | IPC_CREAT | IPC_EXCL) ;
 
     if (errno == EEXIST) {
-        shmid = shmget(OSD_KEY, OSD_BUF_SIZE, 0644);
+        shmid = shmget(OSD_KEY, OSD_BUF_SIZE, 0666);
     }
 
     if (shmid == -1) {
