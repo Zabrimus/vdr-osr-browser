@@ -96,7 +96,7 @@ void BrowserControl::Start() {
             } else if (strncmp("SENDOSD", buf, 7) == 0) {
                 browserClient->osdProcessed();
                 browser->GetHost()->Invalidate(PET_VIEW);
-            } else if (strncmp("URL", buf, 3) == 0 && bytes >= 5) {
+            } else if (strncmp("URL ", buf, 4) == 0 && bytes >= 5) {
                 fprintf(stderr, "URL: %s\n", buf+4);
 
                 CefString url(buf + 4);
@@ -107,7 +107,7 @@ void BrowserControl::Start() {
                 ResumeRender();
             } else if (strncmp("STOP", buf, 4) == 0) {
                 Stop();
-            } else if (strncmp("SIZE", buf, 4) == 0 && bytes >= 6)  {
+            } else if (strncmp("SIZE ", buf, 5) == 0 && bytes >= 6)  {
                 if (browserClient->getDisplayMode() == HBBTV_MODE) {
                     CONSOLE_INFO("Command SIZE in HbbTV mode is not possible.");
 
@@ -120,7 +120,7 @@ void BrowserControl::Start() {
                     browserClient->setRenderSize(std::min(w, 1920), std::min(h, 1080));
                     browser->GetHost()->WasResized();
                 }
-            } else if (strncmp("ZOOM", buf, 4) == 0) {
+            } else if (strncmp("ZOOM ", buf, 5) == 0) {
                 if (browserClient->getDisplayMode() == HBBTV_MODE) {
                     CONSOLE_INFO("Command ZOOM in HbbTV mode is not possible.");
 
@@ -133,7 +133,7 @@ void BrowserControl::Start() {
                     double cefLevel = log(level) / log(1.2f);
                     browser->GetHost()->SetZoomLevel(cefLevel);
                 }
-            } else if (strncmp("JS", buf, 2) == 0) {
+            } else if (strncmp("JS ", buf, 3) == 0) {
                 CefString call(buf + 3);
 
 #ifdef DEBUG_JS
@@ -145,9 +145,9 @@ void BrowserControl::Start() {
             } else if (strncmp("PING", buf, 4) == 0) {
                 // do nothing, only sends the response
                 sendResponse = true;
-            } else if (strncmp("KEY", buf, 3) == 0) {
+            } else if (strncmp("KEY ", buf, 4) == 0) {
                 sendKeyEvent(buf + 4);
-            } else if (strncmp("MODE", buf, 4) == 0) {
+            } else if (strncmp("MODE ", buf, 5) == 0) {
                 int mode = -1;
                 sscanf(buf + 4, "%d", &mode);
 
@@ -158,6 +158,8 @@ void BrowserControl::Start() {
                 }
             } else if (strncmp("PLAYER_DETACHED", buf, 15) == 0) {
                 browserClient->stop_video();
+            } else if (strncmp("CHANNEL ", buf, 8) == 0) {
+                browserClient->SetCurrentChannel(std::string(buf + 8));
             }
         }
 

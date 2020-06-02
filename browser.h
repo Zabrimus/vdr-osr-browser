@@ -121,6 +121,9 @@ private:
 
     std::map<std::string, std::string> mimeTypes;
 
+    // current channel
+    std::string currentChannel;
+
     // default HTML mode
     int mode = HTML_MODE;
 
@@ -130,7 +133,7 @@ private:
 
     bool loadingStart;
 
-    void injectJs(CefRefPtr<CefBrowser> browser, std::string url, bool sync, bool headerStart, std::string htmlid);
+    void injectJs(CefRefPtr<CefBrowser> browser, std::string url, bool sync, bool headerStart, std::string htmlid, bool insert = false);
 
     inline std::string readFile(const std::string path) {
         std::ostringstream buf; std::ifstream input (path.c_str()); buf << input.rdbuf(); return buf.str();
@@ -202,6 +205,9 @@ public:
     void setRenderSize(int width, int height) { osrHandler->setRenderSize(width, height); };
     static int write_buffer_to_vdr(uint8_t *buf, int buf_size);
     static void eventCallback(std::string cmd);
+
+    //
+    void SetCurrentChannel(std::string channel) { currentChannel = channel; };
 
     IMPLEMENT_REFCOUNTING(BrowserClient);
 };

@@ -550,9 +550,14 @@ void BrowserClient::OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame>
 
     if (mode == 2 && injectJavascript) {
         // inject Javascript
-        // injectJs(browser, "client://js/hbbtv_polyfill.js", false, false, "hbbtvpolyfill");
-        injectJs(browser, "client://js/hbbtv_polyfill.js", false, true, "hbbtvpolyfill");
-        injectJs(browser, "client://js/font.js", false, true, "hbbtvfont");
+        injectJs(browser, "js/font.js", true, false, "hbbtvfont", false);
+        injectJs(browser, "js/hbbtv_polyfill.js", true, true, "hbbtvpolyfill", false);
+
+        char* jscmd;
+        asprintf(&jscmd, "window.HBBTV_POLYFILL_NS = window.HBBTV_POLYFILL_NS || {}; window.HBBTV_POLYFILL_NS.currentChannel = %s;", currentChannel.c_str());
+        frame->ExecuteJavaScript(jscmd, frame->GetURL(), 0);
+        free(jscmd);
+
         injectJavascript = false;
     }
 
@@ -600,6 +605,32 @@ bool BrowserClient::ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr<CefC
         responseContent = hbbtvCurl.GetResponseContent();
         responseCode = hbbtvCurl.GetResponseCode();
         redirectUrl = hbbtvCurl.GetRedirectUrl();
+
+        /* This is not working as desired
+           TODO: Delete this when finally found a solution
+        std::size_t found = responseContent.find("<head>");
+        if (found == std::string::npos) {
+            found = responseContent.find("<HEAD>");
+        }
+
+        if (found != std::string::npos) {
+            FILE* f = fopen("js/hbbtv_polyfill.js", "r");
+
+            fseek(f, 0, SEEK_END);
+            size_t size = ftell(f);
+            char* buffer = new char[size];
+            rewind(f);
+            fread(buffer, sizeof(char), size, f);
+
+            std::string replacement("<head>\n<script type=\"text/javascript\">\n//<![CDATA[\n");
+            replacement += buffer;
+            replacement += "\n//]]>\n</script>\n\n";
+
+            responseContent.replace(found,6,replacement);
+
+            delete[] buffer;
+        }
+        */
 
         CONSOLE_TRACE("BrowserClient::ProcessRequest, Response Headers");
         for (auto itrb = responseHeader.begin(); itrb != responseHeader.end(); itrb++) {
@@ -722,30 +753,76 @@ void BrowserClient::setLoadingStart(bool loading) {
     loadingStart = loading;
 }
 
-void BrowserClient::injectJs(CefRefPtr<CefBrowser> browser, std::string url, bool defer, bool headerStart, std::string htmlid) {
-    std::ostringstream stringStream;
+void BrowserClient::injectJs(CefRefPtr<CefBrowser> browser, std::string url, bool defer, bool headerStart, std::string htmlid, bool insert) {
+    if (insert) {
+        // inject whole javascript file into page
+        std::ostringstream stringStream;
 
-    stringStream <<  "(function(d){if (document.getElementById('";
-    stringStream <<  htmlid << "') == null) { var e=d.createElement('script');";
+        stringStream << "(function(d){if (document.getElementById('";
+        stringStream << htmlid << "') == null) { var e=d.createElement('script');";
 
-    if (defer) {
-        stringStream << "e.setAttribute('defer','defer');";
-    }
+        if (defer) {
+            stringStream << "e.setAttribute('defer','defer');";
+        }
 
-    stringStream << "e.setAttribute('id','" << htmlid <<"');";
-    stringStream << "e.setAttribute('type','text/javascript');e.setAttribute('src','" << url << "');";
+        stringStream << "e.setAttribute('id','" << htmlid << "');";
+        stringStream << "e.setAttribute('type','text/javascript');";
 
-    if (headerStart) {
-        stringStream << "d.head.insertBefore(e, d.head.firstChild)";
+        // read whole javascript file into buffer
+        FILE* f = fopen(url.c_str(), "r");
+
+        fseek(f, 0, SEEK_END);
+        size_t size = ftell(f);
+        char* buffer = new char[size];
+        rewind(f);
+        fread(buffer, sizeof(char), size, f);
+
+        fprintf(stderr, "Buffer: %s\n", buffer);
+
+        stringStream << "e.textContent=`//<![CDATA[\n" << buffer << "\n//]]>\n`;";
+
+        delete[] buffer;
+
+        if (headerStart) {
+            stringStream << "d.head.insertBefore(e, d.head.firstChild)";
+        } else {
+            stringStream << "d.head.appendChild(e)";
+        }
+
+        stringStream << "}}(document));";
+
+        auto script = stringStream.str();
+
+        fprintf(stderr, "SCRIPT\n%s\n", script.c_str());
+
+        auto frame = browser->GetMainFrame();
+        frame->ExecuteJavaScript(script, frame->GetURL(), 0);
     } else {
-        stringStream << "d.head.appendChild(e)";
+        // inject link to javascript file
+        std::ostringstream stringStream;
+
+        stringStream << "(function(d){if (document.getElementById('";
+        stringStream << htmlid << "') == null) { var e=d.createElement('script');";
+
+        if (defer) {
+            stringStream << "e.setAttribute('defer','defer');";
+        }
+
+        stringStream << "e.setAttribute('id','" << htmlid << "');";
+        stringStream << "e.setAttribute('type','text/javascript');e.setAttribute('src','client://" << url << "');";
+
+        if (headerStart) {
+            stringStream << "d.head.insertBefore(e, d.head.firstChild)";
+        } else {
+            stringStream << "d.head.appendChild(e)";
+        }
+
+        stringStream << "}}(document));";
+
+        auto script = stringStream.str();
+        auto frame = browser->GetMainFrame();
+        frame->ExecuteJavaScript(script, frame->GetURL(), 0);
     }
-
-    stringStream << "}}(document));";
-
-    auto script = stringStream.str();
-    auto frame = browser->GetMainFrame();
-    frame->ExecuteJavaScript(script, frame->GetURL(), 0);
 }
 
 void BrowserClient::initJavascriptCallback() {

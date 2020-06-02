@@ -27,10 +27,6 @@ function init() {
         'dsd': ''
     };
 
-    // set body position
-    document.body.style.width = "1920px";
-    document.body.style.height = "1080px";
-
     keyEventInit();
     hbbtvFn();
 
@@ -52,8 +48,12 @@ function init() {
 
     _DEBUG_ && console.log("hbbtv-polyfill: loaded");
 }
+
 if (!document.body) {
+    _DEBUG_ && console.log("hbbtv-polyfill: add as event listener, DOMContentLoaded");
+
     document.addEventListener("DOMContentLoaded", init);
 } else {
+    _DEBUG_ && console.log("hbbtv-polyfill: call init");
     init();
 }
