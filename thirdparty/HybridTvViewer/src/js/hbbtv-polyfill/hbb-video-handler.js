@@ -1,8 +1,8 @@
 import { OipfVideoBroadcastMapper } from "./video-broadcast-embedded-object";
 import { OipfAVControlMapper } from "./a-v-control-embedded-object";
 
-// var _DEBUG_ = false;
-var _DEBUG_ = true;
+var _DEBUG_ = false;
+// var _DEBUG_ = true;
 
 // append play method to <object> tag
 HTMLObjectElement.prototype.play = () => {};
