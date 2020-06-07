@@ -7,6 +7,10 @@
 # make buildjs		(compiles javascript files and install them in Release and js folder)
 # make cleanjs		(deletes all not needed files in thirdparty/HybridTvViewer)
 
+# WARNING
+# Version 83.3.12%2Bg0889ff0%2Bchromium-83.0.4103.97 of CEF segfaults in ClientSchemeHandler. Needs further investigation...
+# WARNING
+
 CEF_VERSION   = 81.2.25%2Bg3afea62%2Bchromium-81.0.4044.113
 CEF_BUILD = http://opensource.spotify.com/cefbuilds/cef_binary_$(CEF_VERSION)_linux64_minimal.tar.bz2
 CEF_INSTALL_DIR = /opt/cef
@@ -84,8 +88,6 @@ ifndef PACKAGED_CEF
         PACKAGED_CEF = 2
         CEFCFLAGS += -Ithirdparty/cef/include
         CEFLDFLAGS += -Lthirdparty/cef/build/libcef_dll_wrapper -Lthirdparty/cef/Release -lcef -lcef_dll_wrapper -lX11
-    else
-        $(error Unable to find a CEF installation)
     endif
 else
     ifeq (1, $(PACKAGED_CEF))
@@ -103,8 +105,6 @@ else
 
         CEFCFLAGS += -Ithirdparty/cef/include -Ithirdparty/cef
         CEFLDFLAGS += -Lthirdparty/cef/build/libcef_dll_wrapper -Lthirdparty/cef/Release -Wl,-rpath,. -lcef -lcef_dll_wrapper -lX11
-    else
-        $(error PACKAGED_CEF=$(PACKAGED_CEF) is not defined)
     endif
 endif
 
@@ -264,6 +264,7 @@ ifneq (exists, $(shell test -e thirdparty/cef && echo exists))
 	cd thirdparty && \
 	curl -L $(CEF_BUILD)  -o - | tar -xjf -
 	mv thirdparty/cef_binary* thirdparty/cef
+	cd thirdparty/cef/include && ln -s ../include cef
 endif
 ifneq (exists, $(shell test -e thirdparty/cef/build/libcef_dll_wrapper/libcef_dll_wrapper.a && echo exists))
 	mkdir -p thirdparty/cef/build && \
