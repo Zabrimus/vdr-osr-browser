@@ -200,6 +200,7 @@ ifneq (exists, $(shell test -e thirdparty/spdlog/buildbin/lib/libspdlog.a && ech
 	mkdir -p thirdparty/spdlog/build
 	cd thirdparty/spdlog/build && cmake -DCMAKE_INSTALL_PREFIX=../buildbin ..
 	$(MAKE) -C thirdparty/spdlog/build -j 6 install
+	cd thirdparty/spdlog/buildbin/ && ln -s lib lib64
 endif
 
 preparejs:
