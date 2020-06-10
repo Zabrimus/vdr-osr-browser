@@ -208,6 +208,7 @@ public:
 
     //
     void SetCurrentChannel(std::string channel) { currentChannel = channel; };
+    std::string GetCurrentChannel() { return currentChannel; };
 
     IMPLEMENT_REFCOUNTING(BrowserClient);
 };
