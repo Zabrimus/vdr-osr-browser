@@ -5,7 +5,19 @@
 	dh $@
 
 override_dh_auto_configure:
-	cd thirdparty/nng-1.2.6 && mkdir build && cd build && cmake ..
+	mkdir -p thirdparty/cef/build && \
+	cd thirdparty/cef/build && \
+	cmake .. && \
+	make -j 6
+	mkdir -p thirdparty/nng-1.3.0/build && \
+	cd thirdparty/nng-1.3.0/build && \
+	cmake .. && \
+	$(MAKE) -j 6
+	mkdir -p thirdparty/spdlog/build && \
+	cd thirdparty/spdlog/build && \
+	cmake -DCMAKE_INSTALL_PREFIX=../buildbin .. && \
+	$(MAKE) -j 6 install && \
+	cd ../buildbin/ && if [ -d lib64 ]; then ln -s lib64 lib; fi
 
 override_dh_auto_build:
-	$(MAKE)
+	$(MAKE) release

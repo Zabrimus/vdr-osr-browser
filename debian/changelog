@@ -1,3 +1,9 @@
+vdr-osr-browser (0.0.2-prerelease-ppa6~focal) focal; urgency=medium
+
+  * Official release 0.0.1 + some patches
+
+ -- Zabrimus <ppa@hannebauer.org>  Fri, 12 Jun 2020 11:06:58 +0000
+
 vdr-osr-browser (0.0.1-ppa1~buster) buster; urgency=medium
 
   * Initial release 
