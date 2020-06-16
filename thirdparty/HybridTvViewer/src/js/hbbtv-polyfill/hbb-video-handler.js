@@ -76,9 +76,6 @@ export class VideoHandler {
             });
         };
 
-        /*
-           MutationObserver disabled to prevent all events, to be able to catch the video url.
-        */
         this.mutationObserver = new MutationObserver(handleMutation);
         this.mutationObserver.observe(document.body, {
             'subtree': true,

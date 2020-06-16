@@ -28442,6 +28442,7 @@ class OipfAVControlMapper {
 
         this.mapAvControlToHtml5Video();
         this.watchAvControlObjectMutations(this.avControlObject);
+        this.watchAvVideoElementAttributeMutations(this.videoElement);
         this.registerEmbeddedVideoPlayerEvents(this.avControlObject, this.videoElement);
         this.avControlObject.appendChild(this.videoElement);
         this.avControlObject.playTime = this.videoElement.duration * 1000;
@@ -28563,6 +28564,36 @@ class OipfAVControlMapper {
             'attributes': true,
             'characterData': true,
             'attributeFilte': ["type"]
+        });
+
+    }
+
+    watchAvVideoElementAttributeMutations(videoElement) {
+        const handleMutation = (mutationList, mutationObserver) => {
+            mutationList.forEach((mutation) => {
+                if (mutation.attributeName === 'src') {
+                    var target = mutation.target;
+                    var newSrc = target.getAttribute("src");
+
+                    if (newSrc.search("client://movie/transparent.webm") >= 0) {
+                        // prevent recursion
+                        return;
+                    }
+
+                    signalCef("CHANGE_VIDEO_URL:" + newSrc);
+
+                    // overwrite src
+                    target.src = "client://movie/transparent.webm";
+                }
+            });
+        };
+
+        const mutationObserver = new MutationObserver(handleMutation);
+        mutationObserver.observe(videoElement, {
+            'subtree': false,
+            'childList': false,
+            'attributes': true,
+            'characterData': false
         });
 
     }
@@ -28737,7 +28768,6 @@ class OipfAVControlMapper {
 }
 
 
-
 /***/ }),
 
 /***/ "./src/js/hbbtv-polyfill/hbb-video-handler.js":
@@ -28830,9 +28860,6 @@ class VideoHandler {
             });
         };
 
-        /*
-           MutationObserver disabled to prevent all events, to be able to catch the video url.
-        */
         this.mutationObserver = new MutationObserver(handleMutation);
         this.mutationObserver.observe(document.body, {
             'subtree': true,

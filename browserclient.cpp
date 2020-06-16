@@ -359,6 +359,13 @@ bool JavascriptHandler::OnQuery(CefRefPtr<CefBrowser> browser,
             // TODO: Gibt es eine bessere Lösung?
             browserClient->stop_video();
             return true;
+        } else if (strncmp(request.ToString().c_str(), "CHANGE_VIDEO_URL:", 17) == 0) {
+            CONSOLE_DEBUG("Video URL: {}", request.ToString().c_str() + 17);
+
+            browserClient->SendToVdrString(CMD_STATUS, "PLAY_VIDEO:");
+            browserClient->set_input_file(request.ToString().c_str() + 17);
+            browserClient->transcode();
+            return true;
         }
     }
 
