@@ -2,11 +2,8 @@ import { keyEventInit } from "./keyevent-init.js";
 import { hbbtvFn } from "./hbbtv.js";
 import { VideoHandler } from "./hbb-video-handler.js";
 
-var _DEBUG_ = false;
-// var _DEBUG_ = true;
-
 function init() {
-    _DEBUG_ && console.log("hbbtv-polyfill: load");
+    window._HBBTV_DEBUG_ && console.log("hbbtv-polyfill: load");
     // global helper namespace to simplify testing
     window.HBBTV_POLYFILL_NS = window.HBBTV_POLYFILL_NS || {
     };
@@ -46,14 +43,14 @@ function init() {
         signalCef('VDR:' + command);
     };
 
-    _DEBUG_ && console.log("hbbtv-polyfill: loaded");
+    window._HBBTV_DEBUG_ && console.log("hbbtv-polyfill: loaded");
 }
 
 if (!document.body) {
-    _DEBUG_ && console.log("hbbtv-polyfill: add as event listener, DOMContentLoaded");
+    window._HBBTV_DEBUG_ && console.log("hbbtv-polyfill: add as event listener, DOMContentLoaded");
 
     document.addEventListener("DOMContentLoaded", init);
 } else {
-    _DEBUG_ && console.log("hbbtv-polyfill: call init");
+    window._HBBTV_DEBUG_ && console.log("hbbtv-polyfill: call init");
     init();
 }

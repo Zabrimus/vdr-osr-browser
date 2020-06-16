@@ -27,6 +27,10 @@ public:
         return logger_console->level() == spdlog::level::trace;
     }
 
+    bool isDebugEnabled() {
+        return logger_console->level() == spdlog::level::debug;
+    }
+
     spdlog::level::level_enum level() {
         return logger_console->level();
     }

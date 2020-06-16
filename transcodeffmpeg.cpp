@@ -353,7 +353,10 @@ void TranscodeFFmpeg::stop_video() {
 
     if (ffmpeg_pid > 0) {
         CONSOLE_TRACE("stop video, kill ffmpeg with pid {}", ffmpeg_pid);
-        kill(ffmpeg_pid, SIGTERM);
+        // kill(ffmpeg_pid, SIGTERM);
+        kill(ffmpeg_pid, SIGKILL);
+
+        CONSOLE_TRACE("stop video, wait for ffmpeg pid {}", ffmpeg_pid);
 
         int status;
         waitpid(ffmpeg_pid, &status, 0);

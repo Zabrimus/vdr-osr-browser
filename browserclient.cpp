@@ -549,10 +549,18 @@ void BrowserClient::OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame>
     loadingStart = false;
 
     if (mode == 2 && injectJavascript) {
+        // enable/disable javascript debug
+        if (logger.isTraceEnabled() || logger.isDebugEnabled()) {
+            frame->ExecuteJavaScript("window._HBBTV_DEBUG_ = true;", frame->GetURL(), 0);
+        } else {
+            frame->ExecuteJavaScript("window._HBBTV_DEBUG_ = false;", frame->GetURL(), 0);
+        }
+
         // inject Javascript
         injectJs(browser, "js/font.js", true, false, "hbbtvfont", false);
         injectJs(browser, "js/hbbtv_polyfill.js", true, true, "hbbtvpolyfill", false);
 
+        // set current channel
         char* jscmd;
         asprintf(&jscmd, "window.HBBTV_POLYFILL_NS = window.HBBTV_POLYFILL_NS || {}; window.HBBTV_POLYFILL_NS.currentChannel = %s;", currentChannel.c_str());
         frame->ExecuteJavaScript(jscmd, frame->GetURL(), 0);
@@ -566,6 +574,12 @@ void BrowserClient::OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame>
 
     // disable scrollbars
     frame->ExecuteJavaScript("document.body.style.setProperty('overflow', 'hidden');", frame->GetURL(), 0);
+
+    // Fix for Arte "Plugin in not found" while video playing
+    frame->ExecuteJavaScript("if (document.getElementById('appmgr'))document.getElementById('appmgr').style.setProperty('visibility', 'hidden');", frame->GetURL(), 0);
+    frame->ExecuteJavaScript("if (document.getElementById('oipfcfg'))document.getElementById('oipfcfg').style.setProperty('visibility', 'hidden');", frame->GetURL(), 0);
+    frame->ExecuteJavaScript("if (document.getElementById('oipfCap'))document.getElementById('oipfCap').style.setProperty('visibility', 'hidden');", frame->GetURL(), 0);
+    frame->ExecuteJavaScript("if (document.getElementById('oipfDrm'))document.getElementById('oipfDrm').style.setProperty('visibility', 'hidden');", frame->GetURL(), 0);
 
     if (logger.isTraceEnabled()) {
         frame->GetSource(new FrameContentLogger());
