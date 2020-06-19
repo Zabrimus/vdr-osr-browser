@@ -14,6 +14,7 @@ void Logger::switchToFileLogger(std::string filename) {
     auto max_size = 1048576 * 5;
     auto max_files = 3;
     _logger = spdlog::rotating_logger_mt("browser", filename, max_size, max_files);
+    spdlog::flush_every(std::chrono::seconds(1));
     _switchedToFile = true;
 }
 
