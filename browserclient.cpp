@@ -21,6 +21,7 @@
 #include "globaldefs.h"
 #include "browser.h"
 #include "logger.h"
+#include "javascriptlogging.h"
 
 #define HEADERSIZE (4 * 1024)
 
@@ -768,6 +769,15 @@ void BrowserClient::OnBeforeClose(CefRefPtr< CefBrowser > browser) {
 
 bool BrowserClient::OnProcessMessageReceived(CefRefPtr< CefBrowser > browser, CefRefPtr< CefFrame > frame, CefProcessId source_process, CefRefPtr< CefProcessMessage > message) {
     return browser_side_router->OnProcessMessageReceived(browser, frame, source_process, message);
+}
+
+CefRefPtr<CefDisplayHandler> BrowserClient::GetDisplayHandler() {
+    // if the file logger has been enabled...
+    if (logger.switchedToFile()) {
+        return new JavascriptLogging();
+    }
+
+    return nullptr;
 }
 
 void BrowserClient::setLoadingStart(bool loading) {

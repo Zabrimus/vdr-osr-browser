@@ -157,6 +157,7 @@ public:
 
     // CefClient
     bool OnProcessMessageReceived(CefRefPtr< CefBrowser > browser, CefRefPtr< CefFrame > frame, CefProcessId source_process, CefRefPtr< CefProcessMessage > message) override;
+    CefRefPtr<CefDisplayHandler> GetDisplayHandler() override;
 
     // CefRequestHandler
     CefResourceRequestHandler::ReturnValue OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, CefRefPtr<CefRequestCallback> callback) override;

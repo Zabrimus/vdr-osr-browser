@@ -15,6 +15,7 @@
 class Logger {
 private:
     std::shared_ptr<spdlog::logger> _logger;
+    bool _switchedToFile = false;
 
 public:
     Logger();
@@ -41,6 +42,10 @@ public:
 
     inline std::shared_ptr<spdlog::logger> current() {
         return _logger;
+    }
+
+    inline bool switchedToFile() {
+        return this->_switchedToFile;
     }
 };
 

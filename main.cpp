@@ -235,11 +235,6 @@ std::string *logFile = nullptr;
 
 // Entry point function for all processes.
 int main(int argc, char *argv[]) {
-    CONSOLE_INFO("In Main, argc={}, Parameter:", argc);
-    for (int i = 0; i < argc; ++i) {
-            CONSOLE_INFO("   {}", argv[i]);
-    };
-
     spdlog::level::level_enum log_level = spdlog::level::err;
 
     // try to find some parameters
@@ -256,23 +251,22 @@ int main(int argc, char *argv[]) {
             log_level = spdlog::level::err;
         } else if (strncmp(argv[i], "--critical", 7) == 0) {
             log_level = spdlog::level::critical;
-        }
-        /*
-        else if (strncmp(argv[i], "--logfile=", 10) == 0) {
+        } else if (strncmp(argv[i], "--logfile=", 10) == 0) {
             logFile = new std::string(argv[i] + 10);
         }
-        */
     }
 
-    /* Disabled at this moment, because not all output is written into the logfile.
-       E.g. javascript console logging still appears on the console.
     if (logFile != nullptr) {
         logger.switchToFileLogger(*logFile);
         delete logFile;
     }
-    */
 
     logger.set_level(log_level);
+
+    CONSOLE_INFO("In Main, argc={}, Parameter:", argc);
+    for (int i = 0; i < argc; ++i) {
+        CONSOLE_INFO("   {}", argv[i]);
+    };
 
     CefMainArgs main_args(argc, argv);
     CefRefPtr<MainApp> app(new MainApp);

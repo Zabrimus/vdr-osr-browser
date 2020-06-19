@@ -44,7 +44,7 @@ CFLAGS = -g -c -O3  -Wall -std=c++11
 #CFLAGS = -c -O0 -g -Wall -std=c++11
 LDFLAGS = -pthread -lrt
 
-SOURCES = main.cpp osrhandler.cpp browserclient.cpp browsercontrol.cpp transcodeffmpeg.cpp schemehandler.cpp logger.cpp
+SOURCES = main.cpp osrhandler.cpp browserclient.cpp browsercontrol.cpp transcodeffmpeg.cpp schemehandler.cpp logger.cpp javascriptlogging.cpp
 OBJECTS = $(SOURCES:.cpp=.o)
 
 SOURCES2 = osrclient.cpp logger.cpp
