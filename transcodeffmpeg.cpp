@@ -325,6 +325,10 @@ int TranscodeFFmpeg::transcode_worker(int (*write_packet)(uint8_t *buf, int buf_
             stop_worker = true;
         } else {
             write_packet(&buffer[0], bytes + 1);
+
+            if (bytes % 188 != 0) {
+                CONSOLE_ERROR("Send Video data, but size is not a multiple of 188: {}", bytes);
+            }
         }
     }
 

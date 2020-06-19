@@ -887,8 +887,6 @@ void BrowserClient::SendToVdrString(uint8_t messageType, const char* message) {
     strcpy(buffer + 1, message);
     nn_send(toVdrSocketId, buffer, strlen(message) + 2, 0);
 
-    printf("Send string %2d %s\n", buffer[0], buffer + 1);
-
     free(buffer);
 }
 
