@@ -3,40 +3,44 @@
 
 #include "spdlog/spdlog.h"
 #include "spdlog/sinks/stdout_color_sinks.h"
+#include "spdlog/sinks/rotating_file_sink.h"
 #include "spdlog/fmt/bin_to_hex.h"
 
-#define CONSOLE_TRACE(...)     if (logger.level() == spdlog::level::trace) logger.console()->trace(__VA_ARGS__);
-#define CONSOLE_DEBUG(...)     logger.console()->debug(__VA_ARGS__);
-#define CONSOLE_INFO(...)      logger.console()->info(__VA_ARGS__);
-#define CONSOLE_ERROR(...)     logger.console()->error(__VA_ARGS__);
-#define CONSOLE_CRITICAL(...)  logger.console()->critical(__VA_ARGS__);
+#define CONSOLE_TRACE(...)     if (logger.level() == spdlog::level::trace) logger.current()->trace(__VA_ARGS__);
+#define CONSOLE_DEBUG(...)     logger.current()->debug(__VA_ARGS__);
+#define CONSOLE_INFO(...)      logger.current()->info(__VA_ARGS__);
+#define CONSOLE_ERROR(...)     logger.current()->error(__VA_ARGS__);
+#define CONSOLE_CRITICAL(...)  logger.current()->critical(__VA_ARGS__);
 
 class Logger {
 private:
-    std::shared_ptr<spdlog::logger> logger_console;
+    std::shared_ptr<spdlog::logger> _logger;
 
 public:
     Logger();
     ~Logger();
 
+    // Must be called before setting the desired level
+    void switchToFileLogger(std::string filename);
+
     void set_level(spdlog::level::level_enum level) {
-        logger_console->set_level(level);
+        _logger->set_level(level);
     }
 
     bool isTraceEnabled() {
-        return logger_console->level() == spdlog::level::trace;
+        return _logger->level() == spdlog::level::trace;
     }
 
     bool isDebugEnabled() {
-        return logger_console->level() == spdlog::level::debug;
+        return _logger->level() == spdlog::level::debug;
     }
 
     spdlog::level::level_enum level() {
-        return logger_console->level();
+        return _logger->level();
     }
 
-    inline std::shared_ptr<spdlog::logger> console() {
-        return logger_console;
+    inline std::shared_ptr<spdlog::logger> current() {
+        return _logger;
     }
 };
 

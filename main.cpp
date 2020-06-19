@@ -231,6 +231,7 @@ void checkInstallation() {
 }
 
 std::string *initUrl = nullptr;
+std::string *logFile = nullptr;
 
 // Entry point function for all processes.
 int main(int argc, char *argv[]) {
@@ -256,7 +257,20 @@ int main(int argc, char *argv[]) {
         } else if (strncmp(argv[i], "--critical", 7) == 0) {
             log_level = spdlog::level::critical;
         }
+        /*
+        else if (strncmp(argv[i], "--logfile=", 10) == 0) {
+            logFile = new std::string(argv[i] + 10);
+        }
+        */
     }
+
+    /* Disabled at this moment, because not all output is written into the logfile.
+       E.g. javascript console logging still appears on the console.
+    if (logFile != nullptr) {
+        logger.switchToFileLogger(*logFile);
+        delete logFile;
+    }
+    */
 
     logger.set_level(log_level);
 
