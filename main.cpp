@@ -181,8 +181,8 @@ void checkInstallation() {
 
     nn_close(socketId);
 
-    if ((socketId = nn_socket(AF_SP, NN_REQ)) < 0) {
-        fprintf(stderr, "Unable to create nanomsg NN_REQ socket. Aborting...\n");
+    if ((socketId = nn_socket(AF_SP, NN_PULL)) < 0) {
+        fprintf(stderr, "Unable to create nanomsg NN_PULL socket. Aborting...\n");
         exit(1);
     }
 
@@ -235,6 +235,11 @@ std::string *logFile = nullptr;
 
 // Entry point function for all processes.
 int main(int argc, char *argv[]) {
+    CONSOLE_INFO("In Main, argc={}, Parameter:", argc);
+    for (int i = 0; i < argc; ++i) {
+        CONSOLE_INFO("   {}", argv[i]);
+    };
+
     spdlog::level::level_enum log_level = spdlog::level::err;
 
     // try to find some parameters

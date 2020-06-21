@@ -165,7 +165,7 @@ int main(int argc, char **argv)
     int socketId;
     int endpointId;
 
-    if ((socketId = nn_socket(AF_SP, NN_REQ)) < 0) {
+    if ((socketId = nn_socket(AF_SP, NN_PULL)) < 0) {
         fprintf(stderr, "Unable to create socket\n");
         exit(1);
     }

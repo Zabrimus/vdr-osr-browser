@@ -131,6 +131,11 @@ private:
     int toVdrSocketId;
     int toVdrEndpointId;
 
+    // heatbeat thread
+    std::thread heartbeat_thread;
+    bool heartbeat_running;
+    void heartbeat();
+
     bool loadingStart;
 
     void injectJs(CefRefPtr<CefBrowser> browser, std::string url, bool sync, bool headerStart, std::string htmlid, bool insert = false);
@@ -202,6 +207,7 @@ public:
     void SendToVdrString(uint8_t messageType, const char* message);
     void SendToVdrVideoData(uint8_t* message, int size);
     void SendToVdrOsd(const char* message, int width, int height);
+    void SendToVdrPing();
 
     void setRenderSize(int width, int height) { osrHandler->setRenderSize(width, height); };
     static int write_buffer_to_vdr(uint8_t *buf, int buf_size);

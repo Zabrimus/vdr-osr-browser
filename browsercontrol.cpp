@@ -16,6 +16,7 @@
 #include "include/cef_v8.h"
 #include <nanomsg/nn.h>
 #include <nanomsg/reqrep.h>
+#include <nanomsg/pipeline.h>
 #include "globaldefs.h"
 #include "browser.h"
 
@@ -67,7 +68,7 @@ void BrowserControl::Start() {
     isRunning = true;
 
     // bind socket
-    if ((fromVdrSocketId = nn_socket(AF_SP, NN_REP)) < 0) {
+    if ((fromVdrSocketId = nn_socket(AF_SP, NN_PULL)) < 0) {
         fprintf(stderr, "BrowserControl: unable to create nanomsg socket\n");
         exit(1);
     }
@@ -137,11 +138,7 @@ void BrowserControl::Start() {
                 auto frame = browser->GetMainFrame();
                 frame->ExecuteJavaScript(call, frame->GetURL(), 0);
             } else if (strncmp("PING", buf, 4) == 0) {
-                // do nothing, only sends the response
-                char buffer[] = {4, 'o', 'k', 0};
-                if ((bytes = nn_send(fromVdrSocketId, buffer, 4, 0)) < 0) {
-                    CONSOLE_ERROR("unable to send response\n");
-                }
+                browserClient->SendToVdrPing();
             } else if (strncmp("KEY ", buf, 4) == 0) {
                 sendKeyEvent(buf + 4);
             } else if (strncmp("MODE ", buf, 5) == 0) {

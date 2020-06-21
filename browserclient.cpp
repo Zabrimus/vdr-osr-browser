@@ -28,6 +28,7 @@
 uint8_t CMD_STATUS = 1;
 uint8_t CMD_OSD = 2;
 uint8_t CMD_VIDEO = 3;
+uint8_t CMD_PING = 5;
 
 BrowserClient *browserClient;
 CefRefPtr<CefCookieManager> cookieManager;
@@ -391,6 +392,12 @@ BrowserClient::BrowserClient(spdlog::level::level_enum log_level) {
 
     browserClient = this;
 
+    // start heartbeat_thread
+    heartbeat_running = true;
+    heartbeat_thread = std::thread(&BrowserClient::heartbeat, this);
+    heartbeat_thread.detach();
+    // td::thread(&blub::test, this);
+
     osrHandler = new OSRHandler(this,1280, 720);
     renderHandler = osrHandler;
 
@@ -417,6 +424,8 @@ BrowserClient::BrowserClient(spdlog::level::level_enum log_level) {
 }
 
 BrowserClient::~BrowserClient() {
+    heartbeat_running = false;
+
     if (toVdrSocketId > 0) {
         nn_close(toVdrSocketId);
     }
@@ -916,6 +925,10 @@ void BrowserClient::SendToVdrOsd(const char* message, int width, int height) {
     delete[] buffer;
 }
 
+void BrowserClient::SendToVdrPing() {
+    SendToVdrString(CMD_PING, "B");
+}
+
 bool BrowserClient::set_input_file(const char* input) {
     CONSOLE_DEBUG("Set Input video {}", input);
 
@@ -976,4 +989,11 @@ int BrowserClient::transcode() {
     transcode_thread.detach();
 
     return 0;
+}
+
+void BrowserClient::heartbeat() {
+    while (heartbeat_running) {
+        SendToVdrPing();
+        sleep(1);
+    }
 }
