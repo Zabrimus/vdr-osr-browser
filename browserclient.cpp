@@ -891,7 +891,9 @@ int BrowserClient::write_buffer_to_vdr(uint8_t *buf, int buf_size) {
 }
 
 void BrowserClient::SendToVdrString(uint8_t messageType, const char* message) {
-    CONSOLE_TRACE("Send String to VDR, Message {}", message);
+    if (messageType != 5) {
+        CONSOLE_TRACE("Send String to VDR, Message {}", message);
+    }
 
     char* buffer = (char*)malloc(2 + strlen(message));
 

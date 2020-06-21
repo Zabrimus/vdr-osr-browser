@@ -235,11 +235,6 @@ std::string *logFile = nullptr;
 
 // Entry point function for all processes.
 int main(int argc, char *argv[]) {
-    CONSOLE_INFO("In Main, argc={}, Parameter:", argc);
-    for (int i = 0; i < argc; ++i) {
-        CONSOLE_INFO("   {}", argv[i]);
-    };
-
     spdlog::level::level_enum log_level = spdlog::level::err;
 
     // try to find some parameters
