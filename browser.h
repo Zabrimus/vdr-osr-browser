@@ -45,9 +45,6 @@ public:
 
 class HbbtvCurl {
 public:
-    static std::map<std::string, std::string> cookies;
-
-public:
     HbbtvCurl();
     ~HbbtvCurl();
 

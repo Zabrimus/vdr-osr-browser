@@ -46,7 +46,7 @@ struct OsdStruct {
 
 std::map<std::string, std::string> HbbtvCurl::response_header;
 std::string HbbtvCurl::response_content;
-std::map<std::string, std::string> HbbtvCurl::cookies;
+static std::map<std::string, std::string> cookies;
 
 int shmid;
 uint8_t *shmp;
@@ -55,7 +55,7 @@ std::mutex shm_mutex;
 std::string singleLineCookies() {
     std::string result = "";
 
-    for (auto const &item : HbbtvCurl::cookies) {
+    for (auto const &item : cookies) {
         result = result + item.first + "=" + item.second + "; ";
     }
 
@@ -69,7 +69,7 @@ private:
 public:
     BrowserCookieVisitor(bool log = true) {
         this->log = log;
-        HbbtvCurl::cookies.clear();
+        cookies.clear();
     }
 
     ~BrowserCookieVisitor() = default;
@@ -85,7 +85,7 @@ public:
             CONSOLE_TRACE("Cookie {}/{}: Path {}, Domain {}: '{}' = '{}'", count, total, cpath, cdomain, cname, cvalue);
         }
 
-        HbbtvCurl::cookies.insert(std::pair<std::string, std::string>(cname, cvalue));
+        cookies.insert(std::pair<std::string, std::string>(cname, cvalue));
 
         return true;
     }
