@@ -28433,6 +28433,26 @@ class OipfAVControlMapper {
             this.dashPlayer = Object(dashjs__WEBPACK_IMPORTED_MODULE_0__["MediaPlayer"])().create();
             this.dashPlayer.initialize(this.videoElement, originalDataAttribute, true);
         } else {
+            var target = document.getElementById("video");
+
+            if (!target) {
+                target = document.getElementById("videocontainer");
+            }
+
+            if (target) {
+                var width = target.getAttribute("width");
+                var height = target.getAttribute("height");
+
+                if (width && height) {
+                    var position = target.getBoundingClientRect();
+                    var x = position.x;
+                    var y = position.y;
+
+
+                    signalCef("VIDEO_SIZE: " + width + "," + height + "," + x + "," + y);
+                }
+            }
+
             signalCef("VIDEO_URL:" + originalDataAttribute);
 
             // this.videoElement.src = originalDataAttribute;
@@ -28526,8 +28546,8 @@ class OipfAVControlMapper {
 
         };
     }
-    watchAvControlObjectMutations(avControlObject) {
 
+    watchAvControlObjectMutations(avControlObject) {
         // if url of control object changed - change url of video object
         const handleDataChanged = (event) => { // MutationRecord
             if (event.attributeName === "data") {
@@ -28538,11 +28558,20 @@ class OipfAVControlMapper {
                     this.avControlObject.data = "client://movie/fail";
                     this.videoElement.load();
                 }
+            } else if (event.attributeName === 'width' || event.attributeName === 'height') {
+                var target = this.avControlObject;
+                var width = target.getAttribute("width");
+                var height = target.getAttribute("height");
+
+                var position = target.getBoundingClientRect();
+                var x = position.x;
+                var y = position.y;
+
+                signalCef("VIDEO_SIZE: " + width + "," + height + "," + x + "," + y);
             }
         };
         const handleMutation = (mutationList, mutationObserver) => {
             mutationList.forEach((mutation) => {
-                //console.log("Typechange", mutation);
                 switch (mutation.type) {
                     case 'childList':
                         break;
@@ -28558,14 +28587,12 @@ class OipfAVControlMapper {
         };
 
         const mutationObserver = new MutationObserver(handleMutation);
-        mutationObserver.observe(avControlObject, {
+        mutationObserver.observe(this.avControlObject, {
             'subtree': true,
             'childList': true,
             'attributes': true,
-            'characterData': true,
-            'attributeFilte': ["type"]
+            'characterData': true
         });
-
     }
 
     watchAvVideoElementAttributeMutations(videoElement) {
@@ -29219,6 +29246,21 @@ __webpack_require__.r(__webpack_exports__);
 
 function init() {
     window._HBBTV_DEBUG_ && console.log("hbbtv-polyfill: load");
+
+    // convenience method: Javascript to VDR wrapper method, one-way
+    window.signalCef = function(command) {
+        window.cefQuery({
+            request: command,
+            persistent: false,
+            onSuccess: function(response) {},
+            onFailure: function(error_code, error_message) {}
+        });
+    };
+
+    window.signalVdr = function(command) {
+        signalCef('VDR:' + command);
+    };
+
     // global helper namespace to simplify testing
     window.HBBTV_POLYFILL_NS = window.HBBTV_POLYFILL_NS || {
     };
@@ -29243,20 +29285,6 @@ function init() {
     Object(_hbbtv_js__WEBPACK_IMPORTED_MODULE_1__["hbbtvFn"])();
 
     new _hbb_video_handler_js__WEBPACK_IMPORTED_MODULE_2__["VideoHandler"]().initialize();
-
-    // convenience method: Javascript to VDR wrapper method, one-way
-    window.signalCef = function(command) {
-        window.cefQuery({
-            request: command,
-            persistent: false,
-            onSuccess: function(response) {},
-            onFailure: function(error_code, error_message) {}
-        });
-    };
-
-    window.signalVdr = function(command) {
-        signalCef('VDR:' + command);
-    };
 
     window._HBBTV_DEBUG_ && console.log("hbbtv-polyfill: loaded");
 }

@@ -4,6 +4,21 @@ import { VideoHandler } from "./hbb-video-handler.js";
 
 function init() {
     window._HBBTV_DEBUG_ && console.log("hbbtv-polyfill: load");
+
+    // convenience method: Javascript to VDR wrapper method, one-way
+    window.signalCef = function(command) {
+        window.cefQuery({
+            request: command,
+            persistent: false,
+            onSuccess: function(response) {},
+            onFailure: function(error_code, error_message) {}
+        });
+    };
+
+    window.signalVdr = function(command) {
+        signalCef('VDR:' + command);
+    };
+
     // global helper namespace to simplify testing
     window.HBBTV_POLYFILL_NS = window.HBBTV_POLYFILL_NS || {
     };
@@ -28,20 +43,6 @@ function init() {
     hbbtvFn();
 
     new VideoHandler().initialize();
-
-    // convenience method: Javascript to VDR wrapper method, one-way
-    window.signalCef = function(command) {
-        window.cefQuery({
-            request: command,
-            persistent: false,
-            onSuccess: function(response) {},
-            onFailure: function(error_code, error_message) {}
-        });
-    };
-
-    window.signalVdr = function(command) {
-        signalCef('VDR:' + command);
-    };
 
     window._HBBTV_DEBUG_ && console.log("hbbtv-polyfill: loaded");
 }

@@ -59,6 +59,26 @@ export class OipfAVControlMapper {
             this.dashPlayer = MediaPlayer().create();
             this.dashPlayer.initialize(this.videoElement, originalDataAttribute, true);
         } else {
+            var target = document.getElementById("video");
+
+            if (!target) {
+                target = document.getElementById("videocontainer");
+            }
+
+            if (target) {
+                var width = target.getAttribute("width");
+                var height = target.getAttribute("height");
+
+                if (width && height) {
+                    var position = target.getBoundingClientRect();
+                    var x = position.x;
+                    var y = position.y;
+
+
+                    signalCef("VIDEO_SIZE: " + width + "," + height + "," + x + "," + y);
+                }
+            }
+
             signalCef("VIDEO_URL:" + originalDataAttribute);
 
             // this.videoElement.src = originalDataAttribute;
@@ -152,8 +172,8 @@ export class OipfAVControlMapper {
 
         };
     }
-    watchAvControlObjectMutations(avControlObject) {
 
+    watchAvControlObjectMutations(avControlObject) {
         // if url of control object changed - change url of video object
         const handleDataChanged = (event) => { // MutationRecord
             if (event.attributeName === "data") {
@@ -164,11 +184,20 @@ export class OipfAVControlMapper {
                     this.avControlObject.data = "client://movie/fail";
                     this.videoElement.load();
                 }
+            } else if (event.attributeName === 'width' || event.attributeName === 'height') {
+                var target = this.avControlObject;
+                var width = target.getAttribute("width");
+                var height = target.getAttribute("height");
+
+                var position = target.getBoundingClientRect();
+                var x = position.x;
+                var y = position.y;
+
+                signalCef("VIDEO_SIZE: " + width + "," + height + "," + x + "," + y);
             }
         };
         const handleMutation = (mutationList, mutationObserver) => {
             mutationList.forEach((mutation) => {
-                //console.log("Typechange", mutation);
                 switch (mutation.type) {
                     case 'childList':
                         break;
@@ -184,14 +213,12 @@ export class OipfAVControlMapper {
         };
 
         const mutationObserver = new MutationObserver(handleMutation);
-        mutationObserver.observe(avControlObject, {
+        mutationObserver.observe(this.avControlObject, {
             'subtree': true,
             'childList': true,
             'attributes': true,
-            'characterData': true,
-            'attributeFilte': ["type"]
+            'characterData': true
         });
-
     }
 
     watchAvVideoElementAttributeMutations(videoElement) {

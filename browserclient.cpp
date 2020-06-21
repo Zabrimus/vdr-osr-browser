@@ -368,6 +368,9 @@ bool JavascriptHandler::OnQuery(CefRefPtr<CefBrowser> browser,
             browserClient->set_input_file(request.ToString().c_str() + 17);
             browserClient->transcode();
             return true;
+        } else if (strncmp(request.ToString().c_str(), "VIDEO_SIZE: ", 12) == 0) {
+            browserClient->SendToVdrString(CMD_STATUS, request.ToString().c_str());
+            return true;
         }
     }
 
