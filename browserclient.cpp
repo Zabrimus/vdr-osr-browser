@@ -999,6 +999,6 @@ int BrowserClient::transcode() {
 void BrowserClient::heartbeat() {
     while (heartbeat_running) {
         SendToVdrPing();
-        sleep(1);
+        std::this_thread::sleep_for (std::chrono::seconds(20));
     }
 }
