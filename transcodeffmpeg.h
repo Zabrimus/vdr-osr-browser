@@ -23,6 +23,8 @@ private:
     // transcode or copy audio/video
     bool copy_audio;
     bool copy_video;
+    uint8_t tsbuf[188];
+    int filled;
 
     std::string encode_video_param;
     std::string encode_audio_param;

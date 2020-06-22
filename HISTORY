@@ -8,6 +8,7 @@ VDR OSR Browser Revision History
   double-free in cookie list
   Arte videos doesn't show "Plugin not found" message anymore
   Bitrate change of Arte videos
+  FixSkipped.patch by TomJoad (https://www.vdr-portal.de/forum/index.php?thread/133615-announce-hbbtv-plugin-offscreen-browser-v0-0-1/&postID=1327368#post1327368)
 
 - New
   Send video size and coordinates to VDR Plugin

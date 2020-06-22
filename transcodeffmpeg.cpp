@@ -47,6 +47,8 @@ std::string getbrowserexepath() {
 
 TranscodeFFmpeg::TranscodeFFmpeg() {
     read_configuration();
+    filled = 0;
+    realtime = true;
 }
 
 TranscodeFFmpeg::~TranscodeFFmpeg() {
@@ -311,8 +313,11 @@ int TranscodeFFmpeg::transcode_worker(int (*write_packet)(uint8_t *buf, int buf_
     fcntl(output_fd, F_SETFL, O_NONBLOCK);
 
     while (!stop_worker) {
+        if (filled) {
+            memcpy(&buffer[1], tsbuf, filled);
+        }
         // first byte is reserved
-        int bytes = read(output_fd, &buffer[1], buffer_size - 1);
+        int bytes = read(output_fd, &buffer[filled + 1], buffer_size - 1 - filled);
 
         if (bytes == -1) {
             if (errno == EAGAIN) {
@@ -323,11 +328,15 @@ int TranscodeFFmpeg::transcode_worker(int (*write_packet)(uint8_t *buf, int buf_
         } else if (bytes == 0) {
             CONSOLE_TRACE("transcode_worker no more bytes, stop");
             stop_worker = true;
-        } else {
-            write_packet(&buffer[0], bytes + 1);
-
-            if (bytes % 188 != 0) {
-                CONSOLE_ERROR("Send Video data, but size is not a multiple of 188: {}", bytes);
+        } else { // we got data
+            bytes = bytes + filled;
+            if ((filled = (bytes % 188)) != 0) {
+                int fullpackets = bytes / 188;
+                bytes = fullpackets * 188; // send only full ts packets
+                memcpy(tsbuf, &buffer[bytes + 1], filled); // save partial tspacket
+            }
+            if (bytes) {// at least one tspacket
+                write_packet(&buffer[0], bytes + 1);
             }
         }
     }
