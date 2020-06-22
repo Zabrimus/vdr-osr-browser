@@ -1,0 +1,21 @@
+VDR OSR Browser Revision History
+-----------------------------------
+
+2020-xx-xx: Version 0.0.2
+
+- Bugfixes
+  heartbeat
+  double-free in cookie list
+  Arte videos doesn't show "Plugin not found" message anymore
+  Bitrate change of Arte videos
+
+- New
+  Send video size and coordinates to VDR Plugin
+  New Parameter --logfile
+  Connection changed to TCP
+
+
+2020-06-07: Version 0.0.1
+
+- Initial revision
+
