@@ -154,16 +154,6 @@ void BrowserControl::Start() {
                 browserClient->stop_video();
             } else if (strncmp("CHANNEL ", buf, 8) == 0) {
                 browserClient->SetCurrentChannel(std::string(buf + 8));
-            } else if (strncmp("GETURL", buf, 8) == 0) {
-                auto url = browser->GetMainFrame()->GetURL();
-
-                char *buffer = nullptr;
-                asprintf(&buffer, "C: %s\nU: %s", browserClient->GetCurrentChannel().c_str(), url.ToString().c_str());
-                if ((bytes = nn_send(fromVdrSocketId, buffer, strlen(buffer) + 1, 0)) < 0) {
-                    CONSOLE_ERROR("unable to send response\n");
-                }
-
-                free(buffer);
             }
         }
 

@@ -16,6 +16,11 @@
 class BrowserClient;
 class BrowserControl;
 
+const uint8_t CMD_STATUS = 1;
+const uint8_t CMD_OSD = 2;
+const uint8_t CMD_VIDEO = 3;
+const uint8_t CMD_PING = 5;
+
 const int HTML_MODE = 1;
 const int HBBTV_MODE = 2;
 

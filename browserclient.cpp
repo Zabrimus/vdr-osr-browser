@@ -25,11 +25,6 @@
 
 #define HEADERSIZE (4 * 1024)
 
-uint8_t CMD_STATUS = 1;
-uint8_t CMD_OSD = 2;
-uint8_t CMD_VIDEO = 3;
-uint8_t CMD_PING = 5;
-
 BrowserClient *browserClient;
 CefRefPtr<CefCookieManager> cookieManager;
 
@@ -786,7 +781,7 @@ bool BrowserClient::OnProcessMessageReceived(CefRefPtr< CefBrowser > browser, Ce
 CefRefPtr<CefDisplayHandler> BrowserClient::GetDisplayHandler() {
     // if the file logger has been enabled...
     if (logger.switchedToFile()) {
-        return new JavascriptLogging();
+        return new JavascriptLogging(this);
     }
 
     return nullptr;

@@ -3,10 +3,14 @@
 
 #include "include/cef_display_handler.h"
 #include "logger.h"
+#include "browser.h"
 
 class JavascriptLogging : public CefDisplayHandler {
+    private:
+        BrowserClient *browserClient;
+
     public:
-        JavascriptLogging() {};
+        JavascriptLogging(BrowserClient *client) { this->browserClient = client; };
         ~JavascriptLogging() {};
 
         void OnAddressChange(CefRefPtr< CefBrowser > browser, CefRefPtr< CefFrame > frame, const CefString& url) override;

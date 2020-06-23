@@ -2,6 +2,12 @@
 
 void JavascriptLogging::OnAddressChange(CefRefPtr< CefBrowser > browser, CefRefPtr< CefFrame > frame, const CefString& url) {
     CONSOLE_INFO("JS: Change Frame URL to {}", url.ToString());
+
+    char *buffer = nullptr;
+    asprintf(&buffer, "GETURL: C: %s\nU: %s", browserClient->GetCurrentChannel().c_str(), url.ToString().c_str());
+    browserClient->SendToVdrString(CMD_STATUS, buffer);
+
+    free(buffer);
 }
 
 bool JavascriptLogging::OnConsoleMessage(CefRefPtr<CefBrowser> browser, cef_log_severity_t level, const CefString& message, const CefString& source, int line) {
