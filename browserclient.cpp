@@ -28,6 +28,8 @@
 BrowserClient *browserClient;
 CefRefPtr<CefCookieManager> cookieManager;
 
+std::map<std::string, std::string> cacheContentType;
+
 struct MemoryStruct {
     char *memory;
     size_t size;
@@ -520,13 +522,20 @@ CefRefPtr<CefResourceHandler> BrowserClient::GetResourceHandler(CefRefPtr<CefBro
             CefRequest::HeaderMap headers;
             request->GetHeaderMap(headers);
 
-            // read the content type
-            std::string ct = hbbtvCurl.ReadContentType(url, headers);
+            // read/find the content type
+            std::string ct;
+            auto ctsearch = cacheContentType.find(url);
+            if(ctsearch != cacheContentType.end()) {
+                ct = ctsearch->second;
+            } else {
+                ct = hbbtvCurl.ReadContentType(url, headers);
+            }
 
             bool isHbbtvHtml = false;
             for (auto const &item : mimeTypes) {
                 if (ct.find(item.second) != std::string::npos) {
                     isHbbtvHtml = true;
+                    cacheContentType[url] = ct;
                     break;
                 }
             }
