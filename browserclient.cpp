@@ -406,7 +406,6 @@ BrowserClient::BrowserClient(spdlog::level::level_enum log_level) {
     mimeTypes.insert(std::pair<std::string, std::string>("ohtv", "application/vnd.ohtv"));
     mimeTypes.insert(std::pair<std::string, std::string>("bml", "text/X-arib-bml"));
     mimeTypes.insert(std::pair<std::string, std::string>("atsc", "atsc-http-attributes"));
-    mimeTypes.insert(std::pair<std::string, std::string>("html", "text/html"));
 
     // mimeTypes.insert(std::pair<std::string, std::string>("mheg", "application/x-mheg-5"));
     // mimeTypes.insert(std::pair<std::string, std::string>("aitx", "application/vnd.dvb.ait"));
