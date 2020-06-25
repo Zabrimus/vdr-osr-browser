@@ -38,14 +38,14 @@ BrowserControl::~BrowserControl() {
 void BrowserControl::LoadURL(const CefString& url) {
     CONSOLE_TRACE("Current URL: {}, New URL: {}", browser->GetMainFrame()->GetURL().ToString(), url.ToString());
 
-    if (browser->GetMainFrame()->GetURL().compare(url)) {
+    //if (browser->GetMainFrame()->GetURL().compare(url)) {
         browser->StopLoad();
 
         browserClient->setLoadingStart(true);
         browser->GetMainFrame()->LoadURL(url);
-    } else {
-        browser->GetHost()->Invalidate(PET_VIEW);
-    }
+    //} else {
+    //    browser->GetHost()->Invalidate(PET_VIEW);
+    //}
 }
 
 void BrowserControl::PauseRender() {
