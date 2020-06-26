@@ -3,6 +3,7 @@
 #include "include/cef_parser.h"
 #include "include/wrapper/cef_stream_resource_handler.h"
 #include "schemehandler.h"
+#include "logger.h"
 
 CefRefPtr<CefResourceHandler> ClientSchemeHandlerFactory::Create(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, const CefString& scheme_name, CefRefPtr<CefRequest> request) {
     CEF_REQUIRE_IO_THREAD();
@@ -207,9 +208,12 @@ std::string ClientSchemeHandler::GetMimeType(const std::string& resource_path) {
 
     if (sep != std::string::npos) {
         mime_type = CefGetMimeType(resource_path.substr(sep + 1));
-        if (!mime_type.empty())
-            return mime_type;
+        if (mime_type.empty()) {
+            mime_type = "text/html";
+        }
     }
 
-    return "text/html";
+    CONSOLE_TRACE("ClientSchemeHandler::GetMimeType:  {} => {}", resource_path, mime_type);
+
+    return mime_type;
 }
