@@ -1,6 +1,15 @@
 VDR OSR Browser Revision History
 -----------------------------------
 
+2020-xx-xx: Version 0.0.3
+- Bugfixes
+  new method to determine content-type
+  try to fix errors in some HTML pages
+
+- New
+  removed dash.js. It's not usable in this environment
+  enable HbbTV 2.0(?)
+
 2020-06-25: Version 0.0.2
 
 - Bugfixes

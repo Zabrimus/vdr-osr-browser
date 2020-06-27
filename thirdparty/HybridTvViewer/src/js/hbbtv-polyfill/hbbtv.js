@@ -133,7 +133,8 @@ export const hbbtvFn = function () {
     keyset.NUMERIC = 0x100;
     keyset.ALPHA = 0x200;
     keyset.OTHER = 0x400;
-    keyset.value = null;
+    // keyset.value = null;
+    keyset.value = 0x1f;
     keyset.setValue = function (value) {
         keyset.value = value;
         // add HBBTV_POLYFILL_NS namespace and count setValue calls

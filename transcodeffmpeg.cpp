@@ -167,13 +167,14 @@ bool TranscodeFFmpeg::set_input(const char* input, bool verbose) {
     }
 
     if (duration == 0) {
-        fprintf(stderr, "Unable to determine duration. ffprobe failed.\n");
+        CONSOLE_ERROR("Unable to determine duration. ffprobe failed.\n");
+        return false;
     }
 
     // check if full transparent video exists, otherwise create one (shall not happen)
     if (access("movie/transparent-full.webm", R_OK) == -1 ) {
-        fprintf(stderr, "Warning: the file movie/transparent-full.webm does not exist!");
-        fprintf(stderr, "         Creation of a new one will be started, but it takes time.");
+        CONSOLE_INFO("Warning: the file movie/transparent-full.webm does not exist!");
+        CONSOLE_INFO("         Creation of a new one will be started, but it takes time.");
 
         char *createvideo;
         if (verbose_ffmpeg) {
@@ -186,7 +187,7 @@ bool TranscodeFFmpeg::set_input(const char* input, bool verbose) {
         free(createvideo);
 
         if (result == -1) {
-            fprintf(stderr, "Error: Unable to create the file movie/transparent-full.webm!");
+            CONSOLE_ERROR("Error: Unable to create the file movie/transparent-full.webm!");
             return false;
         }
     }
@@ -204,7 +205,7 @@ bool TranscodeFFmpeg::set_input(const char* input, bool verbose) {
     free(cvd);
 
     if (result == -1) {
-        fprintf(stderr, "Error: Unable to create the file movie/transparent.webm!");
+        CONSOLE_ERROR("Error: Unable to create the file movie/transparent.webm!");
         return false;
     }
 

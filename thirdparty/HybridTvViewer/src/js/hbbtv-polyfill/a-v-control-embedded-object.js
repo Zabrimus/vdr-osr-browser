@@ -6,7 +6,7 @@
  */
 
 // import dashjs file --> we want it sync so don't pull from cdn ->  downside is we need a copy in repo TODO: fetch latest in build process
-import { MediaPlayer } from "dashjs";
+// import { MediaPlayer } from "dashjs";
 
 const PLAY_STATES = {
     stopped: 0,
@@ -53,11 +53,13 @@ export class OipfAVControlMapper {
         // interval to simulate rewind functionality
         this.rewindInterval;
 
-        this.dashPlayer;
         // user dash.js to init player
         if (this.isDashVideo) {
-            this.dashPlayer = MediaPlayer().create();
-            this.dashPlayer.initialize(this.videoElement, originalDataAttribute, true);
+            // TODO: DISABLE DASH until a solution to play has been found
+
+            // this.dashPlayer = MediaPlayer().create();
+            // this.dashPlayer.initialize(this.videoElement, originalDataAttribute, true);
+
         } else {
             var target = document.getElementById("video");
 
@@ -374,7 +376,7 @@ export class OipfAVControlMapper {
             objectElement.duration = videoElement.duration;
         }, false);
         videoElement && videoElement.addEventListener && videoElement.addEventListener('timeupdate', function () {
-            window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: timeupdate');
+            // window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: timeupdate');
             var pos = Math.floor(videoElement.currentTime * 1000);
             objectElement.playPostion = pos;
             //objectElement.currentTime = videoElement.currentTime;
@@ -382,7 +384,7 @@ export class OipfAVControlMapper {
                 objectElement.PlayPositionChanged(pos);
             }
             objectElement.playPosition = pos;
-            window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: dispatchEvent PlayPositionChanged', pos);
+            // window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: dispatchEvent PlayPositionChanged', pos);
             var playerEvent = new Event('PlayPositionChanged');
             playerEvent.position = pos;
             objectElement.dispatchEvent(playerEvent);
@@ -406,7 +408,7 @@ export class OipfAVControlMapper {
                 objectElement.playPosition = pos;
                 objectElement.PlayPositionChanged(pos);
             } else {
-                window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: dispatchEvent PlayPositionChanged', pos);
+                // window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: dispatchEvent PlayPositionChanged', pos);
                 var playerEvent = new Event('PlayPositionChanged');
                 playerEvent.position = pos;
                 objectElement.dispatchEvent(playerEvent);

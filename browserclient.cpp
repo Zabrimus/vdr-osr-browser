@@ -13,6 +13,7 @@
 #include <iostream>
 #include <fstream>
 #include <map>
+#include <regex>
 #include <nanomsg/nn.h>
 #include <nanomsg/pipeline.h>
 #include <curl/curl.h>
@@ -29,6 +30,11 @@ BrowserClient *browserClient;
 CefRefPtr<CefCookieManager> cookieManager;
 
 std::map<std::string, std::string> cacheContentType;
+
+// optimistic regex to determine a hbbtv page
+std::regex hbbtv_regex_1("type\\s*=\\s*\"application/oipfApplicationManager\"", std::regex::optimize);
+std::regex hbbtv_regex_2("type\\s*=\\s*\"application/oipfConfiguration\"", std::regex::optimize);
+std::regex hbbtv_regex_3("type\\s*=\\s*\"oipfCapabilities\"", std::regex::optimize);
 
 struct MemoryStruct {
     char *memory;
@@ -57,6 +63,58 @@ std::string singleLineCookies() {
     }
 
     return result;
+}
+
+void replaceAll(std::string &source, std::string search, std::string replacement) {
+    size_t pos = source.find(search);
+
+    while (pos != std::string::npos) {
+        source.replace(pos, search.size(), replacement);
+        pos = source.find(search, pos + replacement.size());
+    }
+}
+
+void replaceAll(std::string &source, std::string search1, std::string search2, std::string repl1, std::string repl2) {
+    size_t pos = source.find(search1);
+
+    while (pos != std::string::npos) {
+        source.replace(pos, search1.size(), repl1);
+        pos = source.find(search2, pos + repl1.size());
+        source.replace(pos, search2.size(), repl2);
+
+        pos = source.find(search1, pos + repl2.size());
+    }
+}
+
+/*
+ * very primitive try to fix some common errors
+ * If this is not enough, think about using libtidy
+ */
+void tryToFixPage(std::string &source) {
+    // remove all CDATA declarations.
+    replaceAll(source, "/* <![CDATA[ */", "\n");
+    replaceAll(source, "/* ]]> */", "\n");
+    replaceAll(source, "// <![CDATA[", "\n");
+    replaceAll(source, "//<![CDATA[", "\n");
+    replaceAll(source, "// ]]>", "\n");
+    replaceAll(source, "//]]>", "\n");
+
+    // fix inline style and script elements
+    replaceAll(source, "<style type=\"text/css\">", "</style>", "<style type=\"text/css\">\n/* <![CDATA[ */\n", "\n/* ]]> */\n</style>");
+    replaceAll(source, "<script type=\"text/javascript\">", "</script>", "<script type=\"text/javascript\">\n/* <![CDATA[ */\n", "\n/* ]]> */\n</script>");
+
+    // fix wrong meta-tag in header
+    size_t pos = source.find("<meta");
+    while (pos != std::string::npos) {
+        size_t pos2 = source.find(">", pos);
+        if (source[pos2-1] != '/') {
+            source.replace(pos2, 1, "/>");
+        }
+
+        pos = source.find("<meta", pos2);
+    }
+
+    // fprintf(stderr, "Content:\n%s\n", source.c_str());
 }
 
 class BrowserCookieVisitor : public CefCookieVisitor {
@@ -120,74 +178,27 @@ HbbtvCurl::~HbbtvCurl() {
 }
 
 std::string HbbtvCurl::ReadContentType(std::string url, CefRequest::HeaderMap headers) {
+    /* TEST: Neue Version */
     std::string c = singleLineCookies();
     CONSOLE_DEBUG("ReadContentType {}, Cookies {}", url, c);
 
-    char *headerdata = (char*)malloc(HEADERSIZE);
-    memset(headerdata, 0, HEADERSIZE);
+    // load the whole page
+    LoadUrl(url, headers, 1L);
 
-    // set headers as requested
-    struct curl_slist *headerChunk = NULL;
+    // Test content
+    if (std::regex_search(response_content, hbbtv_regex_1) ||
+        std::regex_search(response_content, hbbtv_regex_2) ||
+        std::regex_search(response_content, hbbtv_regex_3)) {
 
-    for (auto itr = headers.begin(); itr != headers.end(); itr++) {
-        std::string headerLine;
-        headerLine.append(itr->first.ToString().c_str());
-        headerLine.append(":");
-        headerLine.append(itr->second.ToString().c_str());
-
-        headerChunk = curl_slist_append(headerChunk, headerLine.c_str());
+        CONSOLE_TRACE("HbbtvCurl::ReadContentType, Found HbbTV Objects, return Content-Type 'application/vnd.hbbtv.xhtml+xml'");
+        return "application/vnd.hbbtv.xhtml+xml";
+    } else {
+        CONSOLE_TRACE("HbbtvCurl::ReadContentType, No HbbTV Objects found, return Content-Type 'text/html'");
+        return "text/html";
     }
-
-    CURL *curl_handle;
-    CURLcode res;
-
-    curl_handle = curl_easy_init();
-
-    curl_easy_setopt(curl_handle, CURLOPT_URL, url.c_str());
-    curl_easy_setopt(curl_handle, CURLOPT_NOPROGRESS, 1L);
-    curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, USER_AGENT);
-    curl_easy_setopt(curl_handle, CURLOPT_HTTPHEADER, headerChunk);
-    curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 1L);
-
-    curl_easy_setopt(curl_handle, CURLOPT_NOBODY, 1L);
-    curl_easy_setopt(curl_handle, CURLOPT_HEADERFUNCTION, WriteHeaderCallback);
-    curl_easy_setopt(curl_handle, CURLOPT_HEADERDATA, headerdata);
-
-    curl_easy_setopt(curl_handle, CURLOPT_COOKIE, c.c_str());
-
-    res = curl_easy_perform(curl_handle);
-
-    if (res == CURLE_OK) {
-        char *redir_url = nullptr;
-        curl_easy_getinfo(curl_handle, CURLINFO_REDIRECT_URL, &redir_url);
-        if (redir_url) {
-            // clear buffer
-            memset(headerdata, 0, HEADERSIZE);
-
-            response_header.clear();
-
-            // reload url
-            CONSOLE_DEBUG("HbbtvCurl::ReadContentType: Redirect URL {}", redir_url);
-
-            redirect_url = redir_url;
-            curl_easy_setopt(curl_handle, CURLOPT_URL, redir_url);
-            curl_easy_perform(curl_handle);
-        }
-    }
-
-    curl_easy_cleanup(curl_handle);
-
-    std::string contentType = response_header["Content-Type"];
-
-    response_header.clear();
-    free(headerdata);
-
-    CONSOLE_TRACE("HbbtvCurl::ReadContentType, Result {}", contentType);
-
-    return contentType;
 }
 
-void HbbtvCurl::LoadUrl(std::string url, CefRequest::HeaderMap headers) {
+void HbbtvCurl::LoadUrl(std::string url, CefRequest::HeaderMap headers, long followLocation) {
     std::string c = singleLineCookies();
     CONSOLE_DEBUG("HbbtvCurl::LoadUrl {}, Cookies {}", url, c);
 
@@ -222,7 +233,7 @@ void HbbtvCurl::LoadUrl(std::string url, CefRequest::HeaderMap headers) {
     curl_easy_setopt(curl_handle, CURLOPT_NOPROGRESS, 1L);
     curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, USER_AGENT);
     curl_easy_setopt(curl_handle, CURLOPT_HTTPHEADER, headerChunk);
-    // curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 1L);
+    curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, followLocation);
 
     curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, WriteContentCallback);
     curl_easy_setopt(curl_handle, CURLOPT_HEADERFUNCTION, WriteHeaderCallback);
@@ -317,7 +328,10 @@ bool JavascriptHandler::OnQuery(CefRefPtr<CefBrowser> browser,
             CONSOLE_DEBUG("Video URL: {}", request.ToString().c_str() + 10);
 
             browserClient->SendToVdrString(CMD_STATUS, "PLAY_VIDEO:");
-            browserClient->set_input_file(request.ToString().c_str() + 10);
+            if (!browserClient->set_input_file(request.ToString().c_str() + 10)) {
+                browserClient->SendToVdrString(CMD_STATUS, "VIDEO_FAILED");
+                return true;
+            }
             browserClient->transcode();
             return true;
         } else if (strncmp(request.ToString().c_str(), "PAUSE_VIDEO", 11) == 0) {
@@ -362,7 +376,10 @@ bool JavascriptHandler::OnQuery(CefRefPtr<CefBrowser> browser,
             CONSOLE_DEBUG("Video URL: {}", request.ToString().c_str() + 17);
 
             browserClient->SendToVdrString(CMD_STATUS, "PLAY_VIDEO:");
-            browserClient->set_input_file(request.ToString().c_str() + 17);
+            if (!browserClient->set_input_file(request.ToString().c_str() + 17)) {
+                browserClient->SendToVdrString(CMD_STATUS, "VIDEO_FAILED");
+                return true;
+            }
             browserClient->transcode();
             return true;
         } else if (strncmp(request.ToString().c_str(), "VIDEO_SIZE: ", 12) == 0) {
@@ -642,38 +659,15 @@ bool BrowserClient::ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr<CefC
             CONSOLE_TRACE("   {}: {}", itra->first.ToString().c_str(), itra->second.ToString().c_str());
         }
 
-        hbbtvCurl.LoadUrl(url, headers);
+        hbbtvCurl.LoadUrl(url, headers, 0L);
 
         responseHeader = hbbtvCurl.GetResponseHeader();
         responseContent = hbbtvCurl.GetResponseContent();
         responseCode = hbbtvCurl.GetResponseCode();
         redirectUrl = hbbtvCurl.GetRedirectUrl();
 
-        /* This is not working as desired
-           TODO: Delete this when finally found a solution
-        std::size_t found = responseContent.find("<head>");
-        if (found == std::string::npos) {
-            found = responseContent.find("<HEAD>");
-        }
-
-        if (found != std::string::npos) {
-            FILE* f = fopen("js/hbbtv_polyfill.js", "r");
-
-            fseek(f, 0, SEEK_END);
-            size_t size = ftell(f);
-            char* buffer = new char[size];
-            rewind(f);
-            fread(buffer, sizeof(char), size, f);
-
-            std::string replacement("<head>\n<script type=\"text/javascript\">\n//<![CDATA[\n");
-            replacement += buffer;
-            replacement += "\n//]]>\n</script>\n\n";
-
-            responseContent.replace(found,6,replacement);
-
-            delete[] buffer;
-        }
-        */
+        // Fix some Pages
+        tryToFixPage(responseContent);
 
         CONSOLE_TRACE("BrowserClient::ProcessRequest, Response Headers");
         for (auto itrb = responseHeader.begin(); itrb != responseHeader.end(); itrb++) {

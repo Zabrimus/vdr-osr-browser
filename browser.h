@@ -54,7 +54,7 @@ public:
     ~HbbtvCurl();
 
     std::string ReadContentType(std::string url, CefRequest::HeaderMap headers);
-    void LoadUrl(std::string url, CefRequest::HeaderMap headers);
+    void LoadUrl(std::string url, CefRequest::HeaderMap headers, long followLocation);
     static std::map<std::string, std::string> GetResponseHeader() { return response_header; }
     static std::string GetResponseContent() { return response_content; }
     std::string GetRedirectUrl() { return redirect_url; }

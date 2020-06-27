@@ -39,8 +39,10 @@ export class VideoHandler {
         }
         // setup mpeg dash player
         if(mimeType.lastIndexOf('application/dash+xml', 0) === 0){
-            window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: DASH VIDEO PLAYER ...');
-            new OipfAVControlMapper(node, true);
+            // TODO: DISABLED DASH PLAYER until a solution has been found
+
+            // window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: DASH VIDEO PLAYER ...');
+            // new OipfAVControlMapper(node, true);
         }
     }
 
