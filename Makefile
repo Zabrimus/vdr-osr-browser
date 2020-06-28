@@ -187,6 +187,9 @@ endif
 ifneq (exists, $(shell test -e Release/vdr-osr-ffmpeg.config && echo exists))
 	sed -e "s#FFMPEG_EXECUTABLE#$(FFMPEG_EXECUTABLE)#" -e "s#FFPROBE_EXECUTABLE#$(FFPROBE_EXECUTABLE)#" vdr-osr-ffmpeg.config.sample > Release/vdr-osr-ffmpeg.config
 endif
+ifneq (exists, $(shell test -e Release/block_url.config && echo exists))
+	cp block_url.config Release/block_url.config
+endif
 
 buildnng:
 ifneq (exists, $(shell test -e thirdparty/nng-$(NNGVERSION)/build/libnng.a && echo exists))

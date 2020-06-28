@@ -13,6 +13,7 @@
 #include <iostream>
 #include <fstream>
 #include <map>
+#include <list>
 #include <regex>
 #include <nanomsg/nn.h>
 #include <nanomsg/pipeline.h>
@@ -30,6 +31,7 @@ BrowserClient *browserClient;
 CefRefPtr<CefCookieManager> cookieManager;
 
 std::map<std::string, std::string> cacheContentType;
+std::list<std::string> urlBlockList;
 
 // optimistic regex to determine a hbbtv page
 std::regex hbbtv_regex_1("type\\s*=\\s*\"application/oipfApplicationManager\"", std::regex::optimize);
@@ -453,6 +455,21 @@ BrowserClient::BrowserClient(spdlog::level::level_enum log_level) {
     transcoder = nullptr;
 
     cookieManager = CefCookieManager::GetGlobalManager(nullptr);
+
+    // read url block pattern
+    std::ifstream infile(exePath + "/block_url.config");
+    if (infile) {
+        std::string str;
+        while (std::getline(infile, str)) {
+            if (str.size() > 0 && str.at(0) != '#') {
+                str.erase(std::remove(str.begin(), str.end(), '\n'), str.end());
+                if (str.size() > 0) {
+                    urlBlockList.push_back(str);
+                }
+            }
+        }
+        infile.close();
+    }
 }
 
 BrowserClient::~BrowserClient() {
@@ -768,9 +785,11 @@ BrowserClient::ReturnValue BrowserClient::OnBeforeResourceLoad(CefRefPtr<CefBrow
     auto url = request->GetURL().ToString();
     CONSOLE_TRACE("BrowserClient::OnBeforeResourceLoad: Current {}, New {}", browser->GetMainFrame()->GetURL().ToString(), url);
 
-    if (url.find("https://de.ioam.de/") != std::string::npos) {
-        fprintf(stderr, "CANCEL ioam\n");
-        return RV_CANCEL;
+    // check if URL is blocked by pattern list
+    for (auto sub : urlBlockList) {
+        if (url.find(sub) != std::string::npos) {
+            return RV_CANCEL;
+        }
     }
 
     // Customize the request header
