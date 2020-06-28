@@ -13,6 +13,7 @@
 #include <limits.h>
 
 #include "logger.h"
+#include "globaldefs.h"
 
 static pid_t ffmpeg_pid;
 bool stop_worker = false;
@@ -151,7 +152,12 @@ bool TranscodeFFmpeg::set_input(const char* input, bool verbose) {
     }
 
     char *ffprobe;
-    asprintf(&ffprobe, "%s -v error -show_entries stream=codec_name,duration -of default=noprint_wrappers=1:nokey=1 -i %s", ffprobe_executable.c_str(), input);
+    std::string chinput(input);
+    replaceAll(chinput, "&", "\\&");
+
+    asprintf(&ffprobe, "%s -v error -show_entries stream=codec_name,duration -of default=noprint_wrappers=1:nokey=1 -i %s ", ffprobe_executable.c_str(), chinput.c_str());
+
+    fprintf(stderr, "FFPROBE: %s\n", ffprobe);
 
     FILE *infoFile = popen(ffprobe, "r");
 
@@ -251,7 +257,11 @@ bool TranscodeFFmpeg::fork_ffmpeg(long start_at_ms) {
         }
 
         cmdline += "-ss " + std::string(ms_to_ffmpeg_time(start_at_ms)) + " ";
-        cmdline += "-i " + input_file + " ";
+
+        std::string ninput(input_file);
+        replaceAll(ninput, "&", "\\&");
+
+        cmdline += "-i " + ninput + " ";
 
         if (copy_audio && copy_video) {
             cmdline += "-codec copy ";
@@ -298,6 +308,12 @@ bool TranscodeFFmpeg::fork_ffmpeg(long start_at_ms) {
         }
 
         cmd_params.push_back((char*)NULL);
+
+        fprintf(stderr, "Commandline:\n");
+        for(auto it = std::begin(cmd_params); it != std::end(cmd_params); ++it) {
+            fprintf(stderr, "%s ", *it);
+        }
+        fprintf(stderr, "\n\n");
 
         // let ffmpeg do the hard work like fixing dts/pts, transcoding, copying streams and all this stuff
         char **command = cmd_params.data();

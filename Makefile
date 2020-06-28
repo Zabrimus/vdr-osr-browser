@@ -44,19 +44,19 @@ CFLAGS = -g -c -O3  -Wall -std=c++11
 #CFLAGS = -c -O0 -g -Wall -std=c++11
 LDFLAGS = -pthread -lrt
 
-SOURCES = main.cpp osrhandler.cpp browserclient.cpp browsercontrol.cpp transcodeffmpeg.cpp schemehandler.cpp logger.cpp javascriptlogging.cpp
+SOURCES = main.cpp osrhandler.cpp browserclient.cpp browsercontrol.cpp transcodeffmpeg.cpp schemehandler.cpp logger.cpp javascriptlogging.cpp globaldefs.cpp
 OBJECTS = $(SOURCES:.cpp=.o)
 
-SOURCES2 = osrclient.cpp logger.cpp
+SOURCES2 = osrclient.cpp logger.cpp globaldefs.cpp
 OBJECTS2 = $(SOURCES2:.cpp=.o)
 
-SOURCES3 = osrclientvideo.cpp logger.cpp
+SOURCES3 = osrclientvideo.cpp logger.cpp globaldefs.cpp
 OBJECTS3 = $(SOURCES3:.cpp=.o)
 
-SOURCES4 = transcodetest.cpp transcodeffmpeg.cpp logger.cpp
+SOURCES4 = transcodetest.cpp transcodeffmpeg.cpp logger.cpp globaldefs.cpp
 OBJECTS4 = $(SOURCES4:.cpp=.o)
 
-SOURCES5 = schemehandler.cpp logger.cpp thirdparty/cefsimple/cefsimple_linux.cpp thirdparty/cefsimple/simple_app.cpp thirdparty/cefsimple/simple_handler.cpp thirdparty/cefsimple/simple_handler_linux.cpp
+SOURCES5 = schemehandler.cpp logger.cpp thirdparty/cefsimple/cefsimple_linux.cpp thirdparty/cefsimple/simple_app.cpp thirdparty/cefsimple/simple_handler.cpp thirdparty/cefsimple/simple_handler_linux.cpp globaldefs.cpp
 OBJECTS5 = $(SOURCES5:.cpp=.o)
 
 EXECUTABLE  = vdrosrbrowser

@@ -5,6 +5,7 @@ VDR OSR Browser Revision History
 - Bugfixes
   new method to determine content-type
   try to fix errors in some HTML pages
+  Video URLs containing a '&' failed to play
 
 - New
   removed dash.js. It's not usable in this environment
