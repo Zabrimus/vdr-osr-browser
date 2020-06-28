@@ -243,7 +243,10 @@ void HbbtvCurl::LoadUrl(std::string url, CefRequest::HeaderMap headers, long fol
     curl_easy_setopt(curl_handle, CURLOPT_NOPROGRESS, 1L);
     curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, USER_AGENT);
     curl_easy_setopt(curl_handle, CURLOPT_HTTPHEADER, headerChunk);
-    curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, followLocation);
+
+    if (followLocation) {
+        curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, followLocation);
+    }
 
     curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, WriteContentCallback);
     curl_easy_setopt(curl_handle, CURLOPT_HEADERFUNCTION, WriteHeaderCallback);
