@@ -195,6 +195,8 @@ std::string HbbtvCurl::ReadContentType(std::string url, CefRequest::HeaderMap he
     // load the whole page
     LoadUrl(url, headers, 1L);
 
+    redirect_url = "";
+
     // Test content
     if (std::regex_search(response_content, hbbtv_regex_1) ||
         std::regex_search(response_content, hbbtv_regex_2) ||
