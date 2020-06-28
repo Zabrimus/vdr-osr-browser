@@ -65,6 +65,16 @@ std::string singleLineCookies() {
     return result;
 }
 
+std::string cookiesForFFmpeg() {
+    std::string result = "";
+
+    for (auto const &item : cookies) {
+        result = result + item.first + ": " + item.second + "\\r\\n";
+    }
+
+    return result;
+}
+
 void replaceAll(std::string &source, std::string search, std::string replacement) {
     size_t pos = source.find(search);
 
@@ -755,6 +765,11 @@ BrowserClient::ReturnValue BrowserClient::OnBeforeResourceLoad(CefRefPtr<CefBrow
     auto url = request->GetURL().ToString();
     CONSOLE_TRACE("BrowserClient::OnBeforeResourceLoad: Current {}, New {}", browser->GetMainFrame()->GetURL().ToString(), url);
 
+    if (url.find("https://de.ioam.de/") != std::string::npos) {
+        fprintf(stderr, "CANCEL ioam\n");
+        return RV_CANCEL;
+    }
+
     // Customize the request header
     CefRequest::HeaderMap hdrMap;
     request->GetHeaderMap(hdrMap);
@@ -949,6 +964,8 @@ bool BrowserClient::set_input_file(const char* input) {
 
     transcoder = new TranscodeFFmpeg();
     transcoder->set_event_callback(eventCallback);
+    transcoder->set_cookies(cookiesForFFmpeg());
+    transcoder->set_user_agent(USER_AGENT);
     return transcoder->set_input(input, false);
 }
 

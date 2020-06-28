@@ -29,6 +29,9 @@ private:
     std::string encode_video_param;
     std::string encode_audio_param;
 
+    std::string user_agent;
+    std::string cookies;
+
 private:
     // fork ffmpeg and processes the input file
     bool fork_ffmpeg(long start_at_ms);
@@ -43,6 +46,8 @@ public:
     TranscodeFFmpeg();
     ~TranscodeFFmpeg();
 
+    void set_user_agent(std::string ua);
+    void set_cookies(std::string co);
     bool set_input(const char* input, bool verbose = false);
 
     std::thread transcode(int (*write_packet)(uint8_t *buf, int buf_size), bool realtime = true);

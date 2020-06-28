@@ -208,12 +208,9 @@ std::string ClientSchemeHandler::GetMimeType(const std::string& resource_path) {
 
     if (sep != std::string::npos) {
         mime_type = CefGetMimeType(resource_path.substr(sep + 1));
-        if (mime_type.empty()) {
-            mime_type = "text/html";
-        }
+        if (!mime_type.empty())
+            return mime_type;
     }
 
-    CONSOLE_TRACE("ClientSchemeHandler::GetMimeType:  {} => {}", resource_path, mime_type);
-
-    return mime_type;
+    return "text/html";
 }

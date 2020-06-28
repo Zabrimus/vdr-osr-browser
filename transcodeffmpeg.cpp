@@ -103,6 +103,22 @@ void TranscodeFFmpeg::read_configuration() {
     }
 }
 
+void TranscodeFFmpeg::set_user_agent(std::string ua) {
+    if (ua.length() > 0) {
+        user_agent = ua;
+    } else {
+        user_agent.clear();
+    }
+}
+
+void TranscodeFFmpeg::set_cookies(std::string co) {
+    if (co.length() > 0) {
+        cookies = co;
+    } else {
+        cookies.clear();
+    }
+}
+
 bool TranscodeFFmpeg::set_input(const char* input, bool verbose) {
     CONSOLE_TRACE("TranscodeFFmpeg::set_input, input = {}", input);
 
@@ -262,6 +278,21 @@ bool TranscodeFFmpeg::fork_ffmpeg(long start_at_ms) {
 
         cmd_params.push_back(strdup(ffmpeg_executable.c_str()));
 
+        // add user agent and cookies
+        if (user_agent.length() > 0) {
+            cmd_params.push_back((char*)"-user_agent");
+            std::string ua("'");
+            ua += user_agent + "'";
+            cmd_params.push_back(strdup(ua.c_str()));
+        }
+
+        if (cookies.length() > 0) {
+            cmd_params.push_back((char*)"-headers");
+            std::string co("$'");
+            co += std::string(cookies) + std::string("'");
+            cmd_params.push_back(strdup(co.c_str()));
+        }
+
         while(getline(cmd, inter, ' ')) {
             cmd_params.push_back(strdup(inter.c_str()));
         }
@@ -270,6 +301,15 @@ bool TranscodeFFmpeg::fork_ffmpeg(long start_at_ms) {
 
         // let ffmpeg do the hard work like fixing dts/pts, transcoding, copying streams and all this stuff
         char **command = cmd_params.data();
+
+        for (auto i: cmd_params) {
+            if (i) {
+                fprintf(stderr, "%s ", i);
+            } else {
+                fprintf(stderr, "\n");
+            }
+        }
+
         execv(command[0], &command[0]);
         exit(0);
     }
