@@ -157,8 +157,6 @@ bool TranscodeFFmpeg::set_input(const char* input, bool verbose) {
 
     asprintf(&ffprobe, "%s -v error -show_entries stream=codec_name,duration -of default=noprint_wrappers=1:nokey=1 -i %s ", ffprobe_executable.c_str(), chinput.c_str());
 
-    fprintf(stderr, "FFPROBE: %s\n", ffprobe);
-
     FILE *infoFile = popen(ffprobe, "r");
 
     long duration = 0;
@@ -309,22 +307,16 @@ bool TranscodeFFmpeg::fork_ffmpeg(long start_at_ms) {
 
         cmd_params.push_back((char*)NULL);
 
+        /*
         fprintf(stderr, "Commandline:\n");
         for(auto it = std::begin(cmd_params); it != std::end(cmd_params); ++it) {
             fprintf(stderr, "%s ", *it);
         }
         fprintf(stderr, "\n\n");
+        */
 
         // let ffmpeg do the hard work like fixing dts/pts, transcoding, copying streams and all this stuff
         char **command = cmd_params.data();
-
-        for (auto i: cmd_params) {
-            if (i) {
-                fprintf(stderr, "%s ", i);
-            } else {
-                fprintf(stderr, "\n");
-            }
-        }
 
         execv(command[0], &command[0]);
         exit(0);
