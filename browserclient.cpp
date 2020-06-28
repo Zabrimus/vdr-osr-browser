@@ -554,8 +554,6 @@ CefRefPtr<CefResourceHandler> BrowserClient::GetResourceHandler(CefRefPtr<CefBro
             request->GetHeaderMap(headers);
 
             // read/find the content type
-            // disabled the cache temporarily
-            /*
             std::string ct;
             auto ctsearch = cacheContentType.find(url);
             if(ctsearch != cacheContentType.end()) {
@@ -563,15 +561,15 @@ CefRefPtr<CefResourceHandler> BrowserClient::GetResourceHandler(CefRefPtr<CefBro
             } else {
                 ct = hbbtvCurl.ReadContentType(url, headers);
             }
-            */
+
             // non-cache Version
-            std::string ct = hbbtvCurl.ReadContentType(url, headers);
+            // std::string ct = hbbtvCurl.ReadContentType(url, headers);
 
             bool isHbbtvHtml = false;
             for (auto const &item : mimeTypes) {
                 if (ct.find(item.second) != std::string::npos) {
                     isHbbtvHtml = true;
-                    // cacheContentType[url] = ct;
+                    cacheContentType[url] = ct;
                     break;
                 }
             }
