@@ -604,23 +604,8 @@ void BrowserClient::OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame>
     loadingStart = false;
 
     if (mode == 2 && injectJavascript) {
-        // enable/disable javascript debug
-        if (logger.isTraceEnabled() || logger.isDebugEnabled()) {
-            frame->ExecuteJavaScript("window._HBBTV_DEBUG_ = true;", frame->GetURL(), 0);
-        } else {
-            frame->ExecuteJavaScript("window._HBBTV_DEBUG_ = false;", frame->GetURL(), 0);
-        }
-
         // inject Javascript
         injectJs(browser, "js/font.js", true, false, "hbbtvfont", false);
-        injectJs(browser, "js/hbbtv_polyfill.js", true, true, "hbbtvpolyfill", false);
-
-        // set current channel
-        char* jscmd;
-        asprintf(&jscmd, "window.HBBTV_POLYFILL_NS = window.HBBTV_POLYFILL_NS || {}; window.HBBTV_POLYFILL_NS.currentChannel = %s;", currentChannel.c_str());
-        frame->ExecuteJavaScript(jscmd, frame->GetURL(), 0);
-        free(jscmd);
-
         injectJavascript = false;
     }
 
@@ -677,6 +662,40 @@ bool BrowserClient::ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr<CefC
 
         // Fix some Pages
         tryToFixPage(responseContent);
+
+        /**
+         * inject hbbtv javascript (start)
+         */
+        char *inject;
+
+        // find header tag (normally it is <head>, but i also found <head id="xxx">)
+        size_t headStart = responseContent.find("<head");
+        size_t headEnd   = responseContent.find(">", headStart);
+        std::string head = responseContent.substr(headStart, headEnd-headStart+1);
+
+        // Enable/disable debug messages
+        asprintf(&inject, "%s\n<script type=\"text/javascript\">window._HBBTV_DEBUG_ = %s;</script>\n",
+                    head.c_str(),
+                    (logger.isTraceEnabled() || logger.isDebugEnabled()) ? "true" : "false");
+        replaceAll(responseContent, head, inject);
+        free(inject);
+
+        // set current channel
+        asprintf(&inject, "%s\n<script type=\"text/javascript\">window.HBBTV_POLYFILL_NS = window.HBBTV_POLYFILL_NS || {}; window.HBBTV_POLYFILL_NS.currentChannel = %s;</script>\n",
+                 head.c_str(),
+                 currentChannel.c_str());
+        replaceAll(responseContent, head, inject);
+        free(inject);
+
+        // inject hbbtv_polyfill.js
+        asprintf(&inject, "%s\n<script id=\"hbbtvpolyfill\" type=\"text/javascript\" src=\"client://js/hbbtv_polyfill.js\"/>\n",
+                  head.c_str());
+        replaceAll(responseContent, head, inject);
+        free(inject);
+
+        /**
+         * inject hbbtv javascript (end)
+         */
 
         CONSOLE_TRACE("BrowserClient::ProcessRequest, Response Headers");
         for (auto itrb = responseHeader.begin(); itrb != responseHeader.end(); itrb++) {

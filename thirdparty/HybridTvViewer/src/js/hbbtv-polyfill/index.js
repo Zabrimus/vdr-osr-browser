@@ -49,7 +49,6 @@ function init() {
 
 if (!document.body) {
     window._HBBTV_DEBUG_ && console.log("hbbtv-polyfill: add as event listener, DOMContentLoaded");
-
     document.addEventListener("DOMContentLoaded", init);
 } else {
     window._HBBTV_DEBUG_ && console.log("hbbtv-polyfill: call init");

@@ -12,6 +12,7 @@ VDR OSR Browser Revision History
   enable HbbTV 2.0(?)
   set user_agent and cookies in ffmpeg
   new config file block_url.config containing patterns for URLs which shall not be loaded (substring search)
+  new method to inject the javascript code (many more channels are now enabled)
 
 2020-06-25: Version 0.0.2
 
