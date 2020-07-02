@@ -174,16 +174,20 @@ class OipfAVControlMapper {
                     var x = position.x;
                     var y = position.y;
 
-
                     signalCef("VIDEO_SIZE: " + width + "," + height + "," + x + "," + y);
                 }
             }
 
-            signalCef("VIDEO_URL:" + originalDataAttribute);
+            // signal video URL and set the timestamp of the transparent video
+            let d = new Date();
+            let n = d.getTime();
+            signalCef("VIDEO_URL:" + String(n) + ":" + originalDataAttribute);
 
             // this.videoElement.src = originalDataAttribute;
             // copy object data url to html5 video tag src attribute ...
-            this.videoElement.src = "client://movie/transparent.webm";
+            this.videoElement.src = "client://movie/transparent_" + String(n) + ".webm";
+
+            window.start_video_quirk();
         }
 
         this.mapAvControlToHtml5Video();
@@ -192,6 +196,7 @@ class OipfAVControlMapper {
         this.registerEmbeddedVideoPlayerEvents(this.avControlObject, this.videoElement);
         this.avControlObject.appendChild(this.videoElement);
         this.avControlObject.playTime = this.videoElement.duration * 1000;
+
         // ANSI CTA-2014-B - 5.7.1.f - 5
         this.avControlObject.error = -1;
     }
@@ -260,6 +265,9 @@ class OipfAVControlMapper {
             this.avControlObject.playState = 0;
             this.avControlObject.playPosition = 0;
             this.avControlObject.speed = 0;
+
+            window.stop_video_quirk();
+
             return true;
         };
         this.avControlObject.seek = (posInMs) => {
@@ -333,10 +341,12 @@ class OipfAVControlMapper {
                         return;
                     }
 
-                    signalCef("CHANGE_VIDEO_URL:" + newSrc);
+                    let d = new Date();
+                    let n = d.getTime();
+                    signalCef("CHANGE_VIDEO_URL:" + String(n) + ":" + newSrc);
 
                     // overwrite src
-                    target.src = "client://movie/transparent.webm";
+                    target.src = "client://movie/transparent_" + String(n) + ".webm";
                 }
             });
         };
@@ -516,6 +526,7 @@ class OipfAVControlMapper {
         videoElement && videoElement.addEventListener && videoElement.addEventListener('durationchange', function () {
             window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: durationchanged');
             objectElement.playTime = videoElement.duration * 1000;
+            console.log('========> durationchanged ' + videoElement.duration * 1000);
         }, false);
     }
 }

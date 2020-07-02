@@ -66,25 +66,29 @@ void TranscodeFFmpeg::read_configuration() {
 
     std::ifstream infile(exepath.substr(0, exepath.find_last_of("/")) + "/vdr-osr-ffmpeg.config");
     if (infile.is_open()) {
-        std::string key;
-        std::string value;
-        char c;
-        while (infile >> key >> c >> value && c == '=') {
-            if (key.at(0) != '#') {
-                if (key == "encode_video") {
-                    encode_video_param = value;
-                } else if (key == "encode_audio") {
-                    encode_audio_param = value;
-                } else if (key == "ffmpeg_executable") {
-                    ffmpeg_executable = std::string(value);
-                } else if (key == "ffprobe_executable") {
-                    ffprobe_executable = std::string(value);
-                }
+        std::string line;
+        while (getline(infile, line)) {
+            if (line[0] == '#' || line.empty()) {
+                continue;
+            }
+
+            auto delimiterPos = line.find("=");
+            auto key = line.substr(0, delimiterPos);
+            auto value = line.substr(delimiterPos + 1);
+            trim(key);
+            trim(value);
+
+            if (key == "encode_video") {
+                encode_video_param = value;
+            } else if (key == "encode_audio") {
+                encode_audio_param = value;
+            } else if (key == "ffmpeg_executable") {
+                ffmpeg_executable = std::string(value);
+            } else if (key == "ffprobe_executable") {
+                ffprobe_executable = std::string(value);
             }
         }
     }
-
-    infile.close();
 
     // check command line and set default values if empty
     if (encode_video_param.empty()) {
@@ -120,8 +124,8 @@ void TranscodeFFmpeg::set_cookies(std::string co) {
     }
 }
 
-bool TranscodeFFmpeg::set_input(const char* input, bool verbose) {
-    CONSOLE_TRACE("TranscodeFFmpeg::set_input, input = {}", input);
+bool TranscodeFFmpeg::set_input(const char* time, const char* input, bool verbose) {
+    CONSOLE_TRACE("TranscodeFFmpeg::set_input, time = {}, input = {}", time, input);
 
     input_file = std::string(input);
 
@@ -156,6 +160,8 @@ bool TranscodeFFmpeg::set_input(const char* input, bool verbose) {
     replaceAll(chinput, "&", "\\&");
 
     asprintf(&ffprobe, "%s -v error -show_entries stream=codec_name,duration -of default=noprint_wrappers=1:nokey=1 -i %s ", ffprobe_executable.c_str(), chinput.c_str());
+
+    CONSOLE_TRACE("call ffprobe: {}", ffprobe);
 
     FILE *infoFile = popen(ffprobe, "r");
 
@@ -199,8 +205,10 @@ bool TranscodeFFmpeg::set_input(const char* input, bool verbose) {
         char *createvideo;
         if (verbose_ffmpeg) {
             asprintf(&createvideo, "%s -y -loop 1 -i movie/transparent-16x16.png -t 21600 -r 1 -c:v libvpx -auto-alt-ref 0 movie/transparent-full.webm", ffmpeg_executable.c_str());
+            CONSOLE_TRACE("call ffmpeg (createvideo): {}", createvideo);
         } else {
             asprintf(&createvideo, "%s -y -hide_banner -loglevel warning -loop 1 -i movie/transparent-16x16.png -t 21600 -r 1 -c:v libvpx -auto-alt-ref 0 movie/transparent-full.webm", ffmpeg_executable.c_str());
+            CONSOLE_TRACE("call ffmpeg (createvideo): {}", createvideo);
         }
 
         int result = system(createvideo);
@@ -213,12 +221,16 @@ bool TranscodeFFmpeg::set_input(const char* input, bool verbose) {
     }
 
     // create transparent video with desired duration
+    transparent_time = time;
+
     char *cvd;
 
     if (verbose_ffmpeg) {
-        asprintf(&cvd,"%s -y -i movie/transparent-full.webm -t %ld -codec copy movie/transparent.webm", ffmpeg_executable.c_str(), duration + 1);
+        asprintf(&cvd,"%s -y -i movie/transparent-full.webm -t %ld -codec copy movie/transparent_%s.webm", ffmpeg_executable.c_str(), duration + 1, time);
+        CONSOLE_TRACE("call ffmpeg (transparent): {}", cvd);
     } else {
-        asprintf(&cvd,"%s -y -hide_banner -loglevel warning -i movie/transparent-full.webm -t %ld -codec copy movie/transparent.webm", ffmpeg_executable.c_str(), duration + 1);
+        asprintf(&cvd,"%s -y -hide_banner -loglevel warning -i movie/transparent-full.webm -t %ld -codec copy movie/transparent_%s.webm", ffmpeg_executable.c_str(), duration + 1, time);
+        CONSOLE_TRACE("call ffmpeg (transparent): {}", cvd);
     }
 
     int result = system(cvd);
@@ -427,6 +439,11 @@ void TranscodeFFmpeg::stop_video() {
     }
 
     ffmpeg_pid = 0;
+
+    char *transvideo;
+    asprintf(&transvideo, "movie/transparent_%s.webm", transparent_time.c_str());
+    unlink(transvideo);
+    free(transvideo);
 }
 
 void TranscodeFFmpeg::speed_video(const char* speed) {

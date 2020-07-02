@@ -9,6 +9,7 @@ class TranscodeFFmpeg {
 private:
     // input file/url
     std::string input_file;
+    std::string transparent_time;
 
     // verbose ffmpeg.
     bool verbose_ffmpeg;
@@ -48,7 +49,7 @@ public:
 
     void set_user_agent(std::string ua);
     void set_cookies(std::string co);
-    bool set_input(const char* input, bool verbose = false);
+    bool set_input(const char* time, const char* input, bool verbose = false);
 
     std::thread transcode(int (*write_packet)(uint8_t *buf, int buf_size), bool realtime = true);
 

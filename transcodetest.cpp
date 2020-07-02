@@ -23,7 +23,7 @@ int main(int argc, char **argv) {
 
     TranscodeFFmpeg *transcoder = new TranscodeFFmpeg();
 
-    if (!transcoder->set_input(argv[1], true)) {
+    if (!transcoder->set_input("0", argv[1], true)) {
         fprintf(stderr, "Some error occured. Aborting...\n");
         exit(1);
     }

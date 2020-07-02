@@ -323,8 +323,13 @@ bool JavascriptHandler::OnQuery(CefRefPtr<CefBrowser> browser,
         if (strncmp(request.ToString().c_str(), "VIDEO_URL:", 10) == 0) {
             CONSOLE_DEBUG("Video URL: {}", request.ToString().c_str() + 10);
 
+            auto video = std::string(request.ToString().c_str() + 10);
+            auto delimiterPos = video.find(":");
+            auto time = video.substr(0, delimiterPos);
+            auto url = video.substr(delimiterPos + 1);
+
             browserClient->SendToVdrString(CMD_STATUS, "PLAY_VIDEO:");
-            if (!browserClient->set_input_file(request.ToString().c_str() + 10)) {
+            if (!browserClient->set_input_file(time.c_str(), url.c_str())) {
                 browserClient->SendToVdrString(CMD_STATUS, "VIDEO_FAILED");
                 return true;
             }
@@ -371,8 +376,13 @@ bool JavascriptHandler::OnQuery(CefRefPtr<CefBrowser> browser,
         } else if (strncmp(request.ToString().c_str(), "CHANGE_VIDEO_URL:", 17) == 0) {
             CONSOLE_DEBUG("Video URL: {}", request.ToString().c_str() + 17);
 
+            auto video = std::string(request.ToString().c_str() + 17);
+            auto delimiterPos = video.find(":");
+            auto time = video.substr(0, delimiterPos);
+            auto url = video.substr(delimiterPos + 1);
+
             browserClient->SendToVdrString(CMD_STATUS, "PLAY_VIDEO:");
-            if (!browserClient->set_input_file(request.ToString().c_str() + 17)) {
+            if (!browserClient->set_input_file(time.c_str(), url.c_str())) {
                 browserClient->SendToVdrString(CMD_STATUS, "VIDEO_FAILED");
                 return true;
             }
@@ -606,6 +616,7 @@ void BrowserClient::OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame>
     if (mode == 2 && injectJavascript) {
         // inject Javascript
         injectJs(browser, "js/font.js", true, false, "hbbtvfont", false);
+        injectJs(browser, "js/video_quirks.js", true, false, "hbbtvvideoquirk", false);
         injectJavascript = false;
     }
 
@@ -943,14 +954,14 @@ void BrowserClient::SendToVdrString(uint8_t messageType, const char* message) {
 }
 
 void BrowserClient::SendToVdrVideoData(uint8_t* message, int size) {
-    CONSOLE_TRACE("Send video buffer to VDR, size of buffer {}", size);
+    // CONSOLE_TRACE("Send video buffer to VDR, size of buffer {}", size);
 
     message[0] = CMD_VIDEO;
     nn_send(toVdrSocketId, message, size, 0);
 }
 
 void BrowserClient::SendToVdrOsd(const char* message, int width, int height) {
-    CONSOLE_TRACE("Send OSD update to VDR, Message {}, Width {}, Height {}", message, width, height);
+    // CONSOLE_TRACE("Send OSD update to VDR, Message {}, Width {}, Height {}", message, width, height);
 
     struct OsdStruct osdStruct = {};
     auto *buffer = new uint8_t[1 + sizeof(struct OsdStruct)];
@@ -972,8 +983,8 @@ void BrowserClient::SendToVdrPing() {
     SendToVdrString(CMD_PING, "B");
 }
 
-bool BrowserClient::set_input_file(const char* input) {
-    CONSOLE_DEBUG("Set Input video {}", input);
+bool BrowserClient::set_input_file(const char* time, const char* input) {
+    CONSOLE_DEBUG("Set Input video, time {}, url {}", time, input);
 
     if (transcoder != nullptr) {
         stop_video();
@@ -986,7 +997,7 @@ bool BrowserClient::set_input_file(const char* input) {
     transcoder->set_event_callback(eventCallback);
     transcoder->set_cookies(cookiesForFFmpeg());
     transcoder->set_user_agent(USER_AGENT);
-    return transcoder->set_input(input, false);
+    return transcoder->set_input(time, input, false);
 }
 
 void BrowserClient::pause_video() {

@@ -138,23 +138,27 @@ void checkInstallation() {
 
     std::ifstream infile2(exepath.substr(0, exepath.find_last_of("/")) + "/vdr-osr-ffmpeg.config");
     if (infile2.is_open()) {
-        std::string key;
-        std::string value;
-        char c;
-        while (infile2 >> key >> c >> value && c == '=') {
-            if (key.at(0) != '#') {
-                if (key == "ffmpeg_executable") {
-                    if (!file_exists(value.c_str())) {
-                        fprintf(stderr, "Configured ffmpeg executable '%s' does not exists. Aborting...\n",
-                                value.c_str());
-                        exit(1);
-                    }
-                } else if (key == "ffprobe_executable") {
-                    if (!file_exists(value.c_str())) {
-                        fprintf(stderr, "Configured ffprobe executable '%s' does not exists. Aborting...\n",
-                                value.c_str());
-                        exit(1);
-                    }
+        std::string line;
+        while (getline(infile2, line)) {
+            if (line[0] == '#' || line.empty()) {
+                continue;
+            }
+
+            auto delimiterPos = line.find("=");
+            auto key = line.substr(0, delimiterPos);
+            auto value = line.substr(delimiterPos + 1);
+            trim(key);
+            trim(value);
+
+            if (key == "ffmpeg_executable") {
+                if (!file_exists(value.c_str())) {
+                    fprintf(stderr, "Configured ffmpeg executable '%s' does not exists. Aborting...\n", value.c_str());
+                    exit(1);
+                }
+            } else if (key == "ffprobe_executable") {
+                if (!file_exists(value.c_str())) {
+                    fprintf(stderr, "Configured ffprobe executable '%s' does not exists. Aborting...\n", value.c_str());
+                    exit(1);
                 }
             }
         }
@@ -294,10 +298,18 @@ int main(int argc, char *argv[]) {
 
     std::ifstream infile(path + "/vdr-osr-browser.config");
     if (infile.is_open()) {
-        std::string key;
-        std::string value;
-        char c;
-        while (infile >> key >> c >> value && c == '=') {
+        std::string line;
+        while (getline(infile, line)) {
+            if (line[0] == '#' || line.empty()) {
+                continue;
+            }
+
+            auto delimiterPos = line.find("=");
+            auto key = line.substr(0, delimiterPos);
+            auto value = line.substr(delimiterPos + 1);
+            trim(key);
+            trim(value);
+
             if (key.at(0) != '#') {
                 if (key == "resourcepath") {
                     if (value == ".") {

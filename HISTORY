@@ -1,6 +1,12 @@
 VDR OSR Browser Revision History
 -----------------------------------
 
+2020-xx-xx: Version 0.0.4
+- Bugfixes
+  the browser caches the video length and subsequent videos had all the same (mostly wrong) length
+  Tatort now plays well including OSD
+  fixed reading config files
+
 2020-06-29: Version 0.0.3
 - Bugfixes
   new method to determine content-type

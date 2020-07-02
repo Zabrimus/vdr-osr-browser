@@ -43,7 +43,7 @@ public:
     void GetViewRect(CefRefPtr<CefBrowser> browser, CefRect &rect) override;
     void OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList &dirtyRects, const void *buffer, int width, int height) override;
 
-    void osdProcessed() { CONSOLE_TRACE("Unlock shm_mutex"); shm_mutex.unlock(); };
+    void osdProcessed() { /* CONSOLE_TRACE("Unlock shm_mutex"); */ shm_mutex.unlock(); };
 
     IMPLEMENT_REFCOUNTING(OSRHandler);
 };
@@ -197,7 +197,7 @@ public:
     void osdProcessed() { if (osrHandler != nullptr) osrHandler->osdProcessed(); };
 
     // transcode functions
-    bool set_input_file(const char* input);
+    bool set_input_file(const char* time, const char* input);
     int transcode();
     void pause_video();
     void resume_video();

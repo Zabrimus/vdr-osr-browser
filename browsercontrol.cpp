@@ -86,7 +86,9 @@ void BrowserControl::Start() {
         }
 
         if (bytes > 0) {
-            CONSOLE_TRACE("Received command from VDR: {}", buf);
+            if (strncmp("OSDU", buf, 4) != 0) {
+                CONSOLE_TRACE("Received command from VDR: {}", buf);
+            }
 
             if (strncmp("OSDU", buf, 4) == 0) {
                 browserClient->osdProcessed();

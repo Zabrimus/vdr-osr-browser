@@ -33,12 +33,12 @@ bool ClientSchemeHandler::Open(CefRefPtr<CefRequest> request, bool& handle_reque
         handle_request = true;
         response_code = 400;
         mime_type = "";
-    } else if (strstr(url.c_str(), "client://movie/transparent.webm") != NULL) {
+    } else if (strstr(url.c_str(), "client://movie/transparent_") != NULL) {
         handle_request = true;
         response_code = 200;
         mime_type = "video/webm";
 
-        ReadFileToData("movie/transparent.webm");
+        ReadFileToData(url.c_str() + 9);
     } else {
         handle_request = true;
         return false;
@@ -61,6 +61,10 @@ void ClientSchemeHandler::GetResponseHeaders(CefRefPtr<CefResponse> response, in
     }
 
     response->SetStatus(response_code);
+
+
+    // add headers
+    response->SetHeaderByName("Cache-Control", "no-store", true);
 }
 
 void ClientSchemeHandler::Cancel() {
