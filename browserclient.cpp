@@ -333,7 +333,6 @@ bool JavascriptHandler::OnQuery(CefRefPtr<CefBrowser> browser,
                 browserClient->SendToVdrString(CMD_STATUS, "VIDEO_FAILED");
                 return true;
             }
-            browserClient->transcode();
             return true;
         } else if (strncmp(request.ToString().c_str(), "PAUSE_VIDEO", 11) == 0) {
             CONSOLE_DEBUG("Video streaming pause");
@@ -386,7 +385,6 @@ bool JavascriptHandler::OnQuery(CefRefPtr<CefBrowser> browser,
                 browserClient->SendToVdrString(CMD_STATUS, "VIDEO_FAILED");
                 return true;
             }
-            browserClient->transcode();
             return true;
         } else if (strncmp(request.ToString().c_str(), "VIDEO_SIZE: ", 12) == 0) {
             browserClient->SendToVdrString(CMD_STATUS, request.ToString().c_str());
@@ -1016,35 +1014,18 @@ void BrowserClient::stop_video() {
     CONSOLE_DEBUG("Stop video");
 
     transcoder->stop_video();
-
-    if (transcode_thread.joinable()) {
-        transcode_thread.join();
-    }
 }
 
 void BrowserClient::seek_video(const char* ms) {
     CONSOLE_DEBUG("Seek video to {} ms", ms);
 
-    transcode_thread = transcoder->seek_video(ms, write_buffer_to_vdr);
-    transcode_thread.detach();
+    transcoder->seek_video(ms, write_buffer_to_vdr);
 }
 
 void BrowserClient::speed_video(const char* speed) {
     CONSOLE_DEBUG("Speed video to speed {}", speed);
 
     transcoder->speed_video(speed);
-}
-
-int BrowserClient::transcode() {
-    if (transcoder == nullptr) {
-        fprintf(stderr, "Internal error: transcoder is null!");
-        return -1;
-    }
-
-    transcode_thread = transcoder->transcode(write_buffer_to_vdr);
-    transcode_thread.detach();
-
-    return 0;
 }
 
 void BrowserClient::heartbeat() {

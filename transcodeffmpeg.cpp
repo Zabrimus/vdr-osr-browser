@@ -16,11 +16,8 @@
 #include "globaldefs.h"
 
 static pid_t ffmpeg_pid;
-bool stop_worker = false;
 const int buffer_size = 32712 + 1; // 188 * 174 + 1 (first byte is reserved)
-const std::string output_file = "ffmpeg_putput.ts";
 int output_fd;
-std::mutex stop_mutex;
 
 void (*event_callback)(std::string cmd)  = nullptr;
 
@@ -48,8 +45,6 @@ std::string getbrowserexepath() {
 
 TranscodeFFmpeg::TranscodeFFmpeg() {
     read_configuration();
-    filled = 0;
-    realtime = true;
 }
 
 TranscodeFFmpeg::~TranscodeFFmpeg() {
@@ -130,30 +125,6 @@ bool TranscodeFFmpeg::set_input(const char* time, const char* input, bool verbos
     input_file = std::string(input);
 
     verbose_ffmpeg = verbose;
-
-    // create pipe
-    bool createPipe = false;
-
-    struct stat sb{};
-    if(stat(output_file.c_str(), &sb) != -1) {
-        if (!S_ISFIFO(sb.st_mode) != 0) {
-            if(remove(output_file.c_str()) != 0) {
-                fprintf(stderr, "File %s exists and is not a pipe. Delete failed. Aborting...\n", output_file.c_str());
-                return false;
-            } else {
-                createPipe = true;
-            }
-        }
-    } else {
-        createPipe = true;
-    }
-
-    if (createPipe) {
-        if (mkfifo(output_file.c_str(), 0666) < 0) {
-            fprintf(stderr, "Unable to create pipe %s. Aborting...\n", output_file.c_str());
-            return false;
-        }
-    }
 
     char *ffprobe;
     std::string chinput(input);
@@ -262,11 +233,7 @@ bool TranscodeFFmpeg::fork_ffmpeg(long start_at_ms) {
             cmdline += "-hide_banner -loglevel warning ";
         }
 
-        if (realtime) {
-            cmdline += "-re ";
-        }
-
-        cmdline += "-ss " + std::string(ms_to_ffmpeg_time(start_at_ms)) + " ";
+        cmdline += "-re -ss " + std::string(ms_to_ffmpeg_time(start_at_ms)) + " ";
 
         std::string ninput(input_file);
         replaceAll(ninput, "&", "\\&");
@@ -289,7 +256,7 @@ bool TranscodeFFmpeg::fork_ffmpeg(long start_at_ms) {
             }
         }
 
-        cmdline += "-y " + output_file;
+        cmdline += "-y -f mpegts udp://127.0.0.1:" + std::to_string(VIDEO_UDP_PORT) + "?pkt_size=188&buffer_size=31960";
 
         // create the final commandline parameter for execv
         std::vector <char*> cmd_params;
@@ -339,12 +306,7 @@ bool TranscodeFFmpeg::fork_ffmpeg(long start_at_ms) {
     return true;
 }
 
-std::thread TranscodeFFmpeg::transcode(int (*write_packet)(uint8_t *buf, int buf_size), bool realtime) {
-    this->realtime = realtime;
-    return std::thread(&TranscodeFFmpeg::transcode_worker, this, write_packet);
-}
-
-std::thread TranscodeFFmpeg::seek_video(const char* ms, int (*write_packet)(uint8_t *buf, int buf_size)) {
+void TranscodeFFmpeg::seek_video(const char* ms, int (*write_packet)(uint8_t *buf, int buf_size)) {
     CONSOLE_TRACE("seek_video, stop video");
     stop_video();
 
@@ -354,61 +316,6 @@ std::thread TranscodeFFmpeg::seek_video(const char* ms, int (*write_packet)(uint
 
     CONSOLE_TRACE("seek_video, fork_ffmpeg");
     fork_ffmpeg(strtol(ms, (char **)nullptr, 10));
-
-    // give ffmpeg some time to start
-    std::this_thread::sleep_for(std::chrono::milliseconds(100)); // TODO: test for the lowest possible value
-
-    CONSOLE_TRACE("seek_video, return thread");
-    return std::thread(&TranscodeFFmpeg::transcode_worker, this, write_packet);
-}
-
-int TranscodeFFmpeg::transcode_worker(int (*write_packet)(uint8_t *buf, int buf_size)) {
-    uint8_t buffer[buffer_size];
-    stop_worker = false;
-
-    stop_mutex.lock();
-
-    CONSOLE_TRACE("transcode_worker start");
-
-    output_fd = open("ffmpeg_putput.ts", O_RDONLY);
-    fcntl(output_fd, F_SETFL, O_NONBLOCK);
-
-    while (!stop_worker) {
-        if (filled) {
-            memcpy(&buffer[1], tsbuf, filled);
-        }
-        // first byte is reserved
-        int bytes = read(output_fd, &buffer[filled + 1], buffer_size - 1 - filled);
-
-        if (bytes == -1) {
-            if (errno == EAGAIN) {
-                std::this_thread::sleep_for(std::chrono::milliseconds(10));
-            } else {
-                stop_worker = true;
-            }
-        } else if (bytes == 0) {
-            CONSOLE_TRACE("transcode_worker no more bytes, stop");
-            stop_worker = true;
-        } else { // we got data
-            bytes = bytes + filled;
-            if ((filled = (bytes % 188)) != 0) {
-                int fullpackets = bytes / 188;
-                bytes = fullpackets * 188; // send only full ts packets
-                memcpy(tsbuf, &buffer[bytes + 1], filled); // save partial tspacket
-            }
-            if (bytes) {// at least one tspacket
-                write_packet(&buffer[0], bytes + 1);
-            }
-        }
-    }
-
-    CONSOLE_TRACE("Close output of transcode_worker");
-
-    close(output_fd);
-
-    stop_mutex.unlock();
-
-    return 0;
 }
 
 void TranscodeFFmpeg::pause_video() {
@@ -420,11 +327,6 @@ void TranscodeFFmpeg::resume_video() {
 }
 
 void TranscodeFFmpeg::stop_video() {
-    stop_worker = true;
-
-    stop_mutex.lock();
-    stop_mutex.unlock();
-
     if (ffmpeg_pid > 0) {
         CONSOLE_TRACE("stop video, kill ffmpeg with pid {}", ffmpeg_pid);
         // kill(ffmpeg_pid, SIGTERM);

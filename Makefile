@@ -53,16 +53,12 @@ OBJECTS2 = $(SOURCES2:.cpp=.o)
 SOURCES3 = osrclientvideo.cpp logger.cpp globaldefs.cpp
 OBJECTS3 = $(SOURCES3:.cpp=.o)
 
-SOURCES4 = transcodetest.cpp transcodeffmpeg.cpp logger.cpp globaldefs.cpp
-OBJECTS4 = $(SOURCES4:.cpp=.o)
-
 SOURCES5 = schemehandler.cpp logger.cpp thirdparty/cefsimple/cefsimple_linux.cpp thirdparty/cefsimple/simple_app.cpp thirdparty/cefsimple/simple_handler.cpp thirdparty/cefsimple/simple_handler_linux.cpp globaldefs.cpp
 OBJECTS5 = $(SOURCES5:.cpp=.o)
 
 EXECUTABLE  = vdrosrbrowser
 EXECUTABLE2  = vdrosrclient
 EXECUTABLE3  = vdrosrvideo
-EXECUTABLE4  = transcodetest
 
 # Starten mit z.B. ./cefsimple --url="file://<pfad>/movie.html"
 EXECUTABLE5  = cefsimple
@@ -125,7 +121,7 @@ NNGLDFLAGS = thirdparty/nng-$(NNGVERSION)/build/libnng.a
 LOGCFLAGS = -Ithirdparty/spdlog/buildbin/include -DSPDLOG_COMPILED_LIB
 LOGLDFLAGS = thirdparty/spdlog/buildbin/lib/libspdlog.a
 
-all: prepareexe emptyvideo buildnng buildspdlog $(SOURCES) $(EXECUTABLE) $(EXECUTABLE2) $(EXECUTABLE3) $(EXECUTABLE4) $(EXECUTABLE5)
+all: prepareexe emptyvideo buildnng buildspdlog $(SOURCES) $(EXECUTABLE) $(EXECUTABLE2) $(EXECUTABLE3) $(EXECUTABLE5)
 
 release:
 	$(MAKE) PACKAGED_CEF=2
@@ -145,10 +141,6 @@ $(EXECUTABLE2): $(OBJECTS2) transcodeffmpeg.h globaldefs.h
 $(EXECUTABLE3): $(OBJECTS3) transcodeffmpeg.h globaldefs.h
 	$(CC) $(OBJECTS3) $(NNGCFLAGS) $(LOGCFLAGS) -o $@ -pthread $(NNGLDFLAGS) $(LOGLDFLAGS)
 	mv $(EXECUTABLE3) Release
-
-$(EXECUTABLE4): $(OBJECTS4) transcodeffmpeg.h globaldefs.h
-	$(CC) -O3 $(OBJECTS4) $(NNGCFLAGS) $(LOGCFLAGS) -o $@ -pthread $(NNGLDFLAGS) $(LOGLDFLAGS)
-	mv $(EXECUTABLE4) Release
 
 $(EXECUTABLE5): $(OBJECTS5)
 	$(CC) -O3 $(OBJECTS5) $(LOGCFLAGS) $(CEFCFLAGS) -o $@ -pthread $(LDFLAGS) $(LOGLDFLAGS) $(CEFLDFLAGS)
@@ -236,7 +228,7 @@ DEPS := $(OBJECTS:.o=.d)
 -include $(DEPS)
 
 clean:
-	rm -f $(OBJECTS) $(EXECUTABLE) $(OBJECTS2) $(EXECUTABLE2) $(OBJECTS3) $(EXECUTABLE3) $(OBJECTS4) $(EXECUTABLE4) *.d tests/*.d
+	rm -f $(OBJECTS) $(EXECUTABLE) $(OBJECTS2) $(EXECUTABLE2) $(OBJECTS3) $(EXECUTABLE3) *.d tests/*.d
 	rm -Rf cef_binary*
 	rm -Rf Release
 	rm -Rf thirdparty/nng-$(NNGVERSION)/build

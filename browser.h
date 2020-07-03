@@ -113,7 +113,6 @@ private:
     JavascriptHandler *handler;
 
     TranscodeFFmpeg *transcoder;
-    std::thread transcode_thread;
 
     std::string responseContent;
     std::map<std::string, std::string> responseHeader;

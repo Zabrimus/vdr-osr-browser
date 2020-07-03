@@ -6,11 +6,11 @@
 #include "spdlog/sinks/rotating_file_sink.h"
 #include "spdlog/fmt/bin_to_hex.h"
 
-#define CONSOLE_TRACE(...)     if (logger.level() == spdlog::level::trace) logger.current()->trace(__VA_ARGS__);
-#define CONSOLE_DEBUG(...)     logger.current()->debug(__VA_ARGS__);
-#define CONSOLE_INFO(...)      logger.current()->info(__VA_ARGS__);
-#define CONSOLE_ERROR(...)     logger.current()->error(__VA_ARGS__);
-#define CONSOLE_CRITICAL(...)  logger.current()->critical(__VA_ARGS__);
+#define CONSOLE_TRACE(...)     if (logger.level() == spdlog::level::trace) logger.current()->trace(__VA_ARGS__)
+#define CONSOLE_DEBUG(...)     logger.current()->debug(__VA_ARGS__)
+#define CONSOLE_INFO(...)      logger.current()->info(__VA_ARGS__)
+#define CONSOLE_ERROR(...)     logger.current()->error(__VA_ARGS__)
+#define CONSOLE_CRITICAL(...)  logger.current()->critical(__VA_ARGS__)
 
 class Logger {
 private:

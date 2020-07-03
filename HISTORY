@@ -7,6 +7,9 @@ VDR OSR Browser Revision History
   Tatort now plays well including OSD
   fixed reading config files
 
+- New
+  changed video streaming to UDP (at least VDR HbbTV Plugin v0.0.4 is mandatory)
+
 2020-06-29: Version 0.0.3
 - Bugfixes
   new method to determine content-type
