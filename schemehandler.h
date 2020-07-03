@@ -1,5 +1,5 @@
-#ifndef SCHEMEHANDLER_H
-#define SCHEMEHANDLER_H
+#ifndef VDR_OSR_BROWSER_SCHEMEHANDLER_H
+#define VDR_OSR_BROWSER_SCHEMEHANDLER_H
 
 #include "cef/cef_scheme.h"
 #include "include/wrapper/cef_helpers.h"
@@ -48,4 +48,4 @@ private:
     DISALLOW_COPY_AND_ASSIGN(ClientSchemeHandler);
 };
 
-#endif // SCHEMEHANDLER_H
+#endif // VDR_OSR_BROWSER_SCHEMEHANDLER_H

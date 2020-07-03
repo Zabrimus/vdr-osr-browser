@@ -1,5 +1,5 @@
-#ifndef LOGGER_H
-#define LOGGER_H
+#ifndef VDR_OSR_BROWSER_LOGGER_H
+#define VDR_OSR_BROWSER_LOGGER_H
 
 #include "spdlog/spdlog.h"
 #include "spdlog/sinks/stdout_color_sinks.h"
@@ -51,4 +51,4 @@ public:
 
 extern Logger logger;
 
-#endif // LOGGER_H
+#endif // VDR_OSR_BROWSER_LOGGER_H

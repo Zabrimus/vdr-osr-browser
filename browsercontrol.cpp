@@ -15,7 +15,6 @@
 #include <cmath>
 #include "include/cef_v8.h"
 #include <nanomsg/nn.h>
-#include <nanomsg/reqrep.h>
 #include <nanomsg/pipeline.h>
 #include "globaldefs.h"
 #include "browser.h"
@@ -33,15 +32,13 @@ BrowserControl::~BrowserControl() {
     if (fromVdrSocketId > 0) {
         nn_close(fromVdrSocketId);
     }
-};
+}
 
 void BrowserControl::LoadURL(const CefString& url) {
     CONSOLE_TRACE("Current URL: {}, New URL: {}", browser->GetMainFrame()->GetURL().ToString(), url.ToString());
 
     //if (browser->GetMainFrame()->GetURL().compare(url)) {
         browser->StopLoad();
-
-        browserClient->setLoadingStart(true);
         browser->GetMainFrame()->LoadURL(url);
     //} else {
     //    browser->GetHost()->Invalidate(PET_VIEW);
@@ -50,7 +47,7 @@ void BrowserControl::LoadURL(const CefString& url) {
 
 void BrowserControl::PauseRender() {
     browser->GetHost()->WasHidden(true);
-};
+}
 
 void BrowserControl::ResumeRender() {
     browser->GetHost()->WasHidden(false);
@@ -73,7 +70,7 @@ void BrowserControl::Start() {
         exit(1);
     }
 
-    if ((fromVdrEndpointId = nn_bind(fromVdrSocketId, FROM_VDR_CHANNEL)) < 0) {
+    if (nn_bind(fromVdrSocketId, FROM_VDR_CHANNEL) < 0) {
         fprintf(stderr, "BrowserControl: unable to bind nanomsg socket to %s\n", FROM_VDR_CHANNEL);
     }
 

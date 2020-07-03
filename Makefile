@@ -123,7 +123,7 @@ LOGLDFLAGS = thirdparty/spdlog/buildbin/lib/libspdlog.a
 
 all: prepareexe emptyvideo buildnng buildspdlog $(SOURCES) $(EXECUTABLE) $(EXECUTABLE2) $(EXECUTABLE3) $(EXECUTABLE5)
 
-release:
+release: prepare_release
 	$(MAKE) PACKAGED_CEF=2
 
 dist:

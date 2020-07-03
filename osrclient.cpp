@@ -15,7 +15,6 @@
 #include <cstring>
 #include <sys/time.h>
 #include <nanomsg/nn.h>
-#include <nanomsg/reqrep.h>
 #include <nanomsg/pipeline.h>
 #include "globaldefs.h"
 
@@ -127,7 +126,7 @@ void ProcessArgs(int argc, char** argv)
 bool sendCommand(int socketId, const char *buffer) {
     char *response = nullptr;
     bool result;
-    int bytes = -1;
+    int bytes;
 
     if ((bytes = nn_send(socketId, buffer, strlen(buffer) + 1, 0)) < 0) {
         fprintf(stderr, "Unable to send command '%s'\n", buffer);
@@ -137,7 +136,7 @@ bool sendCommand(int socketId, const char *buffer) {
 
     result = true;
 
-    if (bytes > 0 && (bytes = nn_recv(socketId, &response, NN_MSG, 0)) < 0) {
+    if (bytes > 0 && nn_recv(socketId, &response, NN_MSG, 0) < 0) {
         fprintf(stderr, "Unable to read response for '%s'\n", buffer);
         result = false;
     } else {
@@ -260,7 +259,7 @@ int main(int argc, char **argv)
                 unsigned long dirtyRecs = 0;
                 unsigned char type;
 
-                if ((bytes = nn_recv(streamSocketId, &type, 1, 0)) > 0) {
+                if (nn_recv(streamSocketId, &type, 1, 0) > 0) {
                     if (type != 2) {
                         continue;
                     }
@@ -281,26 +280,26 @@ int main(int argc, char **argv)
 
                     // read coordinates and size
                     int x, y, w, h;
-                    if ((bytes = nn_recv(streamSocketId, &x, sizeof(x), 0)) > 0) {
+                    if (nn_recv(streamSocketId, &x, sizeof(x), 0) > 0) {
                         printf("X: %d\n", x);
                     }
 
-                    if ((bytes = nn_recv(streamSocketId, &y, sizeof(y), 0)) > 0) {
+                    if (nn_recv(streamSocketId, &y, sizeof(y), 0) > 0) {
                         printf("Y: %d\n", y);
                     }
 
-                    if ((bytes = nn_recv(streamSocketId, &w, sizeof(w), 0)) > 0) {
+                    if (nn_recv(streamSocketId, &w, sizeof(w), 0) > 0) {
                         printf("W: %d\n", w);
                     }
 
-                    if ((bytes = nn_recv(streamSocketId, &h, sizeof(h), 0)) > 0) {
+                    if (nn_recv(streamSocketId, &h, sizeof(h), 0) > 0) {
                         printf("H: %d\n", h);
                     }
 
                     // read buffer
                     unsigned long *buffer = (unsigned long*) malloc(4 * w);
                     for (int j = 0; j < h; ++j) {
-                        if ((bytes = nn_recv(streamSocketId, buffer, 4 * w, 0)) > 0) {
+                        if (nn_recv(streamSocketId, buffer, 4 * w, 0) > 0) {
                             // printf("Line %u, size %lu\n", j, bytes);
                         }
                     }

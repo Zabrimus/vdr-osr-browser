@@ -19,12 +19,10 @@
 #include <sys/stat.h>
 #include <nanomsg/nn.h>
 #include <nanomsg/pipeline.h>
-#include <nanomsg/reqrep.h>
 #include "main.h"
 #include "browser.h"
 #include "schemehandler.h"
 #include "globaldefs.h"
-#include "logger.h"
 
 // I'm not sure, if this is really needed anymore
 bool NativeJsHandler::Execute(const CefString& name, CefRefPtr<CefV8Value> object, const CefV8ValueList& arguments, CefRefPtr<CefV8Value>& retval, CefString& exception) {
@@ -101,23 +99,25 @@ void startBrowserControl(BrowserControl ctrl) {
     kill(getpid(), SIGINT);
 }
 
+/*
 void quit_handler(int sig) {
-    /*
+    *
     CefQuitMessageLoop();
 
     if (browser != nullptr) {
         delete browser;
         browser = nullptr;
     }
-    */
+    *
 
-    /*
+    *
     signal(SIGINT, SIG_DFL);
     signal(SIGQUIT, SIG_DFL);
 
     raise(sig);
-    */
+    *
 }
+*/
 
 // do some very first checks
 inline bool file_exists(const char* name) {
@@ -170,14 +170,13 @@ void checkInstallation() {
 
     // check if sockets can be opened
     int socketId;
-    int endpointId;
 
     if ((socketId = nn_socket(AF_SP, NN_PUSH)) < 0) {
         fprintf(stderr, "Unable to create nanomsg NN_PUSH socket. Aborting...\n");
         exit(1);
     }
 
-    if ((endpointId = nn_bind(socketId, TO_VDR_CHANNEL)) < 0) {
+    if ((nn_bind(socketId, TO_VDR_CHANNEL)) < 0) {
         fprintf(stderr, "Unable to bind nanomsg socket to %s. Please check the file permissions. Aborting...\n",
                 TO_VDR_CHANNEL);
         exit(1);
@@ -190,7 +189,7 @@ void checkInstallation() {
         exit(1);
     }
 
-    if ((endpointId = nn_connect(socketId, FROM_VDR_CHANNEL)) < 0) {
+    if ((nn_connect(socketId, FROM_VDR_CHANNEL)) < 0) {
         fprintf(stderr, "Unable to bind nanomsg socket to %s. Please check the file permissions. Aborting...\n",
                 FROM_VDR_CHANNEL);
         exit(1);
@@ -270,7 +269,7 @@ int main(int argc, char *argv[]) {
     CONSOLE_INFO("In Main, argc={}, Parameter:", argc);
     for (int i = 0; i < argc; ++i) {
         CONSOLE_INFO("   {}", argv[i]);
-    };
+    }
 
     CefMainArgs main_args(argc, argv);
     CefRefPtr<MainApp> app(new MainApp);

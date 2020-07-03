@@ -1,5 +1,5 @@
-#ifndef TRANSCODEFFMPEG_H
-#define TRANSCODEFFMPEG_H
+#ifndef VDR_OSR_BROWSER_TRANSCODEFFMPEG_H
+#define VDR_OSR_BROWSER_TRANSCODEFFMPEG_H
 
 #include <cstdint>
 #include <string>
@@ -48,8 +48,8 @@ public:
     void pause_video();
     void resume_video();
     void stop_video();
-    void seek_video(const char* ms, int (*write_packet)(uint8_t *buf, int buf_size));
+    void seek_video(const char* ms);
     void speed_video(const char* speed);
 };
 
-#endif // TRANSCODEFFMPEG_H
+#endif // VDR_OSR_BROWSER_TRANSCODEFFMPEG_H

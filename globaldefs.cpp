@@ -1,8 +1,5 @@
 #include "globaldefs.h"
 #include <algorithm>
-#include <functional>
-#include <cctype>
-#include <locale>
 
 void replaceAll(std::string &source, std::string search, std::string replacement) {
     size_t pos = source.find(search);

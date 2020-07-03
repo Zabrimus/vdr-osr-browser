@@ -1,23 +1,17 @@
 #include "transcodeffmpeg.h"
-#include <sys/stat.h>
 #include <sys/wait.h>
 #include <unistd.h>
-#include <iostream>
 #include <fstream>
 #include <algorithm>
 #include <string.h>
 #include <vector>
 #include <sstream>
-#include <signal.h>
-#include <fcntl.h>
 #include <limits.h>
 
 #include "logger.h"
 #include "globaldefs.h"
 
 static pid_t ffmpeg_pid;
-const int buffer_size = 32712 + 1; // 188 * 174 + 1 (first byte is reserved)
-int output_fd;
 
 void (*event_callback)(std::string cmd)  = nullptr;
 
@@ -306,7 +300,7 @@ bool TranscodeFFmpeg::fork_ffmpeg(long start_at_ms) {
     return true;
 }
 
-void TranscodeFFmpeg::seek_video(const char* ms, int (*write_packet)(uint8_t *buf, int buf_size)) {
+void TranscodeFFmpeg::seek_video(const char* ms) {
     CONSOLE_TRACE("seek_video, stop video");
     stop_video();
 

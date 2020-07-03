@@ -1,5 +1,5 @@
-#ifndef GLOBALDEFS_H
-#define GLOBALDEFS_H
+#ifndef VDR_OSR_BROWSER_GLOBALDEFS_H
+#define VDR_OSR_BROWSER_GLOBALDEFS_H
 
 #include <string>
 
@@ -35,4 +35,4 @@ std::string rtrim_copy(std::string s);
 // trim from both ends (copying)
 std::string trim_copy(std::string s);
 
-#endif // GLOBALDEFS_H
+#endif // VDR_OSR_BROWSER_GLOBALDEFS_H

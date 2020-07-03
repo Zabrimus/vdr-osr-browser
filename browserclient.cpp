@@ -22,7 +22,6 @@
 #include "include/cef_cookie.h"
 #include "globaldefs.h"
 #include "browser.h"
-#include "logger.h"
 #include "javascriptlogging.h"
 
 #define HEADERSIZE (4 * 1024)
@@ -52,10 +51,6 @@ struct OsdStruct {
 std::map<std::string, std::string> HbbtvCurl::response_header;
 std::string HbbtvCurl::response_content;
 static std::map<std::string, std::string> cookies;
-
-int shmid;
-uint8_t *shmp;
-std::mutex shm_mutex;
 
 std::string singleLineCookies() {
     std::string result = "";
@@ -407,7 +402,7 @@ BrowserClient::BrowserClient(spdlog::level::level_enum log_level) {
         fprintf(stderr, "BrowserClient: unable to create nanomsg socket\n");
     }
 
-    if ((toVdrEndpointId = nn_bind(toVdrSocketId, TO_VDR_CHANNEL)) < 0) {
+    if (nn_bind(toVdrSocketId, TO_VDR_CHANNEL) < 0) {
         fprintf(stderr, "BrowserClient: unable to bind nanomsg socket to %s\n", TO_VDR_CHANNEL);
     }
 
@@ -609,7 +604,6 @@ void BrowserClient::OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame>
     }
 
     CEF_REQUIRE_UI_THREAD();
-    loadingStart = false;
 
     if (mode == 2 && injectJavascript) {
         // inject Javascript
@@ -839,10 +833,6 @@ CefRefPtr<CefDisplayHandler> BrowserClient::GetDisplayHandler() {
     return nullptr;
 }
 
-void BrowserClient::setLoadingStart(bool loading) {
-    loadingStart = loading;
-}
-
 void BrowserClient::injectJs(CefRefPtr<CefBrowser> browser, std::string url, bool defer, bool headerStart, std::string htmlid, bool insert) {
     if (insert) {
         // inject whole javascript file into page
@@ -862,7 +852,7 @@ void BrowserClient::injectJs(CefRefPtr<CefBrowser> browser, std::string url, boo
         FILE* f = fopen(url.c_str(), "r");
 
         fseek(f, 0, SEEK_END);
-        size_t size = ftell(f);
+        long size = ftell(f);
         char* buffer = new char[size];
         rewind(f);
         fread(buffer, sizeof(char), size, f);
@@ -932,11 +922,6 @@ void BrowserClient::eventCallback(std::string cmd) {
     browserClient->SendToVdrString(CMD_STATUS, cmd.c_str());
 }
 
-int BrowserClient::write_buffer_to_vdr(uint8_t *buf, int buf_size) {
-    browserClient->SendToVdrVideoData(buf, buf_size);
-    return buf_size;
-}
-
 void BrowserClient::SendToVdrString(uint8_t messageType, const char* message) {
     if (messageType != 5) {
         CONSOLE_TRACE("Send String to VDR, Message {}", message);
@@ -949,13 +934,6 @@ void BrowserClient::SendToVdrString(uint8_t messageType, const char* message) {
     nn_send(toVdrSocketId, buffer, strlen(message) + 2, 0);
 
     free(buffer);
-}
-
-void BrowserClient::SendToVdrVideoData(uint8_t* message, int size) {
-    // CONSOLE_TRACE("Send video buffer to VDR, size of buffer {}", size);
-
-    message[0] = CMD_VIDEO;
-    nn_send(toVdrSocketId, message, size, 0);
 }
 
 void BrowserClient::SendToVdrOsd(const char* message, int width, int height) {
@@ -1019,7 +997,7 @@ void BrowserClient::stop_video() {
 void BrowserClient::seek_video(const char* ms) {
     CONSOLE_DEBUG("Seek video to {} ms", ms);
 
-    transcoder->seek_video(ms, write_buffer_to_vdr);
+    transcoder->seek_video(ms);
 }
 
 void BrowserClient::speed_video(const char* speed) {

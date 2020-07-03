@@ -77,14 +77,13 @@ int main(int argc, char **argv)
 
     // bind socket
     int toVdrSocketId;
-    int toVdrEndpointId;
 
     if ((toVdrSocketId = nn_socket(AF_SP, NN_PUSH)) < 0) {
         fprintf(stderr, "unable to create nanomsg socket\n");
         exit(1);
     }
 
-    if ((toVdrEndpointId = nn_bind(toVdrSocketId, TO_VDR_CHANNEL)) < 0) {
+    if (nn_bind(toVdrSocketId, TO_VDR_CHANNEL) < 0) {
         fprintf(stderr, "unable to bind nanomsg socket to %s\n", TO_VDR_CHANNEL);
         exit(1);
     }

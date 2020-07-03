@@ -1,5 +1,5 @@
-#ifndef JAVASCRIPTLOGGING_H
-#define JAVASCRIPTLOGGING_H
+#ifndef VDR_OSR_BROWSER_JAVASCRIPTLOGGING_H
+#define VDR_OSR_BROWSER_JAVASCRIPTLOGGING_H
 
 #include "include/cef_display_handler.h"
 #include "logger.h"
@@ -21,4 +21,4 @@ class JavascriptLogging : public CefDisplayHandler {
     IMPLEMENT_REFCOUNTING(JavascriptLogging);
 };
 
-#endif // JAVASCRIPTLOGGING_H
+#endif // VDR_OSR_BROWSER_JAVASCRIPTLOGGING_H

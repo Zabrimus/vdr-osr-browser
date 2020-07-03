@@ -1,5 +1,5 @@
-#ifndef BROWSER_H
-#define BROWSER_H
+#ifndef VDR_OSR_BROWSER_BROWSER_H
+#define VDR_OSR_BROWSER_BROWSER_H
 
 #include <fstream>
 #include <thread>
@@ -130,14 +130,11 @@ private:
 
     // sockets
     int toVdrSocketId;
-    int toVdrEndpointId;
 
     // heatbeat thread
     std::thread heartbeat_thread;
     bool heartbeat_running;
     void heartbeat();
-
-    bool loadingStart;
 
     void injectJs(CefRefPtr<CefBrowser> browser, std::string url, bool sync, bool headerStart, std::string htmlid, bool insert = false);
 
@@ -149,7 +146,6 @@ public:
     explicit BrowserClient(spdlog::level::level_enum log_level);
     ~BrowserClient() override;
 
-    void setLoadingStart(bool loading);
     void setBrowserControl(BrowserControl *ctl) { this->handler->SetBrowserControl(ctl); }
 
     // getter for the different handler
@@ -197,7 +193,6 @@ public:
 
     // transcode functions
     bool set_input_file(const char* time, const char* input);
-    int transcode();
     void pause_video();
     void resume_video();
     void stop_video();
@@ -206,12 +201,10 @@ public:
 
     //
     void SendToVdrString(uint8_t messageType, const char* message);
-    void SendToVdrVideoData(uint8_t* message, int size);
     void SendToVdrOsd(const char* message, int width, int height);
     void SendToVdrPing();
 
     void setRenderSize(int width, int height) { osrHandler->setRenderSize(width, height); };
-    static int write_buffer_to_vdr(uint8_t *buf, int buf_size);
     static void eventCallback(std::string cmd);
 
     //
@@ -246,10 +239,9 @@ private:
     bool isRunning;
 
     int fromVdrSocketId;
-    int fromVdrEndpointId;
 
     std::string url;
 };
 
 
-#endif // BROWSER_H
+#endif // VDR_OSR_BROWSER_BROWSER_H

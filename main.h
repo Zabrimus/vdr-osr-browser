@@ -1,5 +1,5 @@
-#ifndef BROWSER_MAIN_H
-#define BROWSER_MAIN_H
+#ifndef VDR_OSR_BROWSER_MAIN_H
+#define VDR_OSR_BROWSER_MAIN_H
 
 #include "include/cef_app.h"
 #include "include/wrapper/cef_message_router.h"
@@ -46,4 +46,4 @@ public:
     IMPLEMENT_REFCOUNTING(NativeJsHandler);
 };
 
-#endif // BROWSER_MAIN_H
+#endif // VDR_OSR_BROWSER_MAIN_H
