@@ -384,6 +384,10 @@ bool JavascriptHandler::OnQuery(CefRefPtr<CefBrowser> browser,
         } else if (strncmp(request.ToString().c_str(), "VIDEO_SIZE: ", 12) == 0) {
             browserClient->SendToVdrString(CMD_STATUS, request.ToString().c_str());
             return true;
+        } else if (strncmp(request.ToString().c_str(), "CHANGE_URL: ", 12) == 0) {
+            CefString url(request.ToString().substr(12));
+            browserControl->LoadURL(url);
+            return true;
         }
     }
 
@@ -624,6 +628,18 @@ void BrowserClient::OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame>
     frame->ExecuteJavaScript("if (document.getElementById('oipfCap'))document.getElementById('oipfCap').style.setProperty('visibility', 'hidden');", frame->GetURL(), 0);
     frame->ExecuteJavaScript("if (document.getElementById('oipfDrm'))document.getElementById('oipfDrm').style.setProperty('visibility', 'hidden');", frame->GetURL(), 0);
 
+    // inject all currently existing app/url
+    for (auto const &item : appUrls) {
+        {
+            // construct the javascript command
+            std::ostringstream stringStream;
+            stringStream << "if (window._HBBTV_APPURL_) window._HBBTV_APPURL_.set('" << item.first << "','" << item.second << "');";
+            auto script = stringStream.str();
+            auto frame = browser->GetMainFrame();
+            frame->ExecuteJavaScript(script, frame->GetURL(), 0);
+        }
+    }
+
     if (logger.isTraceEnabled()) {
         frame->GetSource(new FrameContentLogger());
     }
@@ -680,6 +696,12 @@ bool BrowserClient::ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr<CefC
         asprintf(&inject, "%s\n<script type=\"text/javascript\">window._HBBTV_DEBUG_ = %s;</script>\n",
                     head.c_str(),
                     (logger.isTraceEnabled() || logger.isDebugEnabled()) ? "true" : "false");
+        replaceAll(responseContent, head, inject);
+        free(inject);
+
+        // create global map for application ids/urls
+        asprintf(&inject, "%s\n<script type=\"text/javascript\">window._HBBTV_APPURL_ = new Map();</script>\n",
+                 head.c_str());
         replaceAll(responseContent, head, inject);
         free(inject);
 
@@ -857,7 +879,7 @@ void BrowserClient::injectJs(CefRefPtr<CefBrowser> browser, std::string url, boo
         rewind(f);
         fread(buffer, sizeof(char), size, f);
 
-        fprintf(stderr, "Buffer: %s\n", buffer);
+        // fprintf(stderr, "Buffer: %s\n", buffer);
 
         stringStream << "e.textContent=`//<![CDATA[\n" << buffer << "\n//]]>\n`;";
 
@@ -873,7 +895,7 @@ void BrowserClient::injectJs(CefRefPtr<CefBrowser> browser, std::string url, boo
 
         auto script = stringStream.str();
 
-        fprintf(stderr, "SCRIPT\n%s\n", script.c_str());
+        // fprintf(stderr, "SCRIPT\n%s\n", script.c_str());
 
         auto frame = browser->GetMainFrame();
         frame->ExecuteJavaScript(script, frame->GetURL(), 0);
@@ -1011,4 +1033,8 @@ void BrowserClient::heartbeat() {
         SendToVdrPing();
         std::this_thread::sleep_for (std::chrono::seconds(20));
     }
+}
+
+void BrowserClient::AddAppUrl(std::string id, std::string url) {
+    appUrls.emplace(id, url);
 }

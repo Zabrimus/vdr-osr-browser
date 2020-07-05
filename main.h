@@ -37,13 +37,4 @@ private:
     IMPLEMENT_REFCOUNTING(MainApp);
 };
 
-class NativeJsHandler : public CefV8Handler {
-public:
-    NativeJsHandler() = default;
-
-    bool Execute(const CefString& name, CefRefPtr<CefV8Value> object, const CefV8ValueList& arguments, CefRefPtr<CefV8Value>& retval, CefString& exception) override;
-
-    IMPLEMENT_REFCOUNTING(NativeJsHandler);
-};
-
 #endif // VDR_OSR_BROWSER_MAIN_H

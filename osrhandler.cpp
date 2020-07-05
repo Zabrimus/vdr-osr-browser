@@ -65,7 +65,7 @@ OSRHandler::~OSRHandler() {
         // Either this process or VDR removes the shared memory
     }
 
-    fprintf(stderr, "Delete shared memory\n");
+    // fprintf(stderr, "Delete shared memory\n");
 }
 
 void OSRHandler::setRenderSize(int width, int height) {
@@ -79,14 +79,6 @@ void OSRHandler::GetViewRect(CefRefPtr<CefBrowser> browser, CefRect &rect) {
 
 void OSRHandler::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList &dirtyRects, const void *buffer, int width, int height) {
     if (shmp != nullptr) {
-        if (width > 1920) {
-            fprintf(stderr, "Warn: Width %d is too high. Maximum is 1920", width);
-        }
-
-        if (height > 1080) {
-            fprintf(stderr, "Warn: Height %d is too high. Maximum is 1080", height);
-        }
-
         int w = std::min(width, 1920);
         int h = std::min(height, 1080);
 

@@ -831,20 +831,39 @@ const hbbtvFn = function () {
     };
 
     Application.prototype.createApplication = function (uri, createChild) {
+        window._HBBTV_DEBUG__ && console.log('hbbtv-polyfill: createApplication: ' + uri);
 
-        // ignore uris starting with dvb://
-        // this works with HbbTV of ZDF. If there are some channels, which now have issues,
-        // further investigation must take place.
-        if (uri.startsWith("dvb://")) {
-            return false;
+        var newLocation = uri;
+
+        if (uri.startsWith("dvb://current.ait")) {
+            var app;
+
+            app = /dvb:\/\/current\.ait\/(.*)\.(.*)(\?.*)/.exec(uri);
+            if (app == undefined) {
+                app = /dvb:\/\/current\.ait\/(.*)\.(.*)/.exec(uri);
+            }
+
+            if (app) {
+                let appid = ('0' + app[2].toLocaleUpperCase()).slice(-2);
+                let newurl = window._HBBTV_APPURL_.get(appid);
+
+                if (newurl) {
+                    newLocation = newurl + (app[3] ? app[3] : "");
+                }
+            }
         }
 
-        // "dvb://current.ait/11.2?select=special%3Asett%3Bsel%3Aidxok%3A6"
-        const query = uri.split("?")[1] || "";
-        window.location.href = window.location.origin + (query ? "?" + query : "");
+        window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: createApplication: ' + uri + " -> " + newLocation);
+
+        // window.location.href = newLocation;
+        // window.location.href = newLocation, true;
+        // window.location.assign(newLocation);
+        window.cefChangeUrl(newLocation);
     };
 
     Application.prototype.destroyApplication = function () {
+        window._HBBTV_DEBUG__ && console.log('hbbtv-polyfill: destroyApplication');
+
         delete this._applicationUrl;
         window.location.reload();
     };
@@ -1000,6 +1019,10 @@ function init() {
     window.signalVdr = function(command) {
         signalCef('VDR:' + command);
     };
+
+    window.cefChangeUrl = function(uri) {
+        signalCef('CHANGE_URL: ' + uri);
+    }
 
     // global helper namespace to simplify testing
     window.HBBTV_POLYFILL_NS = window.HBBTV_POLYFILL_NS || {

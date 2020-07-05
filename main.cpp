@@ -23,22 +23,7 @@
 #include "browser.h"
 #include "schemehandler.h"
 #include "globaldefs.h"
-
-// I'm not sure, if this is really needed anymore
-bool NativeJsHandler::Execute(const CefString& name, CefRefPtr<CefV8Value> object, const CefV8ValueList& arguments, CefRefPtr<CefV8Value>& retval, CefString& exception) {
-    // TODO: Is this really needed?
-    if (name == "registerVideo") {
-        if (arguments.size() == 1) {
-            CefV8Value *val = arguments.at(0);
-            fprintf(stderr, "Called registerVideo: %s\n", val->GetStringValue().ToString().c_str());
-        }
-
-        return true;
-    }
-
-    // Function does not exist.
-    return false;
-}
+#include "nativejshandler.h"
 
 MainApp::MainApp() {
     CefMessageRouterConfig config;
@@ -49,7 +34,6 @@ MainApp::MainApp() {
 }
 
 MainApp::~MainApp() {
-
 }
 
 void MainApp::OnBeforeCommandLineProcessing(const CefString& process_type, CefRefPtr<CefCommandLine> command_line) {
@@ -62,9 +46,9 @@ void MainApp::OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame
     // register native javascript function
     CefRefPtr<CefV8Value> object = context->GetGlobal();
 
-    CefRefPtr<CefV8Handler> handler = new NativeJsHandler();
-    CefRefPtr<CefV8Value> func = CefV8Value::CreateFunction("registerVideo", handler);
-    object->SetValue("registerVideo", func, V8_PROPERTY_ATTRIBUTE_NONE);
+    CefRefPtr<CefV8Handler> handler = new NativeJSHandler();
+    CefRefPtr<CefV8Value> func = CefV8Value::CreateFunction("getAppUrl", handler);
+    object->SetValue("getAppUrl", func, V8_PROPERTY_ATTRIBUTE_NONE);
 }
 
 void MainApp::OnContextReleased(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefV8Context> context) {
@@ -72,7 +56,33 @@ void MainApp::OnContextReleased(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFram
 }
 
 bool MainApp::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefProcessId source_process, CefRefPtr<CefProcessMessage> message) {
-    return renderer_side_router->OnProcessMessageReceived(browser, frame, source_process, message);
+    bool messageProcessed = renderer_side_router->OnProcessMessageReceived(browser, frame, source_process, message);
+
+    if (messageProcessed) {
+        return true;
+    }
+
+    /* remove, if found a solution for std::map to be global
+    const std::string &message_name = message->GetName();
+
+    if (message_name == "addAppUrl") {
+        CefRefPtr<CefListValue> args = message->GetArgumentList();
+        auto str = args->GetString(0).ToString();
+
+        auto delimiterPos = str.find(":");
+        auto id = str.substr(0, delimiterPos);
+        auto u = str.substr(delimiterPos + 1);
+        trim(id);
+        trim(u);
+        appUrls->emplace(id, u);
+
+        return true;
+    } else if (message_name == "clearAppUrl") {
+        appUrls->clear();
+    }
+    */
+
+    return false;
 }
 
 void MainApp::OnRegisterCustomSchemes(CefRawPtr<CefSchemeRegistrar> registrar) {
@@ -196,41 +206,6 @@ void checkInstallation() {
     }
 
     nn_close(socketId);
-
-    // create pipe
-    bool createPipe = false;
-
-    const std::string output_file = "ffmpeg_putput.ts";
-    struct stat sb{};
-    if (stat(output_file.c_str(), &sb) != -1) {
-        if (!S_ISFIFO(sb.st_mode) != 0) {
-            if (remove(output_file.c_str()) != 0) {
-                fprintf(stderr, "File %s exists and is not a pipe. Delete failed. Aborting...\n", output_file.c_str());
-                exit(1);
-            } else {
-                createPipe = true;
-            }
-        }
-    } else {
-        createPipe = true;
-    }
-
-    if (createPipe) {
-        if (mkfifo(output_file.c_str(), 0666) < 0) {
-            fprintf(stderr, "Unable to create pipe %s. Aborting...\n", output_file.c_str());
-            exit(1);
-        }
-    }
-
-    if (access(output_file.c_str(), R_OK) < 0) {
-        fprintf(stderr, "Don't have read access to pipe %s. Aborting...\n", output_file.c_str());
-        exit(1);
-    }
-
-    if (access(output_file.c_str(), W_OK) < 0) {
-        fprintf(stderr, "Don't have write access to pipe %s. Aborting...\n", output_file.c_str());
-        exit(1);
-    }
 }
 
 std::string *initUrl = nullptr;

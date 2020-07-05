@@ -125,6 +125,9 @@ private:
     // current channel
     std::string currentChannel;
 
+    // all app ids and corresponding urls
+    std::map<std::string, std::string> appUrls;
+
     // default HTML mode
     int mode = HTML_MODE;
 
@@ -211,6 +214,11 @@ public:
     void SetCurrentChannel(std::string channel) { currentChannel = channel; };
     std::string GetCurrentChannel() { return currentChannel; };
 
+    //
+    void AddAppUrl(std::string id, std::string url);
+    std::map<std::string, std::string> GetAppUrls() { return appUrls; };
+    void ClearAppUrl() { appUrls.clear(); };
+
     IMPLEMENT_REFCOUNTING(BrowserClient);
 };
 
@@ -231,6 +239,7 @@ public:
     void BrowserStopLoad();
 
     void sendKeyEvent(const char* keyCode);
+    void AddAppUrl(std::string id, std::string url);
 
 private:
     CefRefPtr<CefBrowser> browser;

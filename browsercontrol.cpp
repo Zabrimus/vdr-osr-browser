@@ -14,10 +14,12 @@
 #include <iostream>
 #include <cmath>
 #include "include/cef_v8.h"
+#include "include/cef_process_message.h"
 #include <nanomsg/nn.h>
 #include <nanomsg/pipeline.h>
 #include "globaldefs.h"
 #include "browser.h"
+#include "nativejshandler.h"
 
 // #define DEBUG_JS
 
@@ -153,6 +155,18 @@ void BrowserControl::Start() {
                 browserClient->stop_video();
             } else if (strncmp("CHANNEL ", buf, 8) == 0) {
                 browserClient->SetCurrentChannel(std::string(buf + 8));
+                browserClient->ClearAppUrl();
+            } else if (strncmp("APPURL ", buf, 7) == 0) {
+                // split string to get id and url
+                std::string str(buf + 7);
+                auto delimiterPos = str.find(":");
+                auto id = str.substr(0, delimiterPos);
+                auto u = str.substr(delimiterPos + 1);
+                trim(id);
+                trim(u);
+
+                AddAppUrl(id, u);
+                browserClient->AddAppUrl(id, u);
             }
         }
 
@@ -171,6 +185,15 @@ void BrowserControl::sendKeyEvent(const char* keyCode) {
 
     stringStream <<  "window.cefKeyPress('" << keyCode << "');";
 
+    auto script = stringStream.str();
+    auto frame = browser->GetMainFrame();
+    frame->ExecuteJavaScript(script, frame->GetURL(), 0);
+}
+
+void BrowserControl::AddAppUrl(std::string id, std::string url) {
+    // construct the javascript command
+    std::ostringstream stringStream;
+    stringStream << "if (window._HBBTV_APPURL_) window._HBBTV_APPURL_.set('" << id << "','" << url << "');";
     auto script = stringStream.str();
     auto frame = browser->GetMainFrame();
     frame->ExecuteJavaScript(script, frame->GetURL(), 0);

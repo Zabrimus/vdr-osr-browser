@@ -19,6 +19,10 @@ function init() {
         signalCef('VDR:' + command);
     };
 
+    window.cefChangeUrl = function(uri) {
+        signalCef('CHANGE_URL: ' + uri);
+    }
+
     // global helper namespace to simplify testing
     window.HBBTV_POLYFILL_NS = window.HBBTV_POLYFILL_NS || {
     };
