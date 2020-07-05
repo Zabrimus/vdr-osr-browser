@@ -838,7 +838,7 @@ const hbbtvFn = function () {
         if (uri.startsWith("dvb://current.ait")) {
             var app;
 
-            app = /dvb:\/\/current\.ait\/(.*)\.(.*)(\?.*)/.exec(uri);
+            app = /dvb:\/\/current\.ait\/(.*)\.(.*)([\?#].*)/.exec(uri);
             if (app == undefined) {
                 app = /dvb:\/\/current\.ait\/(.*)\.(.*)/.exec(uri);
             }
@@ -855,9 +855,6 @@ const hbbtvFn = function () {
 
         window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: createApplication: ' + uri + " -> " + newLocation);
 
-        // window.location.href = newLocation;
-        // window.location.href = newLocation, true;
-        // window.location.assign(newLocation);
         window.cefChangeUrl(newLocation);
     };
 
