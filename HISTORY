@@ -11,6 +11,7 @@ VDR OSR Browser Revision History
   changed video streaming to UDP (at least VDR HbbTV Plugin v0.0.4 is mandatory)
   receive application and URLs from VDR
   navigation via application change implemented
+  intercept XMLHTTPRequest and allow changing the request itself
 
 2020-06-29: Version 0.0.3
 - Bugfixes

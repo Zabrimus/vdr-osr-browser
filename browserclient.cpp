@@ -712,6 +712,12 @@ bool BrowserClient::ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr<CefC
         replaceAll(responseContent, head, inject);
         free(inject);
 
+        // inject xmlhttprequest_quirks.js
+        asprintf(&inject, "%s\n<script id=\"xmlhttprequestquirk\" type=\"text/javascript\" src=\"client://js/xmlhttprequest_quirks.js\"/>\n",
+                 head.c_str());
+        replaceAll(responseContent, head, inject);
+        free(inject);
+
         // inject hbbtv_polyfill.js
         asprintf(&inject, "%s\n<script id=\"hbbtvpolyfill\" type=\"text/javascript\" src=\"client://js/hbbtv_polyfill.js\"/>\n",
                   head.c_str());
