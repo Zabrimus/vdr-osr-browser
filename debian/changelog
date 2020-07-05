@@ -1,3 +1,36 @@
+vdr-osr-browser (0.0.4-ppa1~focal) focal; urgency=medium
+
+  * Official release 0.0.4
+  - Bugfixes
+    the browser caches the video length and subsequent videos had all the same (mostly wrong) length
+    Tatort now plays well including OSD
+    fixed reading config files
+
+  - New
+    changed video streaming to UDP (at least VDR HbbTV Plugin v0.0.4 is mandatory)
+    receive application and URLs from VDR
+    navigation via application change implemented
+    intercept XMLHTTPRequest and allow changing the request itself
+
+ -- Zabrimus <ppa@hannebauer.org>  Sun, 05 Jul 2020 20:00:00 +0000
+
+vdr-osr-browser (0.0.3-ppa1~focal) focal; urgency=medium
+
+  * Official release 0.0.3
+  - Bugfixes
+    new method to determine content-type
+    try to fix errors in some HTML pages
+    Video URLs containing a '&' failed to play
+
+  - New
+    removed dash.js. It's not usable in this environment
+    enable HbbTV 2.0(?)
+    set user_agent and cookies in ffmpeg
+    new config file block_url.config containing patterns for URLs which shall not be loaded (substring search)
+    new method to inject the javascript code (many more channels are now enabled)
+
+ -- Zabrimus <ppa@hannebauer.org>  Fri, 29 Jun 2020 12:00:00 +0000
+
 vdr-osr-browser (0.0.2-prerelease-ppa6~focal) focal; urgency=medium
 
   * Official release 0.0.1 + some patches
@@ -6,6 +39,6 @@ vdr-osr-browser (0.0.2-prerelease-ppa6~focal) focal; urgency=medium
 
 vdr-osr-browser (0.0.1-ppa1~buster) buster; urgency=medium
 
-  * Initial release 
+  * Initial release
 
  -- Zabrimus <ppa@hannebauer.org>  Fri, 25 Feb 2020 19:05:20 +0000
