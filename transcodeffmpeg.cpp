@@ -4,6 +4,7 @@
 #include <fstream>
 #include <algorithm>
 #include <string.h>
+#include <cstdlib>
 #include <vector>
 #include <sstream>
 #include <limits.h>
@@ -51,6 +52,9 @@ void TranscodeFFmpeg::set_event_callback(void (*event_callback_)(std::string cmd
 void TranscodeFFmpeg::read_configuration() {
     CONSOLE_TRACE("====== Loading configuration... ======");
 
+    udp_packet_size = 1316;
+    udp_buffer_size = 31960;
+
     std::string exepath = getbrowserexepath();
 
     std::ifstream infile(exepath.substr(0, exepath.find_last_of("/")) + "/vdr-osr-ffmpeg.config");
@@ -75,9 +79,21 @@ void TranscodeFFmpeg::read_configuration() {
                 ffmpeg_executable = std::string(value);
             } else if (key == "ffprobe_executable") {
                 ffprobe_executable = std::string(value);
+            } else if (key == "udp_packet_size") {
+                udp_packet_size = strtoul(value.c_str(), NULL, 0);
+                if (udp_packet_size == ULONG_MAX) {
+                    udp_packet_size = 1316;
+                }
+            } else if (key == "udp_buffer_size") {
+                udp_buffer_size = strtoul(value.c_str(), NULL, 0);
+                if (udp_buffer_size == ULONG_MAX) {
+                    udp_buffer_size = 31960;
+                }
             }
         }
     }
+
+    CONSOLE_TRACE("Use UDP packet size {}, buffer size {}", udp_packet_size, udp_buffer_size);
 
     // check command line and set default values if empty
     if (encode_video_param.empty()) {
@@ -250,7 +266,7 @@ bool TranscodeFFmpeg::fork_ffmpeg(long start_at_ms) {
             }
         }
 
-        cmdline += "-y -f mpegts udp://127.0.0.1:" + std::to_string(VIDEO_UDP_PORT) + "?pkt_size=188&buffer_size=31960";
+        cmdline += "-y -f mpegts udp://127.0.0.1:" + std::to_string(VIDEO_UDP_PORT) + "?pkt_size=" + std::to_string(udp_packet_size) + "&buffer_size=" + std::to_string(udp_buffer_size);
 
         // create the final commandline parameter for execv
         std::vector <char*> cmd_params;

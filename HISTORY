@@ -1,6 +1,10 @@
 VDR OSR Browser Revision History
 -----------------------------------
 
+2020-xx-xx: Version 0.0.5
+- New
+  New ffmpeg configuration entries udp_packet_size and udp_buffer_size to be able to control UDP packet size and internal buffer size
+
 2020-05-07: Version 0.0.4
 - Bugfixes
   the browser caches the video length and subsequent videos had all the same (mostly wrong) length

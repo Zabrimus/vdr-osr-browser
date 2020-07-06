@@ -18,6 +18,10 @@ private:
     std::string ffmpeg_executable;
     std::string ffprobe_executable;
 
+    // UDP packet size/buffer configuration
+    uint32_t udp_packet_size;
+    uint32_t udp_buffer_size;
+
     // transcode or copy audio/video
     bool copy_audio;
     bool copy_video;
