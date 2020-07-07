@@ -81,9 +81,18 @@ void TranscodeFFmpeg::read_configuration() {
                 ffprobe_executable = std::string(value);
             } else if (key == "udp_packet_size") {
                 udp_packet_size = strtoul(value.c_str(), NULL, 0);
-                if (udp_packet_size == ULONG_MAX) {
+
+                if (udp_packet_size >= 1 && udp_packet_size < 188) {
+                    udp_packet_size = 188 * udp_packet_size;
+                } else if (udp_packet_size < 0 || udp_packet_size > 65424) {
                     udp_packet_size = 1316;
                 }
+
+                if (udp_packet_size % 188 != 0) {
+                    // must be a multiple of 188
+                    udp_packet_size = 1316;
+                }
+
             } else if (key == "udp_buffer_size") {
                 udp_buffer_size = strtoul(value.c_str(), NULL, 0);
                 if (udp_buffer_size == ULONG_MAX) {
@@ -93,7 +102,7 @@ void TranscodeFFmpeg::read_configuration() {
         }
     }
 
-    CONSOLE_TRACE("Use UDP packet size {}, buffer size {}", udp_packet_size, udp_buffer_size);
+    CONSOLE_INFO("Use UDP packet size {}, buffer size {}", udp_packet_size, udp_buffer_size);
 
     // check command line and set default values if empty
     if (encode_video_param.empty()) {

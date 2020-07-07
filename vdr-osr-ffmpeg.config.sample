@@ -21,7 +21,11 @@ ffprobe_executable = FFPROBE_EXECUTABLE
 # encode_video = -c:v libx264 -preset veryfast -x264-params keyint=60:min-keyint=60:scenecut=0:force-cfr=1:crf=28
 # encode_audio = -c:a aac -b:a 192k
 
-# UDP packet size, must be a multiple of 188 (default, if not configured is 1316)
+# UDP packet size - default, if not configured is 1316
+# Packet size must be a multiple of 188
+# if udp_packet_size x is less than 188, then the packet size will be 188 * x
+# if udp_packet_size x is greater or equals 188, then the value x will be used as is as packet size
+# Minimum is 188, Maximum is 65424.
 udp_packet_size = 1316
 
 # UDP buffer stze (default is 31960 = 170 * 188)
