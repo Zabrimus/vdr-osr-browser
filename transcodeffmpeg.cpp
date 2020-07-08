@@ -326,13 +326,11 @@ bool TranscodeFFmpeg::fork_ffmpeg(long start_at_ms) {
 
         cmd_params.push_back((char*)NULL);
 
-        /*
-        fprintf(stderr, "Commandline:\n");
+
+        CONSOLE_TRACE("ffmpeg Commandline:\n");
         for(auto it = std::begin(cmd_params); it != std::end(cmd_params); ++it) {
-            fprintf(stderr, "%s ", *it);
+            CONSOLE_TRACE("{} ", *it);
         }
-        fprintf(stderr, "\n\n");
-        */
 
         // let ffmpeg do the hard work like fixing dts/pts, transcoding, copying streams and all this stuff
         char **command = cmd_params.data();
