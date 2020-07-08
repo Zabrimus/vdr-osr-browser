@@ -38,8 +38,9 @@ std::string getbrowserexepath() {
 }
 
 
-TranscodeFFmpeg::TranscodeFFmpeg() {
+TranscodeFFmpeg::TranscodeFFmpeg(Protocol proto) {
     read_configuration();
+    protocol = proto;
 }
 
 TranscodeFFmpeg::~TranscodeFFmpeg() {
@@ -54,6 +55,7 @@ void TranscodeFFmpeg::read_configuration() {
 
     udp_packet_size = 1316;
     udp_buffer_size = 31960;
+    protocol = UDP;
 
     std::string exepath = getbrowserexepath();
 
@@ -98,11 +100,21 @@ void TranscodeFFmpeg::read_configuration() {
                 if (udp_buffer_size == ULONG_MAX) {
                     udp_buffer_size = 31960;
                 }
+            } else if (key == "transport") {
+                if (value == "TCP") {
+                    protocol = TCP;
+                } else if (value == "UDP") {
+                    protocol = UDP;
+                } else {
+                    CONSOLE_INFO("Protocol {} is not defined, fallback to UDP");
+                }
             }
         }
     }
 
-    CONSOLE_INFO("Use UDP packet size {}, buffer size {}", udp_packet_size, udp_buffer_size);
+    if (protocol == UDP) {
+        CONSOLE_INFO("Use UDP packet size {}, buffer size {}", udp_packet_size, udp_buffer_size);
+    }
 
     // check command line and set default values if empty
     if (encode_video_param.empty()) {
@@ -275,7 +287,16 @@ bool TranscodeFFmpeg::fork_ffmpeg(long start_at_ms) {
             }
         }
 
-        cmdline += "-y -f mpegts udp://127.0.0.1:" + std::to_string(VIDEO_UDP_PORT) + "?pkt_size=" + std::to_string(udp_packet_size) + "&buffer_size=" + std::to_string(udp_buffer_size);
+        cmdline += "-y -f mpegts ";
+
+        if (protocol == UDP) {
+            cmdline += "udp://127.0.0.1:" + std::to_string(VIDEO_UDP_PORT) + "?pkt_size=" +
+                       std::to_string(udp_packet_size) + "&buffer_size=" + std::to_string(udp_buffer_size);
+        } else if (protocol == TCP) {
+            cmdline += "tcp://127.0.0.1:" + std::to_string(VIDEO_TCP_PORT) + "?listen";
+        } else if (protocol == UNIX) {
+            cmdline += "-listen 1 unix://" + std::string(VIDEO_UNIX);
+        }
 
         // create the final commandline parameter for execv
         std::vector <char*> cmd_params;

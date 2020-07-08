@@ -5,6 +5,8 @@
 #include <string>
 #include <thread>
 
+enum Protocol { UDP, TCP, UNIX };
+
 class TranscodeFFmpeg {
 private:
     // input file/url
@@ -17,6 +19,9 @@ private:
     // ffmpeg/ffprobe executables
     std::string ffmpeg_executable;
     std::string ffprobe_executable;
+
+    // Transport protocol
+    Protocol protocol;
 
     // UDP packet size/buffer configuration
     uint32_t udp_packet_size;
@@ -40,7 +45,7 @@ private:
     void read_configuration();
 
 public:
-    TranscodeFFmpeg();
+    TranscodeFFmpeg(Protocol proto);
     ~TranscodeFFmpeg();
 
     void set_user_agent(std::string ua);

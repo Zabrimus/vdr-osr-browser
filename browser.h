@@ -134,6 +134,9 @@ private:
     // sockets
     int toVdrSocketId;
 
+    // video protocol
+    Protocol vproto;
+
     // heatbeat thread
     std::thread heartbeat_thread;
     bool heartbeat_running;
@@ -146,7 +149,7 @@ private:
     }
 
 public:
-    explicit BrowserClient(spdlog::level::level_enum log_level);
+    explicit BrowserClient(spdlog::level::level_enum log_level, std::string vproto);
     ~BrowserClient() override;
 
     void setBrowserControl(BrowserControl *ctl) { this->handler->SetBrowserControl(ctl); }
