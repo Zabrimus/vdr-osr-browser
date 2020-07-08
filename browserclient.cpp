@@ -92,6 +92,8 @@ void tryToFixPage(std::string &source) {
     // fix inline style and script elements
     replaceAll(source, "<style type=\"text/css\">", "</style>", "<style type=\"text/css\">\n/* <![CDATA[ */\n", "\n/* ]]> */\n</style>");
     replaceAll(source, "<script type=\"text/javascript\">", "</script>", "<script type=\"text/javascript\">\n/* <![CDATA[ */\n", "\n/* ]]> */\n</script>");
+    replaceAll(source, "<script>", "</script>", "<script>\n/* <![CDATA[ */\n", "\n/* ]]> */\n</script>");
+
 
     // fix wrong meta-tag in header
     size_t pos = source.find("<meta");
