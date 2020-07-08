@@ -85,6 +85,10 @@ void tryToFixPage(std::string &source) {
     replaceAll(source, "// ]]>", "\n");
     replaceAll(source, "//]]>", "\n");
 
+    // change quotation marks
+    replaceAll(source, "<script type='text/javascript'>", "<script type=\"text/javascript\">");
+    replaceAll(source, "<style type='text/css'>", "<style type=\"text/css\">");
+
     // fix inline style and script elements
     replaceAll(source, "<style type=\"text/css\">", "</style>", "<style type=\"text/css\">\n/* <![CDATA[ */\n", "\n/* ]]> */\n</style>");
     replaceAll(source, "<script type=\"text/javascript\">", "</script>", "<script type=\"text/javascript\">\n/* <![CDATA[ */\n", "\n/* ]]> */\n</script>");
