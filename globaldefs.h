@@ -9,6 +9,8 @@
 #define TO_VDR_CHANNEL   "tcp://127.0.0.1:5560"
 #define FROM_VDR_CHANNEL "tcp://127.0.0.1:5561"
 #define VIDEO_UDP_PORT   5560
+#define VIDEO_TCP_PORT   5562
+#define VIDEO_UNIX       "/tmp/hbbtvvideo.uds"
 
 #define USER_AGENT "HbbTV/1.4.1 (+DRM;Samsung;SmartTV2015;T-HKM6DEUC-1490.3;;) OsrTvViewer"
 // #define USER_AGENT "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.90 Safari/537.36"

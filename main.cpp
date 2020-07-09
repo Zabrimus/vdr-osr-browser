@@ -215,6 +215,8 @@ std::string *logFile = nullptr;
 int main(int argc, char *argv[]) {
     spdlog::level::level_enum log_level = spdlog::level::err;
 
+    std::string *vproto;
+
     // try to find some parameters
     for (int i = 0; i < argc; ++i) {
         if (strncmp(argv[i], "--skinurl=", 10) == 0) {
@@ -231,6 +233,8 @@ int main(int argc, char *argv[]) {
             log_level = spdlog::level::critical;
         } else if (strncmp(argv[i], "--logfile=", 10) == 0) {
             logFile = new std::string(argv[i] + 10);
+        } else if (strncmp(argv[i], "--video=", 8) == 0) {
+            vproto = new std::string(argv[i] + 8);
         }
     }
 
@@ -315,7 +319,7 @@ int main(int argc, char *argv[]) {
     CefWindowInfo window_info;
     window_info.SetAsWindowless(0);
 
-    CefRefPtr<BrowserClient> browserClient = new BrowserClient(log_level);
+    CefRefPtr<BrowserClient> browserClient = new BrowserClient(log_level, *vproto);
     browser = CefBrowserHost::CreateBrowserSync(window_info, browserClient.get(), initUrl ? initUrl->c_str() : "", browserSettings, nullptr, nullptr);
 
     browser->GetHost()->WasHidden(true);
@@ -323,6 +327,10 @@ int main(int argc, char *argv[]) {
 
     if (initUrl != nullptr) {
         delete initUrl;
+    }
+
+    if (vproto != nullptr) {
+        delete vproto;
     }
 
     browserClient->initJavascriptCallback();

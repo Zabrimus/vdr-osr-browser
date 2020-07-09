@@ -329,6 +329,8 @@ bool JavascriptHandler::OnQuery(CefRefPtr<CefBrowser> browser,
             auto time = video.substr(0, delimiterPos);
             auto url = video.substr(delimiterPos + 1);
 
+            unlink(VIDEO_UNIX);
+
             browserClient->SendToVdrString(CMD_STATUS, "PLAY_VIDEO:");
             if (!browserClient->set_input_file(time.c_str(), url.c_str())) {
                 browserClient->SendToVdrString(CMD_STATUS, "VIDEO_FAILED");
@@ -381,6 +383,8 @@ bool JavascriptHandler::OnQuery(CefRefPtr<CefBrowser> browser,
             auto time = video.substr(0, delimiterPos);
             auto url = video.substr(delimiterPos + 1);
 
+            unlink(VIDEO_UNIX);
+
             browserClient->SendToVdrString(CMD_STATUS, "PLAY_VIDEO:");
             if (!browserClient->set_input_file(time.c_str(), url.c_str())) {
                 browserClient->SendToVdrString(CMD_STATUS, "VIDEO_FAILED");
@@ -404,7 +408,7 @@ void JavascriptHandler::OnQueryCanceled(CefRefPtr<CefBrowser> browser, CefRefPtr
     // TODO: cancel our async query task...
 }
 
-BrowserClient::BrowserClient(spdlog::level::level_enum log_level) {
+BrowserClient::BrowserClient(spdlog::level::level_enum log_level, std::string vproto) {
     logger.set_level(log_level);
 
     // bind socket
@@ -417,6 +421,16 @@ BrowserClient::BrowserClient(spdlog::level::level_enum log_level) {
     }
 
     browserClient = this;
+
+    if (vproto == "UDP") {
+        this->vproto = UDP;
+    } else if (vproto == "TCP") {
+        this->vproto = TCP;
+    } else if (vproto == "UNIX") {
+        this->vproto = UNIX;
+    } else {
+        fprintf(stderr, "BrowserClient: invalid video protocol %s\n", vproto.c_str());
+    }
 
     // start heartbeat_thread
     heartbeat_running = true;
@@ -1003,7 +1017,7 @@ bool BrowserClient::set_input_file(const char* time, const char* input) {
         transcoder = nullptr;
     }
 
-    transcoder = new TranscodeFFmpeg();
+    transcoder = new TranscodeFFmpeg(vproto);
     transcoder->set_event_callback(eventCallback);
     transcoder->set_cookies(cookiesForFFmpeg());
     transcoder->set_user_agent(USER_AGENT);
