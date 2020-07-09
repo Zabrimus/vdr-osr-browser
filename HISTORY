@@ -7,6 +7,7 @@ VDR OSR Browser Revision History
 
 - New
   New ffmpeg configuration entries udp_packet_size and udp_buffer_size to be able to control UDP packet size and internal buffer size
+  Video streams can be send via UDP, TCP and Unix domain sockets
 
 2020-05-07: Version 0.0.4
 - Bugfixes

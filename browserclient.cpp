@@ -323,6 +323,8 @@ bool JavascriptHandler::OnQuery(CefRefPtr<CefBrowser> browser,
             auto time = video.substr(0, delimiterPos);
             auto url = video.substr(delimiterPos + 1);
 
+            unlink(VIDEO_UNIX);
+
             browserClient->SendToVdrString(CMD_STATUS, "PLAY_VIDEO:");
             if (!browserClient->set_input_file(time.c_str(), url.c_str())) {
                 browserClient->SendToVdrString(CMD_STATUS, "VIDEO_FAILED");
@@ -374,6 +376,8 @@ bool JavascriptHandler::OnQuery(CefRefPtr<CefBrowser> browser,
             auto delimiterPos = video.find(":");
             auto time = video.substr(0, delimiterPos);
             auto url = video.substr(delimiterPos + 1);
+
+            unlink(VIDEO_UNIX);
 
             browserClient->SendToVdrString(CMD_STATUS, "PLAY_VIDEO:");
             if (!browserClient->set_input_file(time.c_str(), url.c_str())) {
