@@ -47,18 +47,10 @@ LDFLAGS = -pthread -lrt
 SOURCES = main.cpp osrhandler.cpp browserclient.cpp browsercontrol.cpp transcodeffmpeg.cpp schemehandler.cpp logger.cpp javascriptlogging.cpp globaldefs.cpp nativejshandler.cpp
 OBJECTS = $(SOURCES:.cpp=.o)
 
-SOURCES2 = osrclient.cpp logger.cpp globaldefs.cpp
-OBJECTS2 = $(SOURCES2:.cpp=.o)
-
-SOURCES3 = osrclientvideo.cpp logger.cpp globaldefs.cpp
-OBJECTS3 = $(SOURCES3:.cpp=.o)
-
 SOURCES5 = schemehandler.cpp logger.cpp thirdparty/cefsimple/cefsimple_linux.cpp thirdparty/cefsimple/simple_app.cpp thirdparty/cefsimple/simple_handler.cpp thirdparty/cefsimple/simple_handler_linux.cpp globaldefs.cpp
 OBJECTS5 = $(SOURCES5:.cpp=.o)
 
 EXECUTABLE  = vdrosrbrowser
-EXECUTABLE2  = vdrosrclient
-EXECUTABLE3  = vdrosrvideo
 
 # Starten mit z.B. ./cefsimple --url="file://<pfad>/movie.html"
 EXECUTABLE5  = cefsimple
@@ -133,14 +125,6 @@ $(EXECUTABLE): $(OBJECTS) transcodeffmpeg.h globaldefs.h main.h browser.h native
 	$(CC) $(OBJECTS) $(NNGCFLAGS) $(LOGCFLAGS) -o $@ $(LDFLAGS) $(NNGLDFLAGS) $(LOGLDFLAGS)
 	mv $(EXECUTABLE) Release
 	cp -r js Release
-
-$(EXECUTABLE2): $(OBJECTS2) transcodeffmpeg.h globaldefs.h
-	$(CC) $(OBJECTS2) $(NNGCFLAGS) $(LOGCFLAGS) -o $@ -pthread $(NNGLDFLAGS) $(LOGLDFLAGS)
-	mv $(EXECUTABLE2) Release
-
-$(EXECUTABLE3): $(OBJECTS3) transcodeffmpeg.h globaldefs.h
-	$(CC) $(OBJECTS3) $(NNGCFLAGS) $(LOGCFLAGS) -o $@ -pthread $(NNGLDFLAGS) $(LOGLDFLAGS)
-	mv $(EXECUTABLE3) Release
 
 $(EXECUTABLE5): $(OBJECTS5)
 	$(CC) -O3 $(OBJECTS5) $(LOGCFLAGS) $(CEFCFLAGS) -o $@ -pthread $(LDFLAGS) $(LOGLDFLAGS) $(CEFLDFLAGS)
