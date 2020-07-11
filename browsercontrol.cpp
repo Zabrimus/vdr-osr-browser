@@ -15,6 +15,7 @@
 #include <cmath>
 #include "include/cef_v8.h"
 #include "include/cef_process_message.h"
+#include "include/cef_base.h"
 #include <nanomsg/nn.h>
 #include <nanomsg/pipeline.h>
 #include "globaldefs.h"
@@ -181,13 +182,54 @@ void BrowserControl::Stop() {
 }
 
 void BrowserControl::sendKeyEvent(const char* keyCode) {
-    std::ostringstream stringStream;
+    // Test to send the key codes directly
+    bool sendEvent = false;
+    int windows_key_code;
+    int native_key_code;
 
-    stringStream <<  "window.cefKeyPress('" << keyCode << "');";
+    if (strncmp(keyCode, "VK_LEFT", 7) == 0) {
+        windows_key_code = 0x25;
+        native_key_code = 0x71;
+        sendEvent = true;
+    } else if (strncmp(keyCode, "VK_RIGHT", 8) == 0) {
+        windows_key_code = 0x27;
+        native_key_code = 0x72;
+        sendEvent = true;
+    } else if (strncmp(keyCode, "VK_UP", 5) == 0) {
+        windows_key_code = 0x26;
+        native_key_code = 0x6F;
+        sendEvent = true;
+    } else if (strncmp(keyCode, "VK_DOWN", 5) == 0) {
+        windows_key_code = 0x28;
+        native_key_code = 0x74;
+        sendEvent = true;
+    }
 
-    auto script = stringStream.str();
-    auto frame = browser->GetMainFrame();
-    frame->ExecuteJavaScript(script, frame->GetURL(), 0);
+    if (sendEvent) {
+        CefKeyEvent key_event;
+
+        key_event.windows_key_code = windows_key_code;
+        key_event.native_key_code = native_key_code;
+        key_event.modifiers = 0x00;
+
+        key_event.type = KEYEVENT_RAWKEYDOWN;
+        browser->GetHost()->SendKeyEvent(key_event);
+
+        key_event.type = KEYEVENT_CHAR;
+        browser->GetHost()->SendKeyEvent(key_event);
+
+        key_event.type = KEYEVENT_KEYUP;
+        browser->GetHost()->SendKeyEvent(key_event);
+    } else {
+        // use javascript to send key codes
+        std::ostringstream stringStream;
+
+        stringStream << "window.cefKeyPress('" << keyCode << "');";
+
+        auto script = stringStream.str();
+        auto frame = browser->GetMainFrame();
+        frame->ExecuteJavaScript(script, frame->GetURL(), 0);
+    }
 }
 
 void BrowserControl::AddAppUrl(std::string id, std::string url) {
