@@ -1,3 +1,15 @@
+vdr-osr-browser (0.0.5-ppa1~focal) focal; urgency=medium
+
+  * Official release 0.0.5
+  - Bugfixes
+    ServusTV and other channels (Parse error...)
+
+  - New
+    New ffmpeg configuration entries udp_packet_size and udp_buffer_size to be able to control UDP packet size and internal buffer size
+    Video streams can be send via UDP, TCP and Unix domain sockets
+
+ -- Zabrimus <ppa@hannebauer.org>  Sun, 05 Jul 2020 20:00:00 +0000
+
 vdr-osr-browser (0.0.4-ppa1~focal) focal; urgency=medium
 
   * Official release 0.0.4
