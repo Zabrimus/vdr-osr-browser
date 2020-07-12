@@ -136,6 +136,7 @@ prepareexe:
 	mkdir -p Release/cache
 	mkdir -p Release/font
 	mkdir -p Release/css
+	mkdir -p Release/profile
 	cp thirdparty/TiresiasPCfont/TiresiasPCfont.ttf Release/font
 	cp thirdparty/TiresiasPCfont/TiresiasPCfont.css Release/css
 ifeq ($(PACKAGED_CEF),1)

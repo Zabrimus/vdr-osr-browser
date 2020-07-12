@@ -215,7 +215,7 @@ std::string *logFile = nullptr;
 int main(int argc, char *argv[]) {
     spdlog::level::level_enum log_level = spdlog::level::err;
 
-    std::string *vproto;
+    std::string *vproto = nullptr;
 
     // try to find some parameters
     for (int i = 0; i < argc; ++i) {
@@ -236,6 +236,10 @@ int main(int argc, char *argv[]) {
         } else if (strncmp(argv[i], "--video=", 8) == 0) {
             vproto = new std::string(argv[i] + 8);
         }
+    }
+
+    if (vproto == nullptr) {
+        vproto = new std::string("UDP");
     }
 
     if (logFile != nullptr) {
@@ -270,8 +274,10 @@ int main(int argc, char *argv[]) {
     std::string path = exepath.substr(0, exepath.find_last_of('/'));
     std::string localespath = exepath.substr(0, exepath.find_last_of('/')) + "/locales";
     std::string cache_path = exepath.substr(0, exepath.find_last_of('/')) + "/cache";
+    std::string profile_path = exepath.substr(0, exepath.find_last_of('/')) + "/profile";
 
     CefString(&settings.cache_path).FromASCII(cache_path.c_str());
+    CefString(&settings.user_data_path).FromASCII(profile_path.c_str());
     CefString(&settings.user_agent).FromASCII(USER_AGENT);
 
     std::ifstream infile(path + "/vdr-osr-browser.config");
