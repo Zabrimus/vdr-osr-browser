@@ -253,5 +253,13 @@ ifneq (exists, $(shell test -e thirdparty/cef/build/libcef_dll_wrapper/libcef_dl
 	make -j 6
 endif
 
+prepare_debian:
+ifneq (exists, $(shell test -e thirdparty/cef && echo exists))
+	cd thirdparty && \
+	curl -L $(CEF_BUILD)  -o - | tar -xjf -
+	mv thirdparty/cef_binary* thirdparty/cef
+	cd thirdparty/cef/include && ln -s ../include cef
+endif
+
 debugremote: all
 	cd Release && gdbserver localhost:2345  ./vdrosrbrowser --debug --autoplay --remote-debugging-port=9222 --user-data-dir=remote-profile
