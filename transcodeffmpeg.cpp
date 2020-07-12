@@ -381,6 +381,8 @@ void TranscodeFFmpeg::stop_video() {
 
     ffmpeg_pid = 0;
 
+    unlink(VIDEO_UNIX);
+
     char *transvideo;
     asprintf(&transvideo, "movie/transparent_%s.webm", transparent_time.c_str());
     unlink(transvideo);

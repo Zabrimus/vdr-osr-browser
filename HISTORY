@@ -1,6 +1,10 @@
 VDR OSR Browser Revision History
 -----------------------------------
 
+2020-07-12: Version 0.0.6
+- Bugfixes
+  delete unix domain socket if video stopped
+
 2020-07-11: Version 0.0.5
 - Bugfixes
   ServusTV and other channels (Parse error...)
