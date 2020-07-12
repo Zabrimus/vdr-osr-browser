@@ -838,7 +838,7 @@ const hbbtvFn = function () {
         if (uri.startsWith("dvb://current.ait")) {
             var app;
 
-            app = /dvb:\/\/current\.ait\/(.*)\.(.*)([\?#].*)/.exec(uri);
+            app = /dvb:\/\/current\.ait\/(.*)\.(.*?)([\?#].*)/.exec(uri);
             if (app == undefined) {
                 app = /dvb:\/\/current\.ait\/(.*)\.(.*)/.exec(uri);
             }
