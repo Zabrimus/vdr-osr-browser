@@ -55,11 +55,15 @@ export class OipfAVControlMapper {
 
         // user dash.js to init player
         if (this.isDashVideo) {
-            // TODO: DISABLE DASH until a solution to play has been found
-
+            // dash player
             // this.dashPlayer = MediaPlayer().create();
             // this.dashPlayer.initialize(this.videoElement, originalDataAttribute, true);
 
+            // Klappt nicht
+            // this.avControlObject.type = "video/mp4";
+            // this.avControlObject.data="client://movie/transparent-full.webm";
+            // this.videoElement.src = "client://movie/transparent-full.webm";
+            // window.start_video_quirk();
         } else {
             var target = document.getElementById("video");
 
@@ -238,7 +242,7 @@ export class OipfAVControlMapper {
                     var target = mutation.target;
                     var newSrc = target.getAttribute("src");
 
-                    if (newSrc.search("client://movie/transparent.webm") >= 0) {
+                    if (newSrc.search("client://movie/transparent") >= 0) {
                         // prevent recursion
                         return;
                     }
@@ -249,6 +253,8 @@ export class OipfAVControlMapper {
 
                     // overwrite src
                     target.src = "client://movie/transparent_" + String(n) + ".webm";
+
+                    window.start_video_quirk();
                 }
             });
         };

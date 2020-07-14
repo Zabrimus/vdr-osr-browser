@@ -153,11 +153,15 @@ class OipfAVControlMapper {
 
         // user dash.js to init player
         if (this.isDashVideo) {
-            // TODO: DISABLE DASH until a solution to play has been found
-
+            // dash player
             // this.dashPlayer = MediaPlayer().create();
             // this.dashPlayer.initialize(this.videoElement, originalDataAttribute, true);
 
+            // Klappt nicht
+            // this.avControlObject.type = "video/mp4";
+            // this.avControlObject.data="client://movie/transparent-full.webm";
+            // this.videoElement.src = "client://movie/transparent-full.webm";
+            // window.start_video_quirk();
         } else {
             var target = document.getElementById("video");
 
@@ -186,6 +190,8 @@ class OipfAVControlMapper {
             // this.videoElement.src = originalDataAttribute;
             // copy object data url to html5 video tag src attribute ...
             this.videoElement.src = "client://movie/transparent_" + String(n) + ".webm";
+
+            console.log("======> HREF = " + window.location.href);
 
             window.start_video_quirk();
         }
@@ -336,7 +342,7 @@ class OipfAVControlMapper {
                     var target = mutation.target;
                     var newSrc = target.getAttribute("src");
 
-                    if (newSrc.search("client://movie/transparent.webm") >= 0) {
+                    if (newSrc.search("client://movie/transparent") >= 0) {
                         // prevent recursion
                         return;
                     }
@@ -347,6 +353,8 @@ class OipfAVControlMapper {
 
                     // overwrite src
                     target.src = "client://movie/transparent_" + String(n) + ".webm";
+
+                    window.start_video_quirk();
                 }
             });
         };
@@ -587,10 +595,12 @@ class VideoHandler {
         }
         // setup mpeg dash player
         if(mimeType.lastIndexOf('application/dash+xml', 0) === 0){
-            // TODO: DISABLED DASH PLAYER until a solution has been found
-
             // window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: DASH VIDEO PLAYER ...');
             // new OipfAVControlMapper(node, true);
+            // node.type = "video/mp4";
+            // node.data = "client://movie/transparent-full.webm";
+
+            new _a_v_control_embedded_object__WEBPACK_IMPORTED_MODULE_1__["OipfAVControlMapper"](node, true);
         }
     }
 

@@ -33,7 +33,7 @@ bool ClientSchemeHandler::Open(CefRefPtr<CefRequest> request, bool& handle_reque
         handle_request = true;
         response_code = 400;
         mime_type = "";
-    } else if (strstr(url.c_str(), "client://movie/transparent_") != NULL) {
+    } else if (strstr(url.c_str(), "client://movie/transparent") != NULL) {
         handle_request = true;
         response_code = 200;
         mime_type = "video/webm";

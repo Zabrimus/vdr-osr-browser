@@ -1027,31 +1027,41 @@ bool BrowserClient::set_input_file(const char* time, const char* input) {
 void BrowserClient::pause_video() {
     CONSOLE_DEBUG("Pause video");
 
-    transcoder->pause_video();
+    if (transcoder != nullptr) {
+        transcoder->pause_video();
+    }
 }
 
 void BrowserClient::resume_video() {
     CONSOLE_DEBUG("Resume video");
 
-    transcoder->resume_video();
+    if (transcoder != nullptr) {
+        transcoder->resume_video();
+    }
 }
 
 void BrowserClient::stop_video() {
     CONSOLE_DEBUG("Stop video");
 
-    transcoder->stop_video();
+    if (transcoder != nullptr) {
+        transcoder->stop_video();
+    }
 }
 
 void BrowserClient::seek_video(const char* ms) {
     CONSOLE_DEBUG("Seek video to {} ms", ms);
 
-    transcoder->seek_video(ms);
+    if (transcoder != nullptr) {
+        transcoder->seek_video(ms);
+    }
 }
 
 void BrowserClient::speed_video(const char* speed) {
     CONSOLE_DEBUG("Speed video to speed {}", speed);
 
-    transcoder->speed_video(speed);
+    if (transcoder != nullptr) {
+        transcoder->speed_video(speed);
+    }
 }
 
 void BrowserClient::heartbeat() {
