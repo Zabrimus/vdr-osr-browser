@@ -5,7 +5,8 @@ VDR OSR Browser Revision History
 - Bugfixes
 
 - New
-  Handle dash videos (still needs some improvements)
+  Handle dash videos (still needs many improvements)
+  integrated mpd-parser
 
 2020-07-12: Version 0.0.6
 - Bugfixes
