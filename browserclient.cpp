@@ -398,6 +398,27 @@ bool JavascriptHandler::OnQuery(CefRefPtr<CefBrowser> browser,
             CefString url(request.ToString().substr(12));
             browserControl->LoadURL(url);
             return true;
+        } else if (strncmp(request.ToString().c_str(), "CREATE_APP: ", 12) == 0) {
+            CefString url(request.ToString().substr(12));
+
+            CONSOLE_TRACE("Create application {}", url.ToString());
+
+            // Save the last URL on a stack
+            applicationStack.push(url);
+            return true;
+        } else if (strncmp(request.ToString().c_str(), "DESTROY_APP", 11) == 0) {
+            CONSOLE_TRACE("Destroy application");
+
+            // load the last URL of the stack
+            browserClient->SendToVdrString(CMD_STATUS, "STOP_VIDEO");
+            browserClient->stop_video();
+
+            std::string lastUrl = applicationStack.top();
+            applicationStack.pop();
+            browserControl->LoadURL(lastUrl);
+
+            CONSOLE_TRACE("Destroy application: Load new URL {}", lastUrl);
+            return true;
         }
     }
 

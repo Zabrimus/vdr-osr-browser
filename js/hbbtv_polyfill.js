@@ -191,8 +191,6 @@ class OipfAVControlMapper {
             // copy object data url to html5 video tag src attribute ...
             this.videoElement.src = "client://movie/transparent_" + String(n) + ".webm";
 
-            console.log("======> HREF = " + window.location.href);
-
             window.start_video_quirk();
         }
 
@@ -865,6 +863,8 @@ const hbbtvFn = function () {
 
         window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: createApplication: ' + uri + " -> " + newLocation);
 
+        signalCef("CREATE_APP: " + window.location.href);
+
         window.cefChangeUrl(newLocation);
     };
 
@@ -872,7 +872,12 @@ const hbbtvFn = function () {
         window._HBBTV_DEBUG__ && console.log('hbbtv-polyfill: destroyApplication');
 
         delete this._applicationUrl;
-        window.location.reload();
+
+        // destroy the whole page and set a flag
+        document.body.innerText = "";
+        document.head.innerText = "";
+
+        signalCef("DESTROY_APP");
     };
 
     window.Application = Application;

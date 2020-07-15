@@ -5,6 +5,7 @@
 #include <thread>
 #include <mutex>
 #include <string>
+#include <stack>
 #include "include/cef_app.h"
 #include "include/cef_client.h"
 #include "include/cef_render_handler.h"
@@ -92,6 +93,9 @@ public:
 private:
     BrowserControl *browserControl;
     BrowserClient  *browserClient;
+
+    // Application URL stack
+    std::stack <std::string> applicationStack;
 };
 
 class BrowserClient : public CefClient,
