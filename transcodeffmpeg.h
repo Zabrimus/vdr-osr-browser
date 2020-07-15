@@ -12,7 +12,7 @@ private:
     // input file/url
     std::string input_file;
     std::string transparent_time;
-    bool seekPossible;
+    bool isDash;
 
     // verbose ffmpeg.
     bool verbose_ffmpeg;

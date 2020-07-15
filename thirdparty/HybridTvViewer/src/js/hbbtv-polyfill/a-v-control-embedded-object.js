@@ -59,11 +59,19 @@ export class OipfAVControlMapper {
             // this.dashPlayer = MediaPlayer().create();
             // this.dashPlayer.initialize(this.videoElement, originalDataAttribute, true);
 
-            // Klappt nicht
-            // this.avControlObject.type = "video/mp4";
-            // this.avControlObject.data="client://movie/transparent-full.webm";
-            // this.videoElement.src = "client://movie/transparent-full.webm";
-            // window.start_video_quirk();
+            // get the mpd file
+            var request = new XMLHttpRequest();
+
+            request.open("GET", originalDataAttribute);
+            request.addEventListener('load', function(event) {
+                if (request.status >= 200 && request.status < 300) {
+                    var parsedManifest = mpdParser.parse(request.responseText, originalDataAttribute);
+                    // TODO: Implement a better loading using the manifest
+                } else {
+                    console.warn(request.statusText, request.responseText);
+                }
+            });
+            request.send();
         } else {
             var target = document.getElementById("video");
 

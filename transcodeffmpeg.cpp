@@ -170,7 +170,7 @@ bool TranscodeFFmpeg::set_input(const char* time, const char* input, bool verbos
     long duration = 0;
     copy_audio = false;
     copy_video = false;
-    seekPossible = true;
+    isDash = false;
 
     if (infoFile) {
         char buffer[1024];
@@ -189,7 +189,7 @@ bool TranscodeFFmpeg::set_input(const char* time, const char* input, bool verbos
                 if (strncmp(line, "N/A", 3) == 0) {
                     // e.g. for mpeg-dash. Set to 2 hours
                     duration = 2 * 60 * 60;
-                    seekPossible = false;
+                    isDash = true;
                 } else {
                     duration = std::max(strtol(line, (char **) NULL, 10), duration);
                 }
@@ -271,10 +271,10 @@ bool TranscodeFFmpeg::fork_ffmpeg(long start_at_ms) {
             cmdline += "-hide_banner -loglevel warning ";
         }
 
-        if (seekPossible) {
+        if (!isDash) {
             cmdline += "-re -ss " + std::string(ms_to_ffmpeg_time(start_at_ms)) + " ";
         } else {
-            cmdline += "-re ";
+            cmdline += "-re -multiple_requests 1 ";
         }
 
         std::string ninput(input_file);
@@ -304,7 +304,7 @@ bool TranscodeFFmpeg::fork_ffmpeg(long start_at_ms) {
             cmdline += "udp://127.0.0.1:" + std::to_string(VIDEO_UDP_PORT) + "?pkt_size=" +
                        std::to_string(udp_packet_size) + "&buffer_size=" + std::to_string(udp_buffer_size);
         } else if (protocol == TCP) {
-            cmdline += "tcp://127.0.0.1:" + std::to_string(VIDEO_TCP_PORT) + "?listen";
+            cmdline += "tcp://127.0.0.1:" + std::to_string(VIDEO_TCP_PORT) + "?listen&recv_buffer_size=64860&send_buffer_size=64860";
         } else if (protocol == UNIX) {
             cmdline += "-listen 1 unix://" + std::string(VIDEO_UNIX);
         }
@@ -357,10 +357,6 @@ bool TranscodeFFmpeg::fork_ffmpeg(long start_at_ms) {
 }
 
 void TranscodeFFmpeg::seek_video(const char* ms) {
-    if (!seekPossible) {
-        return;
-    }
-
     CONSOLE_TRACE("seek_video, stop video");
     stop_video();
 
