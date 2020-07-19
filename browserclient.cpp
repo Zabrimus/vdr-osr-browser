@@ -12,6 +12,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <string>
 #include <map>
 #include <list>
 #include <regex>
@@ -23,6 +24,7 @@
 #include "globaldefs.h"
 #include "browser.h"
 #include "javascriptlogging.h"
+#include "dashhandler.h"
 
 #define HEADERSIZE (4 * 1024)
 
@@ -170,7 +172,6 @@ HbbtvCurl::~HbbtvCurl() {
 }
 
 std::string HbbtvCurl::ReadContentType(std::string url, CefRequest::HeaderMap headers) {
-    /* TEST: Neue Version */
     std::string c = singleLineCookies();
     CONSOLE_DEBUG("ReadContentType {}, Cookies {}", url, c);
 
@@ -315,7 +316,9 @@ bool JavascriptHandler::OnQuery(CefRefPtr<CefBrowser> browser,
              CefRefPtr<Callback> callback) {
 
     // process the javascript callback
-    CONSOLE_DEBUG("Javascript called me: {}", request.ToString());
+    if (strncmp(request.ToString().c_str(), "DASH_PL", 7) != 0) {
+        CONSOLE_DEBUG("Javascript called me: {}", request.ToString());
+    }
 
     if (strncmp(request.ToString().c_str(), "VDR:", 4) == 0) {
         browserClient->SendToVdrString(CMD_STATUS, request.ToString().c_str() + 4);
@@ -418,6 +421,108 @@ bool JavascriptHandler::OnQuery(CefRefPtr<CefBrowser> browser,
             browserControl->LoadURL(lastUrl);
 
             CONSOLE_TRACE("Destroy application: Load new URL {}", lastUrl);
+            return true;
+        } else if (strncmp(request.ToString().c_str(), "CLEAR_DASH", 10) == 0) {
+            videoDashHandler.Clear();
+            audioDashHandler.Clear();
+            return true;
+        } else if (strncmp(request.ToString().c_str(), "DASH_PL:", 8) == 0) {
+            auto type = request.ToString().at(8);
+            auto stype = request.ToString().at(9);
+            auto info = request.ToString().substr(11);
+
+            int streamidx = -1;
+            long bandwidth = -1;
+            int width = -1;
+            int height = -1;
+            int duration = -1;
+            std::string segmenturi;
+            int delimiterPos;
+
+            std::istringstream f(info);
+            std::string s;
+            int idx = 0;
+
+            // determine type
+            switch (type) {
+                case 'A':
+                    // type A
+                    // DASH_PL:AV:<stream>:<bandwidth>:<resolution_width>:<resolution_height>:<segment duration>
+                    // DASH_PL:AA:<stream>:<bandwidth>:<resolution_width>:<resolution_height>:<segment duration>
+                    while (getline(f, s, ':')) {
+                        switch (idx) {
+                            case 0:
+                                // <stream>
+                                streamidx = std::stoi(s);
+                                break;
+                            case 1:
+                                // <bandwidth>
+                                bandwidth = std::stol(s);
+                                break;
+
+                            case 2:
+                                // <resolution width>
+                                width = std::stoi(s);
+                                break;
+
+                            case 3:
+                                // <resolution height>
+                                height = std::stoi(s);
+                                break;
+                            case 4:
+                                // <segment duration>
+                                duration = std::stoi(s);
+                                break;
+                        }
+
+                        idx++;
+                    }
+
+                    if (stype == 'V') {
+                        videoDashHandler.AddStream(streamidx, bandwidth, width, height, duration);
+                    } else if (stype == 'A') {
+                        audioDashHandler.AddStream(streamidx, bandwidth, width, height, duration);
+                    }
+                    break;
+
+                case 'B':
+                    // type B
+                    // DASH_PL:BV:<stream>:<Uri of the base segment>
+                    // DASH_PL:BA:<stream>:<Uri of the base segment>
+
+                    delimiterPos = info.find(":");
+                    streamidx = std::stoi(info.substr(0, delimiterPos));
+                    segmenturi = info.substr(delimiterPos + 1);
+
+                    if (stype == 'V') {
+                        videoDashHandler.SetBaseSegment(streamidx, segmenturi);
+                    } else if (stype == 'A') {
+                        audioDashHandler.SetBaseSegment(streamidx, segmenturi);
+                    }
+
+                    break;
+
+                case 'C':
+                    // type C
+                    // DASH_PL:CV:<stream>:<Uri of this segment>
+                    // DASH_PL:CA:<stream>:<Uri of this segment>
+
+                    delimiterPos = info.find(":");
+                    streamidx = std::stoi(info.substr(0, delimiterPos));
+                    segmenturi = info.substr(delimiterPos + 1);
+
+                    if (stype == 'V') {
+                        videoDashHandler.AddSegment(streamidx, segmenturi);
+                    } else if (stype == 'A') {
+                        audioDashHandler.AddSegment(streamidx, segmenturi);
+                    }
+
+                    break;
+
+                default:
+                    break;
+            }
+
             return true;
         }
     }

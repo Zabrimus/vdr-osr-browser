@@ -44,7 +44,7 @@ CFLAGS = -g -c -O3  -Wall -std=c++11
 #CFLAGS = -c -O0 -g -Wall -std=c++11
 LDFLAGS = -pthread -lrt
 
-SOURCES = main.cpp osrhandler.cpp browserclient.cpp browsercontrol.cpp transcodeffmpeg.cpp schemehandler.cpp logger.cpp javascriptlogging.cpp globaldefs.cpp nativejshandler.cpp
+SOURCES = main.cpp osrhandler.cpp browserclient.cpp browsercontrol.cpp transcodeffmpeg.cpp schemehandler.cpp logger.cpp javascriptlogging.cpp globaldefs.cpp nativejshandler.cpp dashhandler.cpp
 OBJECTS = $(SOURCES:.cpp=.o)
 
 SOURCES5 = schemehandler.cpp logger.cpp thirdparty/cefsimple/cefsimple_linux.cpp thirdparty/cefsimple/simple_app.cpp thirdparty/cefsimple/simple_handler.cpp thirdparty/cefsimple/simple_handler_linux.cpp globaldefs.cpp

@@ -126,6 +126,58 @@ function scanChildrenForPlayer(items) {
     });
 }
 
+function GetAndParseMpd(uri) {
+    // get the mpd file
+    var request = new XMLHttpRequest();
+
+    request.open("GET", uri);
+    request.addEventListener('load', function(event) {
+        if (request.status >= 200 && request.status < 300) {
+            var parsedManifest = mpdParser.parse(request.responseText, uri);
+
+            var i, j;
+
+            // save video information
+            let videoPl = parsedManifest.playlists;
+            for (i = 0; i < videoPl.length; i++) {
+                let pl = videoPl[i];
+
+                // type A: bandwidth, width, height, segment duration
+                signalCef("DASH_PL:AV:" + i + ":" + pl.attributes.BANDWIDTH + ":" +  pl.attributes.RESOLUTION.width + ":" + pl.attributes.RESOLUTION.height + ":" + pl.targetDuration);
+
+                // type B: base segment URL
+                signalCef("DASH_PL:BV:" + i + ":" + pl.segments[0].map['resolvedUri']);
+
+                // type C: all segments URls
+                for (j = 0; j < pl.segments.length; ++j) {
+                    signalCef("DASH_PL:CV:" + i + ":" + pl.segments[j].resolvedUri);
+                }
+            }
+
+            // save audio information
+            // parsedManifest.mediaGroups.AUDIO.audio.deu.playlists[0]
+            let audioPl = parsedManifest.mediaGroups.AUDIO.audio.deu.playlists;
+            for (i = 0; i < audioPl.length; i++) {
+                let pl = audioPl[i];
+
+                // type A: bandwidth, width, height, segment duration
+                signalCef("DASH_PL:AA:" + i + ":" + pl.attributes.BANDWIDTH + ":-1:-1:" + pl.targetDuration);
+
+                // type B: base segment URL
+                signalCef("DASH_PL:BA:" + i + ":" + pl.segments[0].map['resolvedUri']);
+
+                // type C: all segments URls
+                for (j = 0; j < pl.segments.length; ++j) {
+                    signalCef("DASH_PL:CA:" + i + ":" + pl.segments[j].resolvedUri);
+                }
+            }
+        } else {
+            console.warn(request.statusText, request.responseText);
+        }
+    });
+    request.send();
+}
+
 class OipfAVControlMapper {
 
     /**
@@ -158,18 +210,8 @@ class OipfAVControlMapper {
             // this.dashPlayer.initialize(this.videoElement, originalDataAttribute, true);
 
             // get the mpd file
-            var request = new XMLHttpRequest();
-
-            request.open("GET", originalDataAttribute);
-            request.addEventListener('load', function(event) {
-                if (request.status >= 200 && request.status < 300) {
-                    var parsedManifest = mpdParser.parse(request.responseText, originalDataAttribute);
-                    // TODO: Implement a better loading using the manifest
-                } else {
-                    console.warn(request.statusText, request.responseText);
-                }
-            });
-            request.send();
+            signalCef("CLEAR_DASH");
+            GetAndParseMpd(originalDataAttribute);
         } else {
             var target = document.getElementById("video");
 
@@ -351,6 +393,13 @@ class OipfAVControlMapper {
                     if (newSrc.search("client://movie/transparent") >= 0) {
                         // prevent recursion
                         return;
+                    }
+
+                    // get the mpd file
+                    var isMpd = newSrc.endsWith(".mpd");
+                    signalCef("CLEAR_DASH");
+                    if (isMpd) {
+                        GetAndParseMpd(newSrc);
                     }
 
                     let d = new Date();

@@ -11,6 +11,10 @@
 
 #include "logger.h"
 #include "globaldefs.h"
+#include "dashhandler.h"
+
+static const char* DASH_VIDEO_FILE = "movie/dash_video.mp4";
+static const char* DASH_AUDIO_FILE = "movie/dash_audio.mp4";
 
 static pid_t ffmpeg_pid;
 
@@ -154,56 +158,78 @@ bool TranscodeFFmpeg::set_input(const char* time, const char* input, bool verbos
     CONSOLE_TRACE("TranscodeFFmpeg::set_input, time = {}, input = {}", time, input);
 
     input_file = std::string(input);
+    isDash = endsWith(input_file, ".mpd");
 
-    verbose_ffmpeg = verbose;
+    if (isDash) {
+        // it's a dash file, start handler
+        videoDashHandler.setFilename(DASH_VIDEO_FILE);
+        videoDashHandler.InitLoadThread(0);
+        videoDashHandler.StartLoadThread(0);
 
-    char *ffprobe;
-    std::string chinput(input);
-    replaceAll(chinput, "&", "\\&");
-
-    asprintf(&ffprobe, "%s -v error -show_entries stream=codec_name,duration -of default=noprint_wrappers=1:nokey=1 -i %s ", ffprobe_executable.c_str(), chinput.c_str());
-
-    CONSOLE_TRACE("call ffprobe: {}", ffprobe);
-
-    FILE *infoFile = popen(ffprobe, "r");
-
-    long duration = 0;
-    copy_audio = false;
-    copy_video = false;
-    isDash = false;
-
-    if (infoFile) {
-        char buffer[1024];
-        char *line;
-        int idx = 0;
-        while (nullptr != (line = fgets(buffer, sizeof(buffer), infoFile))) {
-            if (idx % 2 == 0) {
-                // codec
-                if (strncmp(line, "h264", 4) == 0) {
-                    copy_video = true;
-                } else if (strncmp(line, "aac", 3) == 0) {
-                    copy_audio = true;
-                }
-            } else {
-                // duration
-                if (strncmp(line, "N/A", 3) == 0) {
-                    // e.g. for mpeg-dash. Set to 2 hours
-                    duration = 2 * 60 * 60;
-                    isDash = true;
-                } else {
-                    duration = std::max(strtol(line, (char **) NULL, 10), duration);
-                }
-            }
-
-            idx++;
-        }
-
-        pclose(infoFile);
+        audioDashHandler.setFilename(DASH_AUDIO_FILE);
+        audioDashHandler.InitLoadThread(0);
+        audioDashHandler.StartLoadThread(0);
     }
 
-    if (duration == 0) {
-        CONSOLE_ERROR("Unable to determine duration. ffprobe failed.\n");
-        return false;
+    // verbose_ffmpeg = verbose;
+    verbose_ffmpeg = true;
+
+    long duration = 0;
+
+    // call ffprobe only, if it's not a dash file
+    if (!isDash) {
+        char *ffprobe;
+        std::string chinput(input);
+        replaceAll(chinput, "&", "\\&");
+
+        asprintf(&ffprobe,
+                 "%s -v error -show_entries stream=codec_name,duration -of default=noprint_wrappers=1:nokey=1 -i %s ",
+                 ffprobe_executable.c_str(), chinput.c_str());
+
+        CONSOLE_TRACE("call ffprobe: {}", ffprobe);
+
+        FILE *infoFile = popen(ffprobe, "r");
+
+        copy_audio = false;
+        copy_video = false;
+
+        if (infoFile) {
+            char buffer[1024];
+            char *line;
+            int idx = 0;
+            while (nullptr != (line = fgets(buffer, sizeof(buffer), infoFile))) {
+                if (idx % 2 == 0) {
+                    // codec
+                    if (strncmp(line, "h264", 4) == 0) {
+                        copy_video = true;
+                    } else if (strncmp(line, "aac", 3) == 0) {
+                        copy_audio = true;
+                    }
+                } else {
+                    // duration
+                    if (strncmp(line, "N/A", 3) == 0) {
+                        // e.g. for mpeg-dash. Set to 2 hours
+                        duration = 2 * 60 * 60;
+                    } else {
+                        duration = std::max(strtol(line, (char **) NULL, 10), duration);
+                    }
+                }
+
+                idx++;
+            }
+
+            pclose(infoFile);
+        }
+
+        if (duration == 0) {
+            CONSOLE_ERROR("Unable to determine duration. ffprobe failed.\n");
+            return false;
+        }
+    } else {
+        // set very optimistic standard values for dash
+        duration = 2 * 60 * 60;
+        copy_audio = true;
+        copy_video = true;
     }
 
     // check if full transparent video exists, otherwise create one (shall not happen)
@@ -256,6 +282,9 @@ bool TranscodeFFmpeg::set_input(const char* time, const char* input, bool verbos
 }
 
 bool TranscodeFFmpeg::fork_ffmpeg(long start_at_ms) {
+    // videoDashHandler.PrintTrace();
+    // audioDashHandler.PrintTrace();
+
     // fork and start ffmpeg
     pid_t pid = fork();
     if (pid == -1) {
@@ -274,27 +303,34 @@ bool TranscodeFFmpeg::fork_ffmpeg(long start_at_ms) {
         if (!isDash) {
             cmdline += "-re -ss " + std::string(ms_to_ffmpeg_time(start_at_ms)) + " ";
         } else {
-            cmdline += "-re -multiple_requests 1 ";
+            cmdline += "-re ";
         }
 
-        std::string ninput(input_file);
-        replaceAll(ninput, "&", "\\&");
-
-        cmdline += "-i " + ninput + " ";
-
-        if (copy_audio && copy_video) {
-            cmdline += "-codec copy ";
+        if (isDash) {
+            // Mux Audio/Video
+            cmdline += "-i file:" + std::string(DASH_VIDEO_FILE) + " -codec copy ";
+            // cmdline += "-follow 1 -i file:" + std::string(DASH_VIDEO_FILE) + " -codec copy ";
+            // cmdline += "-follow 1 -i file:" + std::string(DASH_VIDEO_FILE) + " -i file:" + std::string(DASH_AUDIO_FILE) + " -codec copy ";
+            // cmdline += "-i file:" + std::string(DASH_VIDEO_FILE) + " -i file:" + std::string(DASH_AUDIO_FILE) + " -codec copy ";
         } else {
-            if (copy_video) {
-                cmdline += "-c:v copy ";
-            } else {
-                cmdline += encode_video_param + " ";
-            }
+            std::string ninput(input_file);
+            replaceAll(ninput, "&", "\\&");
+            cmdline += "-i " + ninput + " ";
 
-            if (copy_audio) {
-                cmdline += "-c:a copy ";
+            if (copy_audio && copy_video) {
+                cmdline += "-codec copy ";
             } else {
-                cmdline += encode_audio_param + " ";
+                if (copy_video) {
+                    cmdline += "-c:v copy ";
+                } else {
+                    cmdline += encode_video_param + " ";
+                }
+
+                if (copy_audio) {
+                    cmdline += "-c:a copy ";
+                } else {
+                    cmdline += encode_audio_param + " ";
+                }
             }
         }
 
@@ -304,7 +340,7 @@ bool TranscodeFFmpeg::fork_ffmpeg(long start_at_ms) {
             cmdline += "udp://127.0.0.1:" + std::to_string(VIDEO_UDP_PORT) + "?pkt_size=" +
                        std::to_string(udp_packet_size) + "&buffer_size=" + std::to_string(udp_buffer_size);
         } else if (protocol == TCP) {
-            cmdline += "tcp://127.0.0.1:" + std::to_string(VIDEO_TCP_PORT) + "?listen&recv_buffer_size=64860&send_buffer_size=64860";
+            cmdline += "tcp://127.0.0.1:" + std::to_string(VIDEO_TCP_PORT) + "?listen&send_buffer_size=64860";
         } else if (protocol == UNIX) {
             cmdline += "-listen 1 unix://" + std::string(VIDEO_UNIX);
         }
@@ -316,19 +352,21 @@ bool TranscodeFFmpeg::fork_ffmpeg(long start_at_ms) {
 
         cmd_params.push_back(strdup(ffmpeg_executable.c_str()));
 
-        // add user agent and cookies
-        if (user_agent.length() > 0) {
-            cmd_params.push_back((char*)"-user_agent");
-            std::string ua("'");
-            ua += user_agent + "'";
-            cmd_params.push_back(strdup(ua.c_str()));
-        }
+        if (!isDash) {
+            // add user agent and cookies
+            if (user_agent.length() > 0) {
+                cmd_params.push_back((char *) "-user_agent");
+                std::string ua("'");
+                ua += user_agent + "'";
+                cmd_params.push_back(strdup(ua.c_str()));
+            }
 
-        if (cookies.length() > 0) {
-            cmd_params.push_back((char*)"-headers");
-            std::string co("$'");
-            co += std::string(cookies) + std::string("'");
-            cmd_params.push_back(strdup(co.c_str()));
+            if (cookies.length() > 0) {
+                cmd_params.push_back((char *) "-headers");
+                std::string co("$'");
+                co += std::string(cookies) + std::string("'");
+                cmd_params.push_back(strdup(co.c_str()));
+            }
         }
 
         while(getline(cmd, inter, ' ')) {
@@ -381,6 +419,9 @@ void TranscodeFFmpeg::resume_video() {
 }
 
 void TranscodeFFmpeg::stop_video() {
+    videoDashHandler.StopLoadThread();
+    audioDashHandler.StopLoadThread();
+
     if (ffmpeg_pid > 0) {
         CONSOLE_TRACE("stop video, kill ffmpeg with pid {}", ffmpeg_pid);
         // kill(ffmpeg_pid, SIGTERM);
@@ -396,12 +437,14 @@ void TranscodeFFmpeg::stop_video() {
 
     ffmpeg_pid = 0;
 
-    unlink(VIDEO_UNIX);
-
     char *transvideo;
     asprintf(&transvideo, "movie/transparent_%s.webm", transparent_time.c_str());
     unlink(transvideo);
     free(transvideo);
+
+    unlink(VIDEO_UNIX);
+    // unlink(DASH_VIDEO_FILE);
+    // unlink(DASH_AUDIO_FILE);
 }
 
 void TranscodeFFmpeg::speed_video(const char* speed) {

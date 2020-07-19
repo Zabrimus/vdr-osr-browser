@@ -37,4 +37,10 @@ std::string rtrim_copy(std::string s);
 // trim from both ends (copying)
 std::string trim_copy(std::string s);
 
+// test if string endsWith another string
+bool endsWith(const std::string& str, const std::string& suffix);
+
+// test if string startsWith another string
+bool startsWith(const std::string& str, const std::string& prefix);
+
 #endif // VDR_OSR_BROWSER_GLOBALDEFS_H
