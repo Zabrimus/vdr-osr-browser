@@ -490,7 +490,7 @@ bool JavascriptHandler::OnQuery(CefRefPtr<CefBrowser> browser,
                     // DASH_PL:BV:<stream>:<Uri of the base segment>
                     // DASH_PL:BA:<stream>:<Uri of the base segment>
 
-                    delimiterPos = info.find(":");
+                    delimiterPos = info.find(':');
                     streamidx = std::stoi(info.substr(0, delimiterPos));
                     segmenturi = info.substr(delimiterPos + 1);
 
@@ -507,7 +507,7 @@ bool JavascriptHandler::OnQuery(CefRefPtr<CefBrowser> browser,
                     // DASH_PL:CV:<stream>:<Uri of this segment>
                     // DASH_PL:CA:<stream>:<Uri of this segment>
 
-                    delimiterPos = info.find(":");
+                    delimiterPos = info.find(':');
                     streamidx = std::stoi(info.substr(0, delimiterPos));
                     segmenturi = info.substr(delimiterPos + 1);
 
@@ -517,6 +517,16 @@ bool JavascriptHandler::OnQuery(CefRefPtr<CefBrowser> browser,
                         audioDashHandler.AddSegment(streamidx, segmenturi);
                     }
 
+                    break;
+
+                case 'S':
+                    videoDashHandler.SetStartSegment(std::atol(info.c_str()));
+                    audioDashHandler.SetStartSegment(std::atol(info.c_str()));
+                    break;
+
+                case 'D':
+                    videoDashHandler.SetDuration(std::atol(info.c_str()));
+                    audioDashHandler.SetDuration(std::atol(info.c_str()));
                     break;
 
                 default:

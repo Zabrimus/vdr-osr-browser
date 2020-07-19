@@ -15,26 +15,23 @@ DashHandler::~DashHandler() {
     if (curl) {
         delete curl;
     }
-
-    if (output) {
-        fclose(output);
-    }
 }
 
 void DashHandler::setFilename(std::string filename) {
     this->filename = filename;
     unlink(filename.c_str());
-    output = fopen(filename.c_str(), "ab");
-
-    curl = new DashCurl(output, filename);
+    curl = new DashCurl(filename);
 }
 
-void DashHandler::InitLoadThread(int streamidx) {
+void DashHandler::InitLoadThread(int streamidx, int startSegment) {
     DashStream *stream = GetStream(streamidx);
 
     if (stream == nullptr) {
         return;
     }
+
+    // delete first entries
+    stream->DeleteFirst(startSegment - 1);
 
     // save base segment
     curl->LoadUrl(stream->GetBaseSegment());
@@ -100,10 +97,9 @@ void DashHandler::StopLoadThread() {
 
 // ------------------- dash curl
 
-DashCurl::DashCurl(FILE *output, std::string filename) {
+DashCurl::DashCurl(std::string filename) {
     curl_global_init(CURL_GLOBAL_ALL);
     curl_handle = curl_easy_init();
-    this->output = output;
     this->filename = filename;
 }
 
@@ -118,13 +114,20 @@ DashCurl::~DashCurl() {
 void DashCurl::LoadUrl(std::string url) {
     CONSOLE_TRACE("DashCurl::LoadUrl {}", url);
 
+    FILE *out = fopen(filename.c_str(), "ab");
+
     curl_easy_setopt(curl_handle, CURLOPT_NOPROGRESS, 1L);
-    curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, output);
+    curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, out);
     curl_easy_setopt(curl_handle, CURLOPT_URL, url.c_str());
 
     res = curl_easy_perform(curl_handle);
 
     if (res == CURLE_OK) {
         curl_easy_getinfo(curl_handle, CURLINFO_RESPONSE_CODE, &response_code);
+    }
+
+    if (out) {
+        fflush(out);
+        fclose(out);
     }
 }

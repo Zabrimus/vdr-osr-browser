@@ -163,16 +163,15 @@ bool TranscodeFFmpeg::set_input(const char* time, const char* input, bool verbos
     if (isDash) {
         // it's a dash file, start handler
         videoDashHandler.setFilename(DASH_VIDEO_FILE);
-        videoDashHandler.InitLoadThread(0);
+        videoDashHandler.InitLoadThread(0, videoDashHandler.GetStartSegment());
         videoDashHandler.StartLoadThread(0);
 
         audioDashHandler.setFilename(DASH_AUDIO_FILE);
-        audioDashHandler.InitLoadThread(0);
+        audioDashHandler.InitLoadThread(0, audioDashHandler.GetStartSegment());
         audioDashHandler.StartLoadThread(0);
     }
 
-    // verbose_ffmpeg = verbose;
-    verbose_ffmpeg = true;
+    verbose_ffmpeg = verbose;
 
     long duration = 0;
 
@@ -294,9 +293,7 @@ bool TranscodeFFmpeg::fork_ffmpeg(long start_at_ms) {
         // build the commandline
         std::string cmdline = "";
 
-        if (verbose_ffmpeg) {
-            cmdline += "";
-        } else {
+        if (!verbose_ffmpeg) {
             cmdline += "-hide_banner -loglevel warning ";
         }
 
@@ -308,12 +305,7 @@ bool TranscodeFFmpeg::fork_ffmpeg(long start_at_ms) {
 
         if (isDash) {
             // Mux Audio/Video
-            cmdline += "-i file:" + std::string(DASH_VIDEO_FILE) + " -i file:" + std::string(DASH_AUDIO_FILE) + " -c:v copy " + encode_audio_param + " ";
-
-            // cmdline += "-i file:" + std::string(DASH_VIDEO_FILE) + " -codec copy ";
-            // cmdline += "-follow 1 -i file:" + std::string(DASH_VIDEO_FILE) + " -codec copy ";
-            // cmdline += "-follow 1 -i file:" + std::string(DASH_VIDEO_FILE) + " -i file:" + std::string(DASH_AUDIO_FILE) + " -codec copy ";
-            // cmdline += "-i file:" + std::string(DASH_VIDEO_FILE) + " -i file:" + std::string(DASH_AUDIO_FILE) + " -codec copy ";
+            cmdline += "-follow 1 -i file:" + std::string(DASH_VIDEO_FILE) + " -i file:" + std::string(DASH_AUDIO_FILE) + " -c:v copy " + encode_audio_param + " ";
         } else {
             std::string ninput(input_file);
             replaceAll(ninput, "&", "\\&");

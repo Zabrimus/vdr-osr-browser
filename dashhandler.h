@@ -53,6 +53,16 @@ class DashStream {
             }
         }
 
+        void DeleteFirst(unsigned long count) {
+            if ((count > 0) && (count < segments.size())) {
+                auto its = segments.begin();
+                auto ite = segments.begin();
+                std::advance(ite, count);
+
+                segments.erase(its, ite);
+            }
+        }
+
         int GetSegmentDuration() {
             return segmentDuration;
         }
@@ -91,9 +101,11 @@ class DashHandler {
         bool load_dash_running;
         void load_dash(int streamidx);
 
-        FILE *output;
         std::string filename;
         DashCurl *curl;
+
+        long startSegment;
+        long duration;
 
     public:
         DashHandler();
@@ -121,7 +133,7 @@ class DashHandler {
         void SetBaseSegment(int index, std::string segmentUri) {
             auto st = GetStream(index);
             if (st != nullptr) {
-                st->SetBaseSegment(segmentUri);
+                st->SetBaseSegment(std::move(segmentUri));
             }
         }
 
@@ -142,6 +154,22 @@ class DashHandler {
             return nullptr;
         }
 
+        void SetStartSegment(long s) {
+            startSegment = s;
+        }
+
+        long GetStartSegment() const {
+            return startSegment;
+        }
+
+        void SetDuration(long d) {
+            duration = d;
+        }
+
+        long GetDuration() const {
+            return duration;
+        }
+
         void PrintTrace() {
             CONSOLE_TRACE("Stream count: {}", Size());
 
@@ -150,7 +178,7 @@ class DashHandler {
             }
         }
 
-        void InitLoadThread(int streamidx);
+        void InitLoadThread(int streamidx, int startSegment);
         void StartLoadThread(int streamidx);
         void StopLoadThread();
 };
@@ -165,13 +193,12 @@ struct SegmentStruct {
 
 class DashCurl {
 public:
-    DashCurl(FILE *output, std::string filename);
+    DashCurl(std::string filename);
     ~DashCurl();
 
     void LoadUrl(std::string url);
 
 private:
-    FILE *output;
     std::string filename;
 
     CURL *curl_handle;

@@ -126,6 +126,52 @@ function scanChildrenForPlayer(items) {
     });
 }
 
+/*
+Copied from mpd-parser/src/utils/time.js
+https://github.com/videojs/mpd-parser/blob/master/src/utils/time.js
+*/
+// start copy
+function ParseDuration(str) {
+    const SECONDS_IN_YEAR = 365 * 24 * 60 * 60;
+    const SECONDS_IN_MONTH = 30 * 24 * 60 * 60;
+    const SECONDS_IN_DAY = 24 * 60 * 60;
+    const SECONDS_IN_HOUR = 60 * 60;
+    const SECONDS_IN_MIN = 60;
+
+    // P10Y10M10DT10H10M10.1S
+    const durationRegex =
+      /P(?:(\d*)Y)?(?:(\d*)M)?(?:(\d*)D)?(?:T(?:(\d*)H)?(?:(\d*)M)?(?:([\d.]*)S)?)?/;
+    const match = durationRegex.exec(str);
+
+    if (!match) {
+        return 0;
+    }
+
+    const [year, month, day, hour, minute, second] = match.slice(1);
+
+    return (parseFloat(year || 0) * SECONDS_IN_YEAR +
+      parseFloat(month || 0) * SECONDS_IN_MONTH +
+      parseFloat(day || 0) * SECONDS_IN_DAY +
+      parseFloat(hour || 0) * SECONDS_IN_HOUR +
+      parseFloat(minute || 0) * SECONDS_IN_MIN +
+      parseFloat(second || 0));
+}
+
+function ParseDate(str) {
+    // Date format without timezone according to ISO 8601
+    // YYY-MM-DDThh:mm:ss.ssssss
+    const dateRegex = /^\d+-\d+-\d+T\d+:\d+:\d+(\.\d+)?$/;
+
+    // If the date string does not specifiy a timezone, we must specifiy UTC. This is
+    // expressed by ending with 'Z'
+    if (dateRegex.test(str)) {
+        str += 'Z';
+    }
+
+    return Date.parse(str) / 1000;
+};
+// end copy
+
 function GetAndParseMpd(uri) {
     // get the mpd file
     var request = new XMLHttpRequest();
@@ -133,7 +179,35 @@ function GetAndParseMpd(uri) {
     request.open("GET", uri);
     request.addEventListener('load', function(event) {
         if (request.status >= 200 && request.status < 300) {
-            var parsedManifest = mpdParser.parse(request.responseText, uri);
+            let xml = request.responseText;
+
+            var parsedManifest = mpdParser.parse(xml, uri);
+            var parsedXml = new window.DOMParser().parseFromString(xml, "text/xml");
+
+            // some values are not available in the mpd-parser generated json. Therefore extract them manually.
+            var xmlMpd = parsedXml.getElementsByTagName('MPD')[0];
+            var availStartTime = ParseDate(xmlMpd.getAttribute('availabilityStartTime'));
+            var publishTime = ParseDate(xmlMpd.getAttribute('publishTime'));
+            var bufferDepth = ParseDuration(xmlMpd.getAttribute('timeShiftBufferDepth'));
+            var periodStart = ParseDuration(xmlMpd.getElementsByTagName('Period')[0].getAttribute('start'));
+            var segmentLength = parsedManifest.playlists[0].targetDuration;
+            var mediaSeq = parsedManifest.playlists[0].mediaSequence;
+            var now = Date.now() / 1000.0;
+
+            // do some calculation to find the first segment
+            // LSN = floor((now - (availabilityStartTime + periodStartTime)) / segmentDuration + startNumber - 1)
+            var lsn = Math.floor((now - (availStartTime + periodStart)) / segmentLength)
+            var seg = lsn - mediaSeq;
+
+            // calculate the max possible duration for this mpd
+            var dura = Math.floor(bufferDepth - seg * segmentLength) + segmentLength;
+
+            console.debug("Calculated Start Segment: " + seg);
+            console.debug("Calculated Duration: " + dura);
+
+            // The start segment is now: lsn - mediaSeq
+            signalCef("DASH_PL:ST:" + seg);
+            signalCef("DASH_PL:DU:" + dura);
 
             var i, j;
 
