@@ -308,7 +308,9 @@ bool TranscodeFFmpeg::fork_ffmpeg(long start_at_ms) {
 
         if (isDash) {
             // Mux Audio/Video
-            cmdline += "-i file:" + std::string(DASH_VIDEO_FILE) + " -codec copy ";
+            cmdline += "-i file:" + std::string(DASH_VIDEO_FILE) + " -i file:" + std::string(DASH_AUDIO_FILE) + " -c:v copy " + encode_audio_param + " ";
+
+            // cmdline += "-i file:" + std::string(DASH_VIDEO_FILE) + " -codec copy ";
             // cmdline += "-follow 1 -i file:" + std::string(DASH_VIDEO_FILE) + " -codec copy ";
             // cmdline += "-follow 1 -i file:" + std::string(DASH_VIDEO_FILE) + " -i file:" + std::string(DASH_AUDIO_FILE) + " -codec copy ";
             // cmdline += "-i file:" + std::string(DASH_VIDEO_FILE) + " -i file:" + std::string(DASH_AUDIO_FILE) + " -codec copy ";
