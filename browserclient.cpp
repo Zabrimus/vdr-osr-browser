@@ -728,7 +728,7 @@ void BrowserClient::OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame>
     if (mode == 2 && injectJavascript) {
         // inject Javascript
         injectJs(browser, "js/font.js", true, false, "hbbtvfont", false);
-        injectJs(browser, "js/video_quirks.js", false, false, "hbbtvvideoquirk", false);
+        injectJs(browser, "js/video_quirks.js", false, true, "hbbtvvideoquirk", false);
         // injectJs(browser, "js/mpd-parser.js", true, false, "hbbtvmpdparser", false);
         injectJavascript = false;
     }

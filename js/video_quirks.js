@@ -16,6 +16,10 @@ window.start_video_quirk = function() {
   if (window.location.href.search("itv.ard.de/replay/index.php") >= 0) {
       document.body.setAttribute('style', 'background-color: transparent !important');
   }
+
+  // ARD replay dyn
+  if (window.location.href.search("itv.ard.de/replay/dyn/index.php") >= 0) {
+  }
 }
 
 window.stop_video_quirk = function() {
@@ -35,5 +39,9 @@ window.stop_video_quirk = function() {
   // ARD replay
   if (window.location.href.search("itv.ard.de/replay/index.php") >= 0) {
       document.body.setAttribute('style', 'background-color: black');
+  }
+
+  // ARD replay dyn
+  if (window.location.href.search("itv.ard.de/replay/dyn/index.php") >= 0) {
   }
 }
