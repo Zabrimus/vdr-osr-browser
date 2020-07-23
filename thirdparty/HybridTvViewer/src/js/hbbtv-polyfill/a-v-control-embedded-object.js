@@ -158,12 +158,6 @@ function GetAndParseMpd(uri) {
                 var lastseg = Math.floor((_now - _availabilityStartTime) / duration + _startNumber - 1);
                 var startseg = Math.floor(lastseg - _periodStart / duration - 1);
 
-                if (_mimetype === 'video' || _mimetype === 'video/mp4') {
-                    prefix = "V";
-                } else if (_mimetype === 'audio' || _mimetype === 'audio/mp4') {
-                    prefix = "A";
-                }
-
                 var _representation = _adaptionSet[i].Representation;
 
                 if (Array.isArray(_representation)) {
