@@ -162,13 +162,16 @@ bool TranscodeFFmpeg::set_input(const char* time, const char* input, bool verbos
 
     if (isDash) {
         // it's a dash file, start handler
-        videoDashHandler.setFilename(DASH_VIDEO_FILE);
-        videoDashHandler.InitLoadThread(0, videoDashHandler.GetStartSegment());
-        videoDashHandler.StartLoadThread(0);
+        uint videoIdx = videoDashHandler.GetBestStream();
+        uint audioIdx = audioDashHandler.GetBestStream();
 
-        audioDashHandler.setFilename(DASH_AUDIO_FILE);
-        audioDashHandler.InitLoadThread(0, audioDashHandler.GetStartSegment());
-        audioDashHandler.StartLoadThread(0);
+        videoDashHandler.SetFilename(DASH_VIDEO_FILE);
+        videoDashHandler.InitLoadThread(videoIdx, videoDashHandler.GetStream(videoIdx).startSegment);
+        videoDashHandler.StartLoadThread(videoIdx);
+
+        audioDashHandler.SetFilename(DASH_AUDIO_FILE);
+        audioDashHandler.InitLoadThread(audioIdx, audioDashHandler.GetStream(audioIdx).startSegment);
+        audioDashHandler.StartLoadThread(audioIdx);
     }
 
     verbose_ffmpeg = verbose;
@@ -227,8 +230,6 @@ bool TranscodeFFmpeg::set_input(const char* time, const char* input, bool verbos
     } else {
         // set very optimistic standard values for dash
         duration = 2 * 60 * 60;
-        copy_audio = true;
-        copy_video = true;
     }
 
     // check if full transparent video exists, otherwise create one (shall not happen)
@@ -281,9 +282,6 @@ bool TranscodeFFmpeg::set_input(const char* time, const char* input, bool verbos
 }
 
 bool TranscodeFFmpeg::fork_ffmpeg(long start_at_ms) {
-    // videoDashHandler.PrintTrace();
-    // audioDashHandler.PrintTrace();
-
     // fork and start ffmpeg
     pid_t pid = fork();
     if (pid == -1) {

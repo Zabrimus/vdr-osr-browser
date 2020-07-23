@@ -9,201 +9,80 @@
 
 class DashCurl;
 
-class DashStream {
-    private:
-        int index = -1;
+enum StreamType { Video, Audio };
 
-        long bandwidth = -1;
-        int width = -1;
-        int height = -1;
+typedef struct DashStream {
+    uint idx;
 
-        std::string baseSegment;
-        std::list<std::string> segments;
-        int segmentDuration = -1;
+    StreamType type;
 
-    public:
-        DashStream(int index, long bandwidth, int width, int height, int segmentDuration) {
-            this->index = index;
-            this->bandwidth = bandwidth;
-            this->width = width;
-            this->height = height;
-            this->segmentDuration = segmentDuration;
-        }
+    uint  width;
+    uint  height;
+    ulong bandwidth;
 
-        void SetBaseSegment(std::string base) {
-            this->baseSegment = base;
-        }
+    ulong firstSegment;
+    ulong lastSegment;
+    ulong startSegment;
+    uint  duration;
 
-        void AddSegment(std::string segment) {
-            segments.push_back(segment);
-        }
+    std::string initUrl;
+    std::string segmentUrl;
 
-        std::string GetBaseSegment() {
-            return baseSegment;
-        }
-
-        std::string GetNextSegment() {
-            if (segments.size() > 1) {
-                std::string front = segments.front();
-                segments.pop_front();
-
-                return front;
-            } else {
-                return "";
-            }
-        }
-
-        void DeleteFirst(unsigned long count) {
-            if ((count > 0) && (count < segments.size())) {
-                auto its = segments.begin();
-                auto ite = segments.begin();
-                std::advance(ite, count);
-
-                segments.erase(its, ite);
-            }
-        }
-
-        int GetSegmentDuration() {
-            return segmentDuration;
-        }
-
-        long GetBandwidth() {
-            return bandwidth;
-        }
-
-        int GetHeight() {
-            return height;
-        }
-
-        int GetWidth() {
-            return width;
-        }
-
-        int GetIndex() {
-            return index;
-        }
-
-        void PrintTrace() {
-            CONSOLE_TRACE("Stream: idx={}, bandwidth={}, segmentDuration={}, width={}, height={}", index, bandwidth, segmentDuration, width, height);
-            CONSOLE_TRACE("   Base segment: {}", baseSegment);
-            CONSOLE_TRACE("   Segment count: {}", segments.size());
-            for (auto s : segments) {
-                CONSOLE_TRACE("   Segment: {}", s);
-            }
-        }
-};
+    void print() {
+        printf("Idx:%d, first:%lu, last=%lu, start=%lu, duration=%d, bandwidth=%lu, initUrl=%s, segmentUrl=%s\n", idx, firstSegment, lastSegment, startSegment, duration, bandwidth, initUrl.c_str(), segmentUrl.c_str());
+    }
+} DashStream;
 
 class DashHandler {
-    private:
-        std::list<DashStream*> streams;
+private:
+    ulong segmentIdx;
+    std::string baseUrl;
+    std::list<DashStream> streams;
 
-        std::thread load_dash_thread;
-        bool load_dash_running;
-        void load_dash(int streamidx);
+    std::thread load_dash_thread;
+    bool load_dash_running;
 
-        std::string filename;
-        DashCurl *curl;
+    std::string filename;
+    DashCurl *curl;
 
-        long startSegment;
-        long duration;
+    void LoadDash(int streamidx);
+    std::string GetNextUrl(DashStream& stream);
 
-    public:
-        DashHandler();
-        ~DashHandler();
+public:
+    DashHandler();
+    ~DashHandler();
 
-        void setFilename(std::string filename);
+    void SetBaseUrl(std::string baseUrl);
+    void SetFilename(std::string filename);
 
-        int Size() {
-            return streams.size();
-        }
+    void ResetSegmentIndex(ulong newSegmentIdx);
 
-        void Clear() {
-            for (auto s : streams) {
-                delete s;
-            }
+    DashStream& GetStream(uint idx);
+    void ClearAll();
 
-            streams.clear();
-        }
+    void InitLoadThread(int streamidx, int startSegment);
+    void StartLoadThread(int streamidx);
+    void StopLoadThread();
 
-        void AddStream(int index, long bandwidth, int width, int height, int segmentDuration) {
-            DashStream *stream = new DashStream(index, bandwidth, width, height, segmentDuration);
-            streams.push_back(stream);
-        }
-
-        void SetBaseSegment(int index, std::string segmentUri) {
-            auto st = GetStream(index);
-            if (st != nullptr) {
-                st->SetBaseSegment(std::move(segmentUri));
-            }
-        }
-
-        void AddSegment(int index, std::string segmentUri) {
-            auto st = GetStream(index);
-            if (st != nullptr) {
-                st->AddSegment(segmentUri);
-            }
-        }
-
-        DashStream* GetStream(int idx) {
-            for (auto stream : streams) {
-                if (stream->GetIndex() == idx) {
-                    return stream;
-                }
-            }
-
-            return nullptr;
-        }
-
-        void SetStartSegment(long s) {
-            startSegment = s;
-        }
-
-        long GetStartSegment() const {
-            return startSegment;
-        }
-
-        void SetDuration(long d) {
-            duration = d;
-        }
-
-        long GetDuration() const {
-            return duration;
-        }
-
-        void PrintTrace() {
-            CONSOLE_TRACE("Stream count: {}", Size());
-
-            for (auto s : streams) {
-                s->PrintTrace();
-            }
-        }
-
-        void InitLoadThread(int streamidx, int startSegment);
-        void StartLoadThread(int streamidx);
-        void StopLoadThread();
-};
-
-extern DashHandler videoDashHandler;
-extern DashHandler audioDashHandler;
-
-struct SegmentStruct {
-    char *memory;
-    size_t size;
+    uint GetBestStream();
 };
 
 class DashCurl {
-public:
-    DashCurl(std::string filename);
-    ~DashCurl();
-
-    void LoadUrl(std::string url);
-
 private:
     std::string filename;
 
     CURL *curl_handle;
     CURLcode res;
     long response_code;
+
+public:
+    DashCurl(std::string filename);
+    ~DashCurl();
+
+    void LoadUrl(std::string url);
 };
+
+extern DashHandler audioDashHandler;
+extern DashHandler videoDashHandler;
 
 #endif //VDR_OSR_BROWSER_DASHHANDLER_H

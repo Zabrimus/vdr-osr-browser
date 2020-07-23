@@ -32,7 +32,6 @@ function scanChildrenForPlayer(items) {
 Copied from mpd-parser/src/utils/time.js
 https://github.com/videojs/mpd-parser/blob/master/src/utils/time.js
 */
-// start copy
 function ParseDuration(str) {
     const SECONDS_IN_YEAR = 365 * 24 * 60 * 60;
     const SECONDS_IN_MONTH = 30 * 24 * 60 * 60;
@@ -72,7 +71,45 @@ function ParseDate(str) {
 
     return Date.parse(str) / 1000;
 };
-// end copy
+// end Copied from mpd-parser/src/utils/time.js
+
+// https://davidwalsh.name/convert-xml-json
+function xmlToJson(xml) {
+    // Create the return object
+    var obj = {};
+
+    if (xml.nodeType === 1) { // element
+        // do attributes
+        if (xml.attributes.length > 0) {
+            obj["_attributes"] = {};
+            for (var j = 0; j < xml.attributes.length; j++) {
+                var attribute = xml.attributes.item(j);
+                obj["_attributes"][attribute.nodeName] = attribute.nodeValue;
+            }
+        }
+    } else if (xml.nodeType === 3) { // text
+        obj = xml.nodeValue;
+    }
+
+    // do children
+    if (xml.hasChildNodes()) {
+        for(var i = 0; i < xml.childNodes.length; i++) {
+            var item = xml.childNodes.item(i);
+            var nodeName = item.nodeName;
+            if (typeof(obj[nodeName]) == "undefined") {
+                obj[nodeName] = xmlToJson(item);
+            } else {
+                if (typeof(obj[nodeName].push) == "undefined") {
+                    var old = obj[nodeName];
+                    obj[nodeName] = [];
+                    obj[nodeName].push(old);
+                }
+                obj[nodeName].push(xmlToJson(item));
+            }
+        }
+    }
+    return obj;
+}
 
 function GetAndParseMpd(uri) {
     // get the mpd file
@@ -83,68 +120,88 @@ function GetAndParseMpd(uri) {
         if (request.status >= 200 && request.status < 300) {
             let xml = request.responseText;
 
-            var parsedManifest = mpdParser.parse(xml, uri);
             var parsedXml = new window.DOMParser().parseFromString(xml, "text/xml");
+            var parsedJson = xmlToJson(parsedXml);
 
-            // some values are not available in the mpd-parser generated json. Therefore extract them manually.
-            var xmlMpd = parsedXml.getElementsByTagName('MPD')[0];
-            var availStartTime = ParseDate(xmlMpd.getAttribute('availabilityStartTime'));
-            var publishTime = ParseDate(xmlMpd.getAttribute('publishTime'));
-            var bufferDepth = ParseDuration(xmlMpd.getAttribute('timeShiftBufferDepth'));
-            var periodStart = ParseDuration(xmlMpd.getElementsByTagName('Period')[0].getAttribute('start'));
-            var segmentLength = parsedManifest.playlists[0].targetDuration;
-            var mediaSeq = parsedManifest.playlists[0].mediaSequence;
-            var now = Date.now() / 1000.0;
-
-            // do some calculation to find the first segment
-            // LSN = floor((now - (availabilityStartTime + periodStartTime)) / segmentDuration + startNumber - 1)
-            var lsn = Math.floor((now - (availStartTime + periodStart)) / segmentLength)
-            var seg = lsn - mediaSeq;
-
-            // calculate the max possible duration for this mpd
-            var dura = Math.floor(bufferDepth - seg * segmentLength) + segmentLength;
-
-            console.debug("Calculated Start Segment: " + seg);
-            console.debug("Calculated Duration: " + dura);
-
-            // The start segment is now: lsn - mediaSeq
-            signalCef("DASH_PL:ST:" + seg);
-            signalCef("DASH_PL:DU:" + dura);
-
-            var i, j;
-
-            // save video information
-            let videoPl = parsedManifest.playlists;
-            for (i = 0; i < videoPl.length; i++) {
-                let pl = videoPl[i];
-
-                // type A: bandwidth, width, height, segment duration
-                signalCef("DASH_PL:AV:" + i + ":" + pl.attributes.BANDWIDTH + ":" +  pl.attributes.RESOLUTION.width + ":" + pl.attributes.RESOLUTION.height + ":" + pl.targetDuration);
-
-                // type B: base segment URL
-                signalCef("DASH_PL:BV:" + i + ":" + pl.segments[0].map['resolvedUri']);
-
-                // type C: all segments URls
-                for (j = 0; j < pl.segments.length; ++j) {
-                    signalCef("DASH_PL:CV:" + i + ":" + pl.segments[j].resolvedUri);
-                }
+            var baseUrl = new URL('.', uri).href;
+            if (typeof parsedJson.MPD.BaseURL !== 'undefined') {
+                baseUrl = parsedJson.MPD.BaseURL["#text"];
             }
 
-            // save audio information
-            // parsedManifest.mediaGroups.AUDIO.audio.deu.playlists[0]
-            let audioPl = parsedManifest.mediaGroups.AUDIO.audio.deu.playlists;
-            for (i = 0; i < audioPl.length; i++) {
-                let pl = audioPl[i];
+            signalCef("DASH:BA:0:" + baseUrl);
 
-                // type A: bandwidth, width, height, segment duration
-                signalCef("DASH_PL:AA:" + i + ":" + pl.attributes.BANDWIDTH + ":-1:-1:" + pl.targetDuration);
+            var _now = Date.now() / 1000.0;
+            var _availabilityStartTime = ParseDate(parsedJson.MPD._attributes.availabilityStartTime);
+            var _timeShiftBufferDepth = ParseDuration(parsedJson.MPD._attributes.timeShiftBufferDepth);
+            var _periodStart = ParseDuration(parsedJson.MPD.Period._attributes.start);
+            var _adaptionSet = parsedJson.MPD.Period.AdaptationSet;
 
-                // type B: base segment URL
-                signalCef("DASH_PL:BA:" + i + ":" + pl.segments[0].map['resolvedUri']);
+            var _repidx = 0;
 
-                // type C: all segments URls
-                for (j = 0; j < pl.segments.length; ++j) {
-                    signalCef("DASH_PL:CA:" + i + ":" + pl.segments[j].resolvedUri);
+            for (var i in _adaptionSet) {
+                var prefix;
+                var _mimetype = _adaptionSet[i]._attributes.mimeType;
+
+                if (_mimetype === 'video' || _mimetype === 'video/mp4') {
+                    prefix = "V";
+                } else if (_mimetype === 'audio' || _mimetype === 'audio/mp4') {
+                    prefix = "A";
+                }
+
+                var _stAttributes = _adaptionSet[i].SegmentTemplate._attributes;
+                var _timescale = Number(_stAttributes.timescale);
+                var _duration = Number(_stAttributes.duration);
+                var _startNumber = Number(_stAttributes.startNumber);
+
+                var duration = _duration / _timescale;
+                var firstseg = Math.floor(_startNumber + (_now - _availabilityStartTime - _timeShiftBufferDepth) / duration);
+                var lastseg = Math.floor((_now - _availabilityStartTime) / duration + _startNumber - 1);
+                var startseg = Math.floor(lastseg - _periodStart / duration - 1);
+
+                if (_mimetype === 'video' || _mimetype === 'video/mp4') {
+                    prefix = "V";
+                } else if (_mimetype === 'audio' || _mimetype === 'audio/mp4') {
+                    prefix = "A";
+                }
+
+                var _representation = _adaptionSet[i].Representation;
+
+                if (Array.isArray(_representation)) {
+                    for (var k in _representation) {
+                        var _rep = _representation[k];
+
+                        var width = (typeof _rep._attributes.width == 'undefined') ? 0 : _rep._attributes.width;
+                        var height = (typeof _rep._attributes.height == 'undefined') ? 0 : _rep._attributes.height;
+                        var bandwidth = _rep._attributes.bandwidth;
+
+                        var _st = _rep.SegmentTemplate._attributes;
+                        var media = _st.media;
+                        var init = _st.initialization;
+
+                        signalCef("DASH:" + prefix + "C:" + _repidx + ":" + duration + ":" + firstseg + ":" + lastseg + ":" + startseg);
+                        signalCef("DASH:" + prefix + "D:" + _repidx + ":" + width + ":" + height + ":" + bandwidth);
+                        signalCef("DASH:" + prefix + "I:" + _repidx + ":" + init);
+                        signalCef("DASH:" + prefix + "M:" + _repidx + ":" + media);
+
+                        _repidx = _repidx + 1;
+                    }
+                } else {
+                    var _rep = _representation;
+
+                    var width = (typeof _rep._attributes.width == 'undefined') ? 0 : _rep._attributes.width;
+                    var height = (typeof _rep._attributes.height == 'undefined') ? 0 : _rep._attributes.height;
+                    var bandwidth = _rep._attributes.bandwidth;
+
+                    var _st = _adaptionSet[i].SegmentTemplate._attributes;
+                    var media = _st.media;
+                    var init = _st.initialization;
+
+                    signalCef("DASH:" + prefix + "C:" + _repidx + ":" + duration + ":" + firstseg + ":" + lastseg + ":" + startseg);
+                    signalCef("DASH:" + prefix + "D:" + _repidx + ":" + width + ":" + height + ":" + bandwidth);
+                    signalCef("DASH:" + prefix + "I:" + _repidx + ":" + init);
+                    signalCef("DASH:" + prefix + "M:" + _repidx + ":" + media);
+
+                    _repidx = _repidx + 1;
                 }
             }
         } else {
