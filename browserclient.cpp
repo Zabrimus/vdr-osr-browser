@@ -728,7 +728,7 @@ void BrowserClient::OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame>
     if (mode == 2 && injectJavascript) {
         // inject Javascript
         injectJs(browser, "js/font.js", true, false, "hbbtvfont", false);
-        injectJs(browser, "js/video_quirks.js", false, true, "hbbtvvideoquirk", false);
+        // injectJs(browser, "js/video_quirks.js", false, true, "hbbtvvideoquirk", false);
         // injectJs(browser, "js/mpd-parser.js", true, false, "hbbtvmpdparser", false);
         injectJavascript = false;
     }
@@ -840,6 +840,13 @@ bool BrowserClient::ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr<CefC
                   head.c_str());
         replaceAll(responseContent, head, inject);
         free(inject);
+
+        // inject video_quirks.js
+        asprintf(&inject, "%s\n<script id=\"videoquirk\" type=\"text/javascript\" src=\"client://js/video_quirks.js\"/>\n",
+                 head.c_str());
+        replaceAll(responseContent, head, inject);
+        free(inject);
+
 
         /**
          * inject hbbtv javascript (end)
