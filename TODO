@@ -1,0 +1,49 @@
+Generelle Probleme/Wünsche
+    Zurück-Taste auf der Fernbedierung um eine Seite zurückzuspringen.
+
+    Startseite (Red Button) bei Kanalwechsel automatisch anzeigen lassen.
+        => Kollision mit VDR Funktionalität. Sowohl OSD, als auch Fernbedienung.
+
+
+Sender-Probleme:
+    n-tv:
+        Navigation funktioniert. Aber bei der Auswahl passiert häufig nichts.
+        n-tv scheint auch das Live-TV in einem Fenster darzustellen.
+        Die Videos scheinen hinter dem OSD zu laufen. Ein ähnliches Problem hatte ich mit Tatort.
+
+    Tagesschau:
+        Keine Navigation möglich. Es scheint als müsste der CE-HTML Code gepatcht werden.
+        Hinweise auf eine bestehende Lösung hat 900H dazu geliefert. Siehe Github-Ticket.
+        Die Farbbuttons funktionieren auch nicht.
+
+    Tatort:
+        Encoding-Probleme 'Wunsch-&#034;Tatort&#034;'
+
+    Anixe:
+        Prüfen, ob der Browser noch crasht und die Seite funktioniert
+
+    Arte Extra / Arte:
+        Werden die Videos abgespielt?
+
+    Irgendwo bei dem Ersten:
+        https://www.vdr-portal.de/forum/index.php?thread/133615-announce-hbbtv-plugin-offscreen-browser-v0-0-6/&postID=1327869#post1327869
+        Der Full-Screen Button funktioniert nicht.
+
+    ORF1:
+    SRF1:
+        Beide Seiten scheinen Probleme zu haben, aber zur Untersuchung muss ich erst an die Channelinformation und URLs kommen.
+
+Make:
+    https://www.vdr-portal.de/forum/index.php?thread/133615-announce-hbbtv-plugin-offscreen-browser-v0-0-6/&postID=1327497#post1327497
+    Testen, ob ein paralles Make (make -j x) funktioniert.
+
+
+Zukunftsmusik:
+    Es gibt verschiedene HbbTV-Frameworks, mit denen man Seiten und Applikationen angeblich einfach erstellen kann. Wie z.B.
+    MPAT: https://github.com/MPAT-eu
+    bbc/tal: https://github.com/bbc/tal
+
+Sonstige interessante Links:
+    http://hbbtv-testing.virt.ch.bbc.co.uk/open-source/
+    https://www.coyotebrowser.com/hbbtv/applistastra/
+    https://trifinite.org/hbbtv/trifinite_hbbtv_channel_list.html
