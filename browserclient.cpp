@@ -317,7 +317,7 @@ bool JavascriptHandler::OnQuery(CefRefPtr<CefBrowser> browser,
 
     // process the javascript callback
     if (strncmp(request.ToString().c_str(), "DASH_PL", 7) != 0) {
-        CONSOLE_DEBUG("Javascript called me: {}", request.ToString());
+        CONSOLE_TRACE("Javascript called me: {}", request.ToString());
     }
 
     if (strncmp(request.ToString().c_str(), "VDR:", 4) == 0) {
@@ -728,8 +728,6 @@ void BrowserClient::OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame>
     if (mode == 2 && injectJavascript) {
         // inject Javascript
         injectJs(browser, "js/font.js", true, false, "hbbtvfont", false);
-        // injectJs(browser, "js/video_quirks.js", false, true, "hbbtvvideoquirk", false);
-        // injectJs(browser, "js/mpd-parser.js", true, false, "hbbtvmpdparser", false);
         injectJavascript = false;
     }
 

@@ -4,6 +4,7 @@
 #include <string>
 #include <list>
 #include <thread>
+#include <atomic>
 #include <curl/curl.h>
 #include "logger.h"
 
@@ -35,6 +36,9 @@ typedef struct DashStream {
 
 class DashHandler {
 private:
+    std::mutex streams_mutex;
+    std::atomic<bool> thread_ended;
+
     ulong segmentIdx;
     std::string baseUrl;
     std::list<DashStream> streams;

@@ -13,7 +13,13 @@ DashHandler audioDashHandler;
 DashHandler::DashHandler() {
     segmentIdx = 0;
     baseUrl = "Does not exists";
+
+    thread_ended = true;
+    load_dash_running = false;
+
+    streams_mutex.lock();
     streams.clear();
+    streams_mutex.unlock();
 }
 
 DashHandler::~DashHandler() {
@@ -35,6 +41,8 @@ void DashHandler::ResetSegmentIndex(ulong newSegmentIdx) {
 }
 
 DashStream& DashHandler::GetStream(uint idx) {
+    const std::lock_guard<std::mutex> lock(streams_mutex);
+
     for (auto& stream : streams) {
         if (stream.idx == idx) {
             return stream;
@@ -49,7 +57,18 @@ DashStream& DashHandler::GetStream(uint idx) {
 }
 
 void DashHandler::ClearAll() {
+    CONSOLE_TRACE("Dashhandler, ClearAll started");
+
     StopLoadThread();
+
+    while (!thread_ended) {
+        // wait some time
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+
+    CONSOLE_TRACE("Dashhandler, ClearAll, thread stopped");
+
+    const std::lock_guard<std::mutex> lock(streams_mutex);
 
     if (curl) {
         delete curl;
@@ -59,6 +78,8 @@ void DashHandler::ClearAll() {
     streams.clear();
     filename = "";
     baseUrl = "";
+
+    CONSOLE_TRACE("Dashhandler, ClearAll, finished");
 }
 
 std::string DashHandler::GetNextUrl(DashStream& stream) {
@@ -73,6 +94,8 @@ std::string DashHandler::GetNextUrl(DashStream& stream) {
 }
 
 void DashHandler::InitLoadThread(int streamidx, int startSegment) {
+    // const std::lock_guard<std::mutex> lock(streams_mutex);
+
     DashStream stream = GetStream(streamidx);
     ResetSegmentIndex(startSegment);
 
@@ -81,7 +104,7 @@ void DashHandler::InitLoadThread(int streamidx, int startSegment) {
 
     // preload segments
     ulong availableSegments = stream.lastSegment - stream.startSegment;
-    ulong desiredSegments = (10 / stream.duration) + 1;
+    ulong desiredSegments = (60 / stream.duration) + 1;
 
     int count;
     if (availableSegments < desiredSegments) {
@@ -104,8 +127,9 @@ void DashHandler::InitLoadThread(int streamidx, int startSegment) {
 }
 
 void DashHandler::StartLoadThread(int streamidx) {
-    // start heartbeat_thread
+    thread_ended = false;
     load_dash_running = true;
+
     load_dash_thread = std::thread(&DashHandler::LoadDash, this, streamidx);
     load_dash_thread.detach();
 }
@@ -120,6 +144,10 @@ void DashHandler::StopLoadThread() {
 }
 
 void DashHandler::LoadDash(int streamidx) {
+    CONSOLE_TRACE("Dashhandler, LoadDash started");
+
+    // const std::lock_guard<std::mutex> lock(streams_mutex);
+
     DashStream stream = GetStream(streamidx);
     double duration = (double)stream.duration;
 
@@ -134,23 +162,31 @@ void DashHandler::LoadDash(int streamidx) {
             }
 
             // calculate wait time for next segment
-            if (load_dash_running) {
+            long partwait = 1;
+            while (load_dash_running && partwait > 0) {
                 auto end = std::chrono::steady_clock::now();
                 std::chrono::duration<double> elapsed_seconds = end - start;
-                // long waittime = (long) ((duration - elapsed_seconds.count()) * 1000) - 500;
-                // long waittime = (long) ((duration - elapsed_seconds.count()) * 1000) / 2;
                 long waittime = (long) ((duration - elapsed_seconds.count()) * 1000);
-                std::this_thread::sleep_for(std::chrono::milliseconds(waittime));
 
-                CONSOLE_TRACE("DashCurl, Waited {} millis", waittime);
+                partwait = waittime > 100 ? 100 : waittime;
+                std::this_thread::sleep_for(std::chrono::milliseconds(partwait));
+
+                if (partwait < 100) {
+                    partwait = 0;
+                }
             }
         } else {
             load_dash_running = false;
         }
     }
+
+    CONSOLE_TRACE("Dashhandler, LoadDash finished");
+    thread_ended = true;
 }
 
 uint DashHandler::GetBestStream() {
+    const std::lock_guard<std::mutex> lock(streams_mutex);
+
     int bestIdx = -1;
     ulong bestBandwidth = 0;
 
