@@ -4,6 +4,13 @@ Generelle Probleme/Wünsche
     Startseite (Red Button) bei Kanalwechsel automatisch anzeigen lassen.
         => Kollision mit VDR Funktionalität. Sowohl OSD, als auch Fernbedienung.
 
+    Manche Kanäle (z.B. Alpha, Das Erste, ORF, ...) brauchen die aktuellen Programminformationen,
+    damit diese dargestellt werden können. Diese müssen vom VDR zum Browser gesendet werden.
+    Siehe video-broadcast-embedded-object.js:
+           oipfPluginObject.programmes = [];
+           oipfPluginObject.programmes.push({ name: 'Event 1, umlaut \u00e4', channelId: 'ccid:dvbt.0', duration: 600, startTime: Date.now() / 1000, description: 'EIT present event is under construction' });
+           oipfPluginObject.programmes.push({ name: 'Event 2, umlaut \u00f6', channelId: 'ccid:dvbt.0', duration: 300, startTime: Date.now() / 1000 + 600, description: 'EIT following event is under construction' });
+
 
 Sender-Probleme:
     n-tv:

@@ -1234,6 +1234,20 @@ function init() {
             window._HBBTV_DEBUG_ && console.log('XMLHttpRequest: url ' + url + ', load: ' + this.responseText);
         });
 
+        /* try to modify the response. But it's not really working as desired
+        this.addEventListener('readystatechange', function(event) {
+            if (this.readyState === 4) {
+                var res = event.target.responseText;
+                Object.defineProperty(this, 'response',     {writable: true});
+                Object.defineProperty(this, 'responseText', {writable: true});
+
+                this.response = this.responseText = res.split("&#034;").join("\\\"");
+
+                console.log("Res = " + this.responseText);
+            }
+        });
+        */
+
         return cefOldXHROpen.call(this, method, url, async, user, password);
     }
 
