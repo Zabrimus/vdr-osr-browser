@@ -5,6 +5,7 @@ VDR OSR Browser Revision History
 - New
   Implemented dash handler to play dash videos
 
+
 2020-07-12: Version 0.0.6
 - Bugfixes
   delete unix domain socket if video stopped

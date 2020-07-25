@@ -845,6 +845,12 @@ bool BrowserClient::ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr<CefC
         replaceAll(responseContent, head, inject);
         free(inject);
 
+        // inject focus.js
+        asprintf(&inject, "%s\n<script id=\"hbbtvfocus\" type=\"text/javascript\" src=\"client://js/focus.js\"/>\n",
+                 head.c_str());
+        replaceAll(responseContent, head, inject);
+        free(inject);
+
 
         /**
          * inject hbbtv javascript (end)

@@ -182,6 +182,7 @@ void BrowserControl::Stop() {
 }
 
 void BrowserControl::sendKeyEvent(const char* keyCode) {
+    /*
     // Test to send the key codes directly
     bool sendEvent = false;
     int windows_key_code;
@@ -221,6 +222,7 @@ void BrowserControl::sendKeyEvent(const char* keyCode) {
         key_event.type = KEYEVENT_KEYUP;
         browser->GetHost()->SendKeyEvent(key_event);
     } else {
+     */
         // use javascript to send key codes
         std::ostringstream stringStream;
 
@@ -229,7 +231,9 @@ void BrowserControl::sendKeyEvent(const char* keyCode) {
         auto script = stringStream.str();
         auto frame = browser->GetMainFrame();
         frame->ExecuteJavaScript(script, frame->GetURL(), 0);
+    /*
     }
+    */
 }
 
 void BrowserControl::AddAppUrl(std::string id, std::string url) {

@@ -177,7 +177,21 @@ export const keyEventInit = function () {
     };
 
     window.cefKeyPress = function(keyCode) {
-       doKeyPress(keyCode);
+       // special handling if possible
+       var next;
+       if (keyCode === 'VK_LEFT' || keyCode === 'VK_UP') {
+         next = findNextFocusableElement(true, document.activeElement);
+       } else if (keyCode === 'VK_RIGHT' || keyCode === 'VK_DOWN') {
+         next = findNextFocusableElement(false, document.activeElement);
+       }
+
+       if (typeof next !== 'undefined') {
+          // TODO: Something is still wrong here. Focus, Click and what else?
+          next.focus();
+          next.click();
+       } else {
+         doKeyPress(keyCode);
+       }
     };
 
 };
