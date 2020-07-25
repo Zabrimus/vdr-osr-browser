@@ -187,8 +187,6 @@ void checkInstallation() {
     }
 
     if ((nn_bind(socketId, TO_VDR_CHANNEL)) < 0) {
-        fprintf(stderr, "Unable to bind nanomsg socket to %s. Please check the file permissions. Aborting...\n",
-                TO_VDR_CHANNEL);
         exit(1);
     }
 
@@ -200,8 +198,6 @@ void checkInstallation() {
     }
 
     if ((nn_connect(socketId, FROM_VDR_CHANNEL)) < 0) {
-        fprintf(stderr, "Unable to bind nanomsg socket to %s. Please check the file permissions. Aborting...\n",
-                FROM_VDR_CHANNEL);
         exit(1);
     }
 
