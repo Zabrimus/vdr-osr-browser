@@ -1,7 +1,7 @@
 VDR OSR Browser Revision History
 -----------------------------------
 
-2020-xx-xx: Version 0.0.7
+2020-07-25: Version 0.0.7
 - New
   Implemented dash handler to play dash videos
   navigation in ce-html apps (needs further improvements)
