@@ -1480,12 +1480,19 @@ const keyEventInit = function () {
     };
 
     window.cefKeyPress = function(keyCode) {
-       // special handling if possible
+       // special handling if possible (use a whitelist, because not all sites works really good with this hack)
+       // whitelist
+       // http://www.tagesschau.de/itv/hbbtv/hbbtv.cehtml
+
+       var href = document.location.href;
        var next;
-       if (keyCode === 'VK_LEFT' || keyCode === 'VK_UP') {
-         next = findNextFocusableElement(true, document.activeElement);
-       } else if (keyCode === 'VK_RIGHT' || keyCode === 'VK_DOWN') {
-         next = findNextFocusableElement(false, document.activeElement);
+
+       if (href.search("www.tagesschau.de") !== -1) {
+         if (keyCode === 'VK_LEFT' || keyCode === 'VK_UP') {
+           next = findNextFocusableElement(true, document.activeElement);
+         } else if (keyCode === 'VK_RIGHT' || keyCode === 'VK_DOWN') {
+           next = findNextFocusableElement(false, document.activeElement);
+         }
        }
 
        if (typeof next !== 'undefined') {
