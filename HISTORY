@@ -1,6 +1,12 @@
 VDR OSR Browser Revision History
 -----------------------------------
 
+2020-xx-xx: Version 0.0.8
+- Bugfixes
+  another method to calculate video size (fixes n-tv video)
+
+- New
+
 2020-07-25: Version 0.0.7
 - New
   Implemented dash handler to play dash videos

@@ -240,35 +240,21 @@ export class OipfAVControlMapper {
             signalCef("CLEAR_DASH");
             GetAndParseMpd(originalDataAttribute);
         } else {
-            var target = document.getElementById("video");
+            if (originalDataAttribute.length <= 0) {
+                // do nothing, there exists no video file
+                console.log("originalDataAttribute is empty, ignore video request");
+            } else {
+                // signal video URL and set the timestamp of the transparent video
+                let d = new Date();
+                let n = d.getTime();
+                signalCef("VIDEO_URL:" + String(n) + ":" + originalDataAttribute);
 
-            if (!target) {
-                target = document.getElementById("videocontainer");
+                // this.videoElement.src = originalDataAttribute;
+                // copy object data url to html5 video tag src attribute ...
+                this.videoElement.src = "client://movie/transparent_" + String(n) + ".webm";
+
+                window.start_video_quirk();
             }
-
-            if (target) {
-                var width = target.getAttribute("width");
-                var height = target.getAttribute("height");
-
-                if (width && height) {
-                    var position = target.getBoundingClientRect();
-                    var x = position.x;
-                    var y = position.y;
-
-                    signalCef("VIDEO_SIZE: " + width + "," + height + "," + x + "," + y);
-                }
-            }
-
-            // signal video URL and set the timestamp of the transparent video
-            let d = new Date();
-            let n = d.getTime();
-            signalCef("VIDEO_URL:" + String(n) + ":" + originalDataAttribute);
-
-            // this.videoElement.src = originalDataAttribute;
-            // copy object data url to html5 video tag src attribute ...
-            this.videoElement.src = "client://movie/transparent_" + String(n) + ".webm";
-
-            window.start_video_quirk();
         }
 
         this.mapAvControlToHtml5Video();
@@ -373,7 +359,7 @@ export class OipfAVControlMapper {
                     this.avControlObject.data = "client://movie/fail";
                     this.videoElement.load();
                 }
-            } else if (event.attributeName === 'width' || event.attributeName === 'height') {
+            } /* else if (event.attributeName === 'width' || event.attributeName === 'height') {
                 var target = this.avControlObject;
                 var width = target.getAttribute("width");
                 var height = target.getAttribute("height");
@@ -384,6 +370,7 @@ export class OipfAVControlMapper {
 
                 signalCef("VIDEO_SIZE: " + width + "," + height + "," + x + "," + y);
             }
+            */
         };
         const handleMutation = (mutationList, mutationObserver) => {
             mutationList.forEach((mutation) => {

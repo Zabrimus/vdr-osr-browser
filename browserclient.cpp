@@ -339,6 +339,10 @@ bool JavascriptHandler::OnQuery(CefRefPtr<CefBrowser> browser,
                 browserClient->SendToVdrString(CMD_STATUS, "VIDEO_FAILED");
                 return true;
             }
+
+            // get Video size (callback)
+            frame->ExecuteJavaScript("window.cefVideoSize()", frame->GetURL(), 0);
+
             return true;
         } else if (strncmp(request.ToString().c_str(), "PAUSE_VIDEO", 11) == 0) {
             CONSOLE_DEBUG("Video streaming pause");
@@ -393,6 +397,10 @@ bool JavascriptHandler::OnQuery(CefRefPtr<CefBrowser> browser,
                 browserClient->SendToVdrString(CMD_STATUS, "VIDEO_FAILED");
                 return true;
             }
+
+            // get Video size (callback)
+            frame->ExecuteJavaScript("window.cefVideoSize()", frame->GetURL(), 0);
+
             return true;
         } else if (strncmp(request.ToString().c_str(), "VIDEO_SIZE: ", 12) == 0) {
             browserClient->SendToVdrString(CMD_STATUS, request.ToString().c_str());
@@ -408,6 +416,7 @@ bool JavascriptHandler::OnQuery(CefRefPtr<CefBrowser> browser,
 
             // Save the last URL on a stack
             applicationStack.push(url);
+
             return true;
         } else if (strncmp(request.ToString().c_str(), "DESTROY_APP", 11) == 0) {
             CONSOLE_TRACE("Destroy application");
@@ -606,6 +615,13 @@ CefRefPtr<CefResourceRequestHandler> BrowserClient::GetResourceRequestHandler(Ce
         injectJavascript = true;
     } else {
         CONSOLE_TRACE("BrowserClient::GetResourceRequestHandler, use default ResourceRequestHandler");
+
+        // special case: if the requested URL is client://movie/transparent-full.webm then the live TV shall be shown with different size
+        if (request->GetURL() == "client://movie/transparent-full.webm") {
+            // get Video size (callback)
+            frame->ExecuteJavaScript("window.cefVideoSize()", frame->GetURL(), 0);
+        }
+
         return CefRequestHandler::GetResourceRequestHandler(browser, frame, request, is_navigation, is_download,
                                                             request_initiator, disable_default_handling);
     }
@@ -1175,7 +1191,7 @@ void BrowserClient::speed_video(const char* speed) {
 void BrowserClient::heartbeat() {
     while (heartbeat_running) {
         SendToVdrPing();
-        std::this_thread::sleep_for (std::chrono::seconds(20));
+        std::this_thread::sleep_for (std::chrono::seconds(10));
     }
 }
 

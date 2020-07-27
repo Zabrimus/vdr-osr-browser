@@ -338,35 +338,21 @@ class OipfAVControlMapper {
             signalCef("CLEAR_DASH");
             GetAndParseMpd(originalDataAttribute);
         } else {
-            var target = document.getElementById("video");
+            if (originalDataAttribute.length <= 0) {
+                // do nothing, there exists no video file
+                console.log("originalDataAttribute is empty, ignore video request");
+            } else {
+                // signal video URL and set the timestamp of the transparent video
+                let d = new Date();
+                let n = d.getTime();
+                signalCef("VIDEO_URL:" + String(n) + ":" + originalDataAttribute);
 
-            if (!target) {
-                target = document.getElementById("videocontainer");
+                // this.videoElement.src = originalDataAttribute;
+                // copy object data url to html5 video tag src attribute ...
+                this.videoElement.src = "client://movie/transparent_" + String(n) + ".webm";
+
+                window.start_video_quirk();
             }
-
-            if (target) {
-                var width = target.getAttribute("width");
-                var height = target.getAttribute("height");
-
-                if (width && height) {
-                    var position = target.getBoundingClientRect();
-                    var x = position.x;
-                    var y = position.y;
-
-                    signalCef("VIDEO_SIZE: " + width + "," + height + "," + x + "," + y);
-                }
-            }
-
-            // signal video URL and set the timestamp of the transparent video
-            let d = new Date();
-            let n = d.getTime();
-            signalCef("VIDEO_URL:" + String(n) + ":" + originalDataAttribute);
-
-            // this.videoElement.src = originalDataAttribute;
-            // copy object data url to html5 video tag src attribute ...
-            this.videoElement.src = "client://movie/transparent_" + String(n) + ".webm";
-
-            window.start_video_quirk();
         }
 
         this.mapAvControlToHtml5Video();
@@ -471,7 +457,7 @@ class OipfAVControlMapper {
                     this.avControlObject.data = "client://movie/fail";
                     this.videoElement.load();
                 }
-            } else if (event.attributeName === 'width' || event.attributeName === 'height') {
+            } /* else if (event.attributeName === 'width' || event.attributeName === 'height') {
                 var target = this.avControlObject;
                 var width = target.getAttribute("width");
                 var height = target.getAttribute("height");
@@ -482,6 +468,7 @@ class OipfAVControlMapper {
 
                 signalCef("VIDEO_SIZE: " + width + "," + height + "," + x + "," + y);
             }
+            */
         };
         const handleMutation = (mutationList, mutationObserver) => {
             mutationList.forEach((mutation) => {
@@ -1217,6 +1204,72 @@ function init() {
         signalCef('CHANGE_URL: ' + uri);
     }
 
+    window.cefVideoSize = function() {
+        var video = document.getElementById("video");
+        var videocontainer = document.getElementById("videocontainer");
+        var videoplayer = document.getElementById("hbbtv-polyfill-video-player");
+        var playerobject = document.getElementById("playerObject");
+
+        var target;
+        var position;
+        var maxwidth = 0, maxheight = 0;
+
+        if (typeof video !== 'undefined' && video !== null) {
+            position = video.getBoundingClientRect();
+            if (position.width > 0 && position.height > 0) {
+                target = video;
+                maxwidth = position.width;
+                maxheight = position.height;
+            }
+
+            console.log("===> VIDEO: "+ position.width + "," + position.height + "," + position.x + "," + position.y);
+        }
+
+        if (typeof videocontainer !== 'undefined' && videocontainer !== null) {
+            position = videocontainer.getBoundingClientRect();
+
+            if (position.width > 0 && position.height > 0 && position.width >= maxwidth && position.height >= maxheight) {
+                target = videocontainer;
+                maxwidth = position.width;
+                maxheight = position.height;
+            }
+
+            console.log("===> VIDEOCONTAINER: "+ position.width + "," + position.height + "," + position.x + "," + position.y);
+        }
+
+        if (typeof videoplayer !== 'undefined' && videoplayer !== null) {
+            position = videoplayer.getBoundingClientRect();
+
+            if (position.width > 0 && position.height > 0 && position.width >= maxwidth && position.height >= maxheight) {
+                target = videoplayer;
+                maxwidth = position.width;
+                maxheight = position.height;
+            }
+
+            console.log("===> VIDEOPLAYER: "+ position.width + "," + position.height + "," + position.x + "," + position.y);
+        }
+
+        if (typeof playerobject !== 'undefined' && playerobject !== null) {
+            position = playerobject.getBoundingClientRect();
+
+            if (position.width > 0 && position.height > 0 && position.width >= maxwidth && position.height >= maxheight) {
+                target = playerobject;
+            }
+
+            console.log("===> PLAYEROBJECT: "+ position.width + "," + position.height + "," + position.x + "," + position.y);
+        }
+
+        if (target) {
+            var position = target.getBoundingClientRect();
+            var x = position.x;
+            var y = position.y;
+            var width = position.width;
+            var height = position.height;
+
+            signalCef("VIDEO_SIZE: " + width + "," + height + "," + x + "," + y);
+        }
+    }
+
     // intercept XMLHttpRequest
     let cefOldXHROpen = window.XMLHttpRequest.prototype.open;
     window.XMLHttpRequest.prototype.open = function(method, url, async, user, password) {
@@ -1231,7 +1284,9 @@ function init() {
 
         this.addEventListener('load', function() {
             // do something with the response text
-            window._HBBTV_DEBUG_ && console.log('XMLHttpRequest: url ' + url + ', load: ' + this.responseText);
+
+            // disabled: Too much information
+            // window._HBBTV_DEBUG_ && console.log('XMLHttpRequest: url ' + url + ', load: ' + this.responseText);
         });
 
         /* try to modify the response. But it's not really working as desired
@@ -1542,7 +1597,8 @@ class OipfVideoBroadcastMapper {
             this.videoTag.setAttribute('autoplay', ''); // note: call to bindToCurrentChannel() or play() is doing it
             this.videoTag.setAttribute('loop', '');
             this.videoTag.setAttribute('style', 'top:0px; left:0px; width:100%; height:100%;');
-            this.videoTag.src = "";
+            // this.videoTag.src = "http://cdn.smartclip.net/assets/atv/video/Caminandes1_720p.mp4";
+            this.videoTag.src = "client://movie/transparent-full.webm";
             oipfPluginObject.appendChild(this.videoTag);
             oipfPluginObject.playState = 2;
             window._HBBTV_DEBUG_ &&  console.info('hbbtv-polyfill: BROADCAST VIDEO PLAYER ... ADDED');

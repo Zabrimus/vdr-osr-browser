@@ -23,6 +23,72 @@ function init() {
         signalCef('CHANGE_URL: ' + uri);
     }
 
+    window.cefVideoSize = function() {
+        var video = document.getElementById("video");
+        var videocontainer = document.getElementById("videocontainer");
+        var videoplayer = document.getElementById("hbbtv-polyfill-video-player");
+        var playerobject = document.getElementById("playerObject");
+
+        var target;
+        var position;
+        var maxwidth = 0, maxheight = 0;
+
+        if (typeof video !== 'undefined' && video !== null) {
+            position = video.getBoundingClientRect();
+            if (position.width > 0 && position.height > 0) {
+                target = video;
+                maxwidth = position.width;
+                maxheight = position.height;
+            }
+
+            console.log("===> VIDEO: "+ position.width + "," + position.height + "," + position.x + "," + position.y);
+        }
+
+        if (typeof videocontainer !== 'undefined' && videocontainer !== null) {
+            position = videocontainer.getBoundingClientRect();
+
+            if (position.width > 0 && position.height > 0 && position.width >= maxwidth && position.height >= maxheight) {
+                target = videocontainer;
+                maxwidth = position.width;
+                maxheight = position.height;
+            }
+
+            console.log("===> VIDEOCONTAINER: "+ position.width + "," + position.height + "," + position.x + "," + position.y);
+        }
+
+        if (typeof videoplayer !== 'undefined' && videoplayer !== null) {
+            position = videoplayer.getBoundingClientRect();
+
+            if (position.width > 0 && position.height > 0 && position.width >= maxwidth && position.height >= maxheight) {
+                target = videoplayer;
+                maxwidth = position.width;
+                maxheight = position.height;
+            }
+
+            console.log("===> VIDEOPLAYER: "+ position.width + "," + position.height + "," + position.x + "," + position.y);
+        }
+
+        if (typeof playerobject !== 'undefined' && playerobject !== null) {
+            position = playerobject.getBoundingClientRect();
+
+            if (position.width > 0 && position.height > 0 && position.width >= maxwidth && position.height >= maxheight) {
+                target = playerobject;
+            }
+
+            console.log("===> PLAYEROBJECT: "+ position.width + "," + position.height + "," + position.x + "," + position.y);
+        }
+
+        if (target) {
+            var position = target.getBoundingClientRect();
+            var x = position.x;
+            var y = position.y;
+            var width = position.width;
+            var height = position.height;
+
+            signalCef("VIDEO_SIZE: " + width + "," + height + "," + x + "," + y);
+        }
+    }
+
     // intercept XMLHttpRequest
     let cefOldXHROpen = window.XMLHttpRequest.prototype.open;
     window.XMLHttpRequest.prototype.open = function(method, url, async, user, password) {
@@ -37,7 +103,9 @@ function init() {
 
         this.addEventListener('load', function() {
             // do something with the response text
-            window._HBBTV_DEBUG_ && console.log('XMLHttpRequest: url ' + url + ', load: ' + this.responseText);
+
+            // disabled: Too much information
+            // window._HBBTV_DEBUG_ && console.log('XMLHttpRequest: url ' + url + ', load: ' + this.responseText);
         });
 
         /* try to modify the response. But it's not really working as desired

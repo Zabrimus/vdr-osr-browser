@@ -262,6 +262,7 @@ int main(int argc, char *argv[]) {
 
     settings.windowless_rendering_enabled = true;
     settings.no_sandbox = true;
+    // settings.multi_threaded_message_loop = true;
 
     checkInstallation();
 

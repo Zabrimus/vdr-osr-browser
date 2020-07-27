@@ -326,7 +326,7 @@ bool TranscodeFFmpeg::fork_ffmpeg(long start_at_ms) {
             }
         }
 
-        cmdline += "-y -f mpegts ";
+        cmdline += "-write_tmcd 0 -y -f mpegts ";
 
         if (protocol == UDP) {
             cmdline += "udp://127.0.0.1:" + std::to_string(VIDEO_UDP_PORT) + "?pkt_size=" +
