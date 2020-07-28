@@ -413,6 +413,10 @@ bool JavascriptHandler::OnQuery(CefRefPtr<CefBrowser> browser,
         } else if (strncmp(request.ToString().c_str(), "CHANGE_URL: ", 12) == 0) {
             CefString url(request.ToString().substr(12));
             browserControl->LoadURL(url);
+
+            // Save the last URL on a stack
+            applicationStack.push(url);
+
             return true;
         } else if (strncmp(request.ToString().c_str(), "CREATE_APP: ", 12) == 0) {
             CefString url(request.ToString().substr(12));
@@ -1204,9 +1208,14 @@ void BrowserClient::speed_video(const char* speed) {
 }
 
 void BrowserClient::heartbeat() {
+    SendToVdrPing();
+
+    // request known app urls and channel information
+    SendToVdrString(CMD_STATUS, "SEND_INIT");
+
     while (heartbeat_running) {
-        SendToVdrPing();
         std::this_thread::sleep_for (std::chrono::seconds(10));
+        SendToVdrPing();
     }
 }
 
