@@ -303,11 +303,11 @@ bool TranscodeFFmpeg::fork_ffmpeg(long start_at_ms) {
 
         if (isDash) {
             // Mux Audio/Video
-            cmdline += "-follow 1 -i file:" + std::string(DASH_VIDEO_FILE) + " -i file:" + std::string(DASH_AUDIO_FILE) + " -c:v copy " + encode_audio_param + " ";
+            cmdline += "-follow 1 -dn -i file:" + std::string(DASH_VIDEO_FILE) + " -i file:" + std::string(DASH_AUDIO_FILE) + " -c:v copy " + encode_audio_param + " ";
         } else {
             std::string ninput(input_file);
             replaceAll(ninput, "&", "\\&");
-            cmdline += "-i " + ninput + " ";
+            cmdline += "-dn -i " + ninput + " ";
 
             if (copy_audio && copy_video) {
                 cmdline += "-codec copy ";
@@ -336,6 +336,8 @@ bool TranscodeFFmpeg::fork_ffmpeg(long start_at_ms) {
         } else if (protocol == UNIX) {
             cmdline += "-listen 1 unix://" + std::string(VIDEO_UNIX);
         }
+
+        CONSOLE_TRACE("Fork ffmpeg:\n{}\n", cmdline);
 
         // create the final commandline parameter for execv
         std::vector <char*> cmd_params;
