@@ -80,10 +80,10 @@ function init() {
 
         if (target) {
             var position = target.getBoundingClientRect();
-            var x = position.x;
-            var y = position.y;
-            var width = position.width;
-            var height = position.height;
+            var x = parseInt(position.x, 10);
+            var y = parseInt(position.y, 10);
+            var width = parseInt(position.width, 10);
+            var height = parseInt(position.height, 10);
 
             signalCef("VIDEO_SIZE: " + width + "," + height + "," + x + "," + y);
         }
@@ -148,7 +148,8 @@ function init() {
     keyEventInit();
     hbbtvFn();
 
-    new VideoHandler().initialize();
+    window.HBBTV_VIDEOHANDLER = new VideoHandler();
+    window.HBBTV_VIDEOHANDLER.initialize();
 
     window._HBBTV_DEBUG_ && console.log("hbbtv-polyfill: loaded");
 }

@@ -729,12 +729,16 @@ HTMLObjectElement.prototype.play = () => {};
 
 class VideoHandler {
     constructor() {
+        window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: Construct VideoHandler');
+
         this.videoObj = undefined;
         this.mutationObserver = undefined;
         this.videoBroadcastEmbeddedObject = undefined;
     }
 
     initialize() {
+        window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: Init VideoHandler');
+
         // go through all existing nodes and check if we need to inject the video player emulation
         document.querySelectorAll('*').forEach((node) => {
             this.checkNodeTypeAndInjectVideoMethods(node);
@@ -1261,10 +1265,10 @@ function init() {
 
         if (target) {
             var position = target.getBoundingClientRect();
-            var x = position.x;
-            var y = position.y;
-            var width = position.width;
-            var height = position.height;
+            var x = parseInt(position.x, 10);
+            var y = parseInt(position.y, 10);
+            var width = parseInt(position.width, 10);
+            var height = parseInt(position.height, 10);
 
             signalCef("VIDEO_SIZE: " + width + "," + height + "," + x + "," + y);
         }
@@ -1329,7 +1333,8 @@ function init() {
     Object(_keyevent_init_js__WEBPACK_IMPORTED_MODULE_0__["keyEventInit"])();
     Object(_hbbtv_js__WEBPACK_IMPORTED_MODULE_1__["hbbtvFn"])();
 
-    new _hbb_video_handler_js__WEBPACK_IMPORTED_MODULE_2__["VideoHandler"]().initialize();
+    window.HBBTV_VIDEOHANDLER = new _hbb_video_handler_js__WEBPACK_IMPORTED_MODULE_2__["VideoHandler"]();
+    window.HBBTV_VIDEOHANDLER.initialize();
 
     window._HBBTV_DEBUG_ && console.log("hbbtv-polyfill: loaded");
 }
@@ -1590,6 +1595,8 @@ class OipfVideoBroadcastMapper {
         this.injectBroadcastVideoMethods(this.oipfPluginObject);
     }
     injectBroadcastVideoMethods(oipfPluginObject) {
+        window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: injectBroadcastVideoMethods, length ' + oipfPluginObject.children.length);
+
         var isVideoPlayerAlreadyAdded = oipfPluginObject.children.length > 0;
         if (!isVideoPlayerAlreadyAdded) {
             this.videoTag = document.createElement('video');
@@ -1602,6 +1609,8 @@ class OipfVideoBroadcastMapper {
             oipfPluginObject.appendChild(this.videoTag);
             oipfPluginObject.playState = 2;
             window._HBBTV_DEBUG_ &&  console.info('hbbtv-polyfill: BROADCAST VIDEO PLAYER ... ADDED');
+
+            window.cefVideoSize();
         }
 
         // inject OIPF methods ...
@@ -1624,6 +1633,8 @@ class OipfVideoBroadcastMapper {
                     window._HBBTV_DEBUG_ && console.log("hbbtv-polyfill:", e, e.message, player.src);
                 });
                 oipfPluginObject.playState = 2;
+                window.cefVideoSize();
+
                 // TODO: If there is no channel currently being presented, the OITF SHALL dispatch an event to the onPlayStateChange listener(s) whereby the state parameter is given value 0 (“ unrealized ")
             }
             return; // TODO: must return a Channel object

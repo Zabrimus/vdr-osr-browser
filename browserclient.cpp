@@ -96,19 +96,24 @@ void tryToFixPage(std::string &source) {
     replaceAll(source, "<script type=\"text/javascript\">", "</script>", "<script type=\"text/javascript\">\n/* <![CDATA[ */\n", "\n/* ]]> */\n</script>");
     replaceAll(source, "<script>", "</script>", "<script>\n/* <![CDATA[ */\n", "\n/* ]]> */\n</script>");
 
-
     // fix wrong meta-tag in header
+    // printf("VOR FIX-META:\n%s\n\n", source.c_str());
+
     size_t pos = source.find("<meta");
     while (pos != std::string::npos) {
         size_t pos2 = source.find(">", pos);
         if (source[pos2-1] != '/') {
-            source.replace(pos2, 1, "/>");
+            // check if the following string is </meta>
+            size_t pos3 = source.find("</meta>", pos2+1);
+            if (pos3 == std::string::npos || pos3 != pos2+1) {
+                source.replace(pos2, 1, "/>");
+            }
         }
 
         pos = source.find("<meta", pos2);
     }
 
-    // fprintf(stderr, "Content:\n%s\n", source.c_str());
+    // printf("NACH FIX-META:\n%s\n\n", source.c_str());
 }
 
 class BrowserCookieVisitor : public CefCookieVisitor {
@@ -820,61 +825,71 @@ bool BrowserClient::ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr<CefC
 
         // find header tag (normally it is <head>, but i also found <head id="xxx">)
         size_t headStart = responseContent.find("<head");
-        size_t headEnd   = responseContent.find(">", headStart);
-        std::string head = responseContent.substr(headStart, headEnd-headStart+1);
 
-        // Enable/disable debug messages
-        asprintf(&inject, "%s\n<script type=\"text/javascript\">window._HBBTV_DEBUG_ = %s;</script>\n",
-                    head.c_str(),
-                    (logger.isTraceEnabled() || logger.isDebugEnabled()) ? "true" : "false");
-        replaceAll(responseContent, head, inject);
-        free(inject);
+        if (headStart != std::string::npos) {
+            size_t headEnd = responseContent.find(">", headStart);
+            std::string head = responseContent.substr(headStart, headEnd - headStart + 1);
 
-        // create global map for application ids/urls
-        asprintf(&inject, "%s\n<script type=\"text/javascript\">window._HBBTV_APPURL_ = new Map();</script>\n",
-                 head.c_str());
-        replaceAll(responseContent, head, inject);
-        free(inject);
+            // Enable/disable debug messages
+            asprintf(&inject, "%s\n<script type=\"text/javascript\">window._HBBTV_DEBUG_ = %s;</script>\n",
+                     head.c_str(),
+                     (logger.isTraceEnabled() || logger.isDebugEnabled()) ? "true" : "false");
+            replaceAll(responseContent, head, inject);
+            free(inject);
 
-        // set current channel
-        asprintf(&inject, "%s\n<script type=\"text/javascript\">window.HBBTV_POLYFILL_NS = window.HBBTV_POLYFILL_NS || {}; window.HBBTV_POLYFILL_NS.currentChannel = %s;</script>\n",
-                 head.c_str(),
-                 currentChannel.c_str());
-        replaceAll(responseContent, head, inject);
-        free(inject);
+            // create global map for application ids/urls
+            asprintf(&inject, "%s\n<script type=\"text/javascript\">window._HBBTV_APPURL_ = new Map();</script>\n",
+                     head.c_str());
+            replaceAll(responseContent, head, inject);
+            free(inject);
 
-        // inject xmlhttprequest_quirks.js
-        asprintf(&inject, "%s\n<script id=\"xmlhttprequestquirk\" type=\"text/javascript\" src=\"client://js/xmlhttprequest_quirks.js\"/>\n",
-                 head.c_str());
-        replaceAll(responseContent, head, inject);
-        free(inject);
+            // set current channel
+            asprintf(&inject,
+                     "%s\n<script type=\"text/javascript\">window.HBBTV_POLYFILL_NS = window.HBBTV_POLYFILL_NS || {}; window.HBBTV_POLYFILL_NS.currentChannel = %s;</script>\n",
+                     head.c_str(),
+                     currentChannel.c_str());
+            replaceAll(responseContent, head, inject);
+            free(inject);
 
-        // inject hbbtv_polyfill.js
-        asprintf(&inject, "%s\n<script id=\"hbbtvpolyfill\" type=\"text/javascript\" src=\"client://js/hbbtv_polyfill.js\"/>\n",
-                  head.c_str());
-        replaceAll(responseContent, head, inject);
-        free(inject);
+            // inject xmlhttprequest_quirks.js
+            asprintf(&inject,
+                     "%s\n<script id=\"xmlhttprequestquirk\" type=\"text/javascript\" src=\"client://js/xmlhttprequest_quirks.js\"/>\n",
+                     head.c_str());
+            replaceAll(responseContent, head, inject);
+            free(inject);
 
-        // inject video_quirks.js
-        asprintf(&inject, "%s\n<script id=\"videoquirk\" type=\"text/javascript\" src=\"client://js/video_quirks.js\"/>\n",
-                 head.c_str());
-        replaceAll(responseContent, head, inject);
-        free(inject);
+            // inject hbbtv_polyfill.js
+            asprintf(&inject,
+                     "%s\n<script id=\"hbbtvpolyfill\" type=\"text/javascript\" src=\"client://js/hbbtv_polyfill.js\"/>\n",
+                     head.c_str());
+            replaceAll(responseContent, head, inject);
+            free(inject);
 
-        // inject focus.js
-        asprintf(&inject, "%s\n<script id=\"hbbtvfocus\" type=\"text/javascript\" src=\"client://js/focus.js\"/>\n",
-                 head.c_str());
-        replaceAll(responseContent, head, inject);
-        free(inject);
+            // inject video_quirks.js
+            asprintf(&inject,
+                     "%s\n<script id=\"videoquirk\" type=\"text/javascript\" src=\"client://js/video_quirks.js\"/>\n",
+                     head.c_str());
+            replaceAll(responseContent, head, inject);
+            free(inject);
 
+            // inject focus.js
+            asprintf(&inject, "%s\n<script id=\"hbbtvfocus\" type=\"text/javascript\" src=\"client://js/focus.js\"/>\n",
+                     head.c_str());
+            replaceAll(responseContent, head, inject);
+            free(inject);
 
-        /**
-         * inject hbbtv javascript (end)
-         */
+            // inject beforeend.js at the end of the document
+            replaceAll(responseContent, "</body>",
+                       "\n<script type=\"text/javascript\" src=\"client://js/beforeend.js\"></script>\n</body>");
 
-        CONSOLE_TRACE("BrowserClient::ProcessRequest, Response Headers");
-        for (auto itrb = responseHeader.begin(); itrb != responseHeader.end(); itrb++) {
-            CONSOLE_TRACE("   {}: {}", itrb->first, itrb->second);
+            /**
+             * inject hbbtv javascript (end)
+             */
+
+            CONSOLE_TRACE("BrowserClient::ProcessRequest, Response Headers");
+            for (auto itrb = responseHeader.begin(); itrb != responseHeader.end(); itrb++) {
+                CONSOLE_TRACE("   {}: {}", itrb->first, itrb->second);
+            }
         }
     }
 

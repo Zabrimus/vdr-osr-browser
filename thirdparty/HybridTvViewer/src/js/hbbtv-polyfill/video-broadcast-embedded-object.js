@@ -14,6 +14,8 @@ export class OipfVideoBroadcastMapper {
         this.injectBroadcastVideoMethods(this.oipfPluginObject);
     }
     injectBroadcastVideoMethods(oipfPluginObject) {
+        window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: injectBroadcastVideoMethods, length ' + oipfPluginObject.children.length);
+
         var isVideoPlayerAlreadyAdded = oipfPluginObject.children.length > 0;
         if (!isVideoPlayerAlreadyAdded) {
             this.videoTag = document.createElement('video');
@@ -26,6 +28,8 @@ export class OipfVideoBroadcastMapper {
             oipfPluginObject.appendChild(this.videoTag);
             oipfPluginObject.playState = 2;
             window._HBBTV_DEBUG_ &&  console.info('hbbtv-polyfill: BROADCAST VIDEO PLAYER ... ADDED');
+
+            window.cefVideoSize();
         }
 
         // inject OIPF methods ...
@@ -48,6 +52,8 @@ export class OipfVideoBroadcastMapper {
                     window._HBBTV_DEBUG_ && console.log("hbbtv-polyfill:", e, e.message, player.src);
                 });
                 oipfPluginObject.playState = 2;
+                window.cefVideoSize();
+
                 // TODO: If there is no channel currently being presented, the OITF SHALL dispatch an event to the onPlayStateChange listener(s) whereby the state parameter is given value 0 (“ unrealized ")
             }
             return; // TODO: must return a Channel object

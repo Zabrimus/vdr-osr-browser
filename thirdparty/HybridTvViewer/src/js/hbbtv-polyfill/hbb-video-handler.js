@@ -6,12 +6,16 @@ HTMLObjectElement.prototype.play = () => {};
 
 export class VideoHandler {
     constructor() {
+        window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: Construct VideoHandler');
+
         this.videoObj = undefined;
         this.mutationObserver = undefined;
         this.videoBroadcastEmbeddedObject = undefined;
     }
 
     initialize() {
+        window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: Init VideoHandler');
+
         // go through all existing nodes and check if we need to inject the video player emulation
         document.querySelectorAll('*').forEach((node) => {
             this.checkNodeTypeAndInjectVideoMethods(node);
