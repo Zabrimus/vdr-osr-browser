@@ -15,8 +15,8 @@ Generelle Probleme/Wünsche
 Sender-Probleme:
     n-tv:
         Navigation funktioniert. Aber bei der Auswahl passiert häufig nichts.
-        n-tv scheint auch das Live-TV in einem Fenster darzustellen.
-        Die Videos scheinen hinter dem OSD zu laufen. Ein ähnliches Problem hatte ich mit Tatort.
+        (-- fixed? --) n-tv scheint auch das Live-TV in einem Fenster darzustellen.
+        (-- fixed? --) Die Videos scheinen hinter dem OSD zu laufen. Ein ähnliches Problem hatte ich mit Tatort.
 
     Tagesschau:
         Keine Navigation möglich. Es scheint als müsste der CE-HTML Code gepatcht werden.
@@ -24,7 +24,7 @@ Sender-Probleme:
         Die Farbbuttons funktionieren auch nicht.
 
     Tatort:
-        Encoding-Probleme 'Wunsch-&#034;Tatort&#034;'
+        (-- Das scheint auch bei echten HbbTV-Fernsehern so auszusehen. --) Encoding-Probleme 'Wunsch-&#034;Tatort&#034;'
 
     Anixe:
         Prüfen, ob der Browser noch crasht und die Seite funktioniert
