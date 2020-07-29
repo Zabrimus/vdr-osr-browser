@@ -322,8 +322,8 @@ class OipfAVControlMapper {
         this.videoElement.setAttribute('autoplay', ''); // setting src will start the video and send an event
 
         // the opaque video only has size 16x16. To prevent image scaling set the container size to these values
-        this.videoElement.setAttribute('style', 'top:0px; left:0px; width:16px; height:16px;');
-        // this.videoElement.setAttribute('style', 'top:0px; left:0px; width:100%; height:100%;');
+        // this.videoElement.setAttribute('style', 'top:0px; left:0px; width:16px; height:16px;');
+        this.videoElement.setAttribute('style', 'top:0px; left:0px; width:100%; height:100%;');
 
         // interval to simulate rewind functionality
         this.rewindInterval;
@@ -737,6 +737,13 @@ class VideoHandler {
     }
 
     initialize() {
+        // check at first, if the video object is already injected
+        var videoexists = document.getElementById('hbbtv-polyfill-video-player');
+        if (typeof videoexists !== 'undefined' && videoexists != null) {
+            window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: VideoHandler already initialized');
+            return;
+        }
+
         window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: Init VideoHandler');
 
         // go through all existing nodes and check if we need to inject the video player emulation

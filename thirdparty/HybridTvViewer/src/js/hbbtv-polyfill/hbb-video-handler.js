@@ -14,6 +14,13 @@ export class VideoHandler {
     }
 
     initialize() {
+        // check at first, if the video object is already injected
+        var videoexists = document.getElementById('hbbtv-polyfill-video-player');
+        if (typeof videoexists !== 'undefined' && videoexists != null) {
+            window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: VideoHandler already initialized');
+            return;
+        }
+
         window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: Init VideoHandler');
 
         // go through all existing nodes and check if we need to inject the video player emulation
