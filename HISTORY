@@ -4,7 +4,8 @@ VDR OSR Browser Revision History
 2020-xx-xx: Version 0.0.8
 - Bugfixes
   another method to calculate video size (fixes n-tv video)
-  fixed segfault while trying to show RTL II
+  fixed a segfault while trying to show RTL II
+  fixed a segfault in CookieVisitor
 
 - New
   TV screen in a OSD window is supported (at least for some channels)

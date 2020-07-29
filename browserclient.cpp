@@ -53,7 +53,10 @@ struct OsdStruct {
 
 std::map<std::string, std::string> HbbtvCurl::response_header;
 std::string HbbtvCurl::response_content;
-static std::map<std::string, std::string> cookies;
+
+std::mutex cookieMutex;
+std::string singleLineCookies;
+std::string ffmpegCookies;
 
 /*
 void stacker() {
@@ -71,26 +74,6 @@ void stacker() {
     p.print(st, stderr);
 }
 */
-
-std::string singleLineCookies() {
-    std::string result = "";
-
-    for (auto const &item : cookies) {
-        result = result + item.first + "=" + item.second + "; ";
-    }
-
-    return result;
-}
-
-std::string cookiesForFFmpeg() {
-    std::string result = "";
-
-    for (auto const &item : cookies) {
-        result = result + item.first + ": " + item.second + "\\r\\n";
-    }
-
-    return result;
-}
 
 /*
  * very primitive try to fix some common errors
@@ -137,11 +120,11 @@ void tryToFixPage(std::string &source) {
 class BrowserCookieVisitor : public CefCookieVisitor {
 private:
     bool log;
+    std::map<std::string, std::string> cookies;
 
 public:
     BrowserCookieVisitor(bool log = true) {
         this->log = log;
-        cookies.clear();
     }
 
     ~BrowserCookieVisitor() = default;
@@ -160,6 +143,19 @@ public:
         cookies.insert(std::pair<std::string, std::string>(cname, cvalue));
 
         return true;
+    }
+
+    void SetCookieStrings() {
+        std::string single = "";
+        std::string ffmpeg = "";
+
+        for (auto const &item : cookies) {
+            single = single + item.first + "=" + item.second + "; ";
+            ffmpeg = ffmpeg + item.first + ": " + item.second + "\\r\\n";
+        }
+
+        singleLineCookies = single;
+        ffmpegCookies = ffmpeg;
     }
 
     IMPLEMENT_REFCOUNTING(BrowserCookieVisitor);
@@ -195,7 +191,10 @@ HbbtvCurl::~HbbtvCurl() {
 }
 
 std::string HbbtvCurl::ReadContentType(std::string url, CefRequest::HeaderMap headers) {
-    std::string c = singleLineCookies();
+    cookieMutex.lock();
+    std::string c = singleLineCookies;
+    cookieMutex.unlock();
+
     CONSOLE_DEBUG("ReadContentType {}, Cookies {}", url, c);
 
     // load the whole page
@@ -217,7 +216,10 @@ std::string HbbtvCurl::ReadContentType(std::string url, CefRequest::HeaderMap he
 }
 
 void HbbtvCurl::LoadUrl(std::string url, CefRequest::HeaderMap headers, long followLocation) {
-    std::string c = singleLineCookies();
+    cookieMutex.lock();
+    std::string c = singleLineCookies;
+    cookieMutex.unlock();
+
     CONSOLE_DEBUG("HbbtvCurl::LoadUrl {}, Cookies {}", url, c);
 
     struct MemoryStruct contentdata {
@@ -640,8 +642,11 @@ CefRefPtr<CefRenderHandler> BrowserClient::GetRenderHandler() {
 CefRefPtr<CefResourceRequestHandler> BrowserClient::GetResourceRequestHandler(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, bool is_navigation, bool is_download, const CefString &request_initiator, bool &disable_default_handling) {
     CONSOLE_TRACE("BrowserClient::GetResourceRequestHandler for {}, is_navigation {}, request_initiator {}", request->GetURL().ToString(), is_navigation, request_initiator.ToString());
 
+    cookieMutex.lock();
     CefRefPtr<BrowserCookieVisitor> visitor = new BrowserCookieVisitor(logger.isTraceEnabled());
     cookieManager->VisitUrlCookies(request->GetURL(), false, visitor);
+    visitor->SetCookieStrings();
+    cookieMutex.unlock();
 
     if (is_navigation) {
         injectJavascript = true;
@@ -1176,6 +1181,10 @@ void BrowserClient::SendToVdrPing() {
 bool BrowserClient::set_input_file(const char* time, const char* input) {
     CONSOLE_DEBUG("Set Input video, time {}, url {}", time, input);
 
+    cookieMutex.lock();
+    std::string cookies = ffmpegCookies;
+    cookieMutex.unlock();
+
     if (transcoder != nullptr) {
         stop_video();
 
@@ -1185,7 +1194,7 @@ bool BrowserClient::set_input_file(const char* time, const char* input) {
 
     transcoder = new TranscodeFFmpeg(vproto);
     transcoder->set_event_callback(eventCallback);
-    transcoder->set_cookies(cookiesForFFmpeg());
+    transcoder->set_cookies(cookies);
     transcoder->set_user_agent(USER_AGENT);
     return transcoder->set_input(time, input, false);
 }
