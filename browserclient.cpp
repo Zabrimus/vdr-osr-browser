@@ -25,6 +25,7 @@
 #include "browser.h"
 #include "javascriptlogging.h"
 #include "dashhandler.h"
+//#include <backward.hpp>
 
 #define HEADERSIZE (4 * 1024)
 
@@ -53,6 +54,23 @@ struct OsdStruct {
 std::map<std::string, std::string> HbbtvCurl::response_header;
 std::string HbbtvCurl::response_content;
 static std::map<std::string, std::string> cookies;
+
+/*
+void stacker() {
+    using namespace backward;
+
+    StackTrace st;
+    st.load_here(99);
+    st.skip_n_firsts(3);
+
+    Printer p;
+    p.snippet = true;
+    p.object = true;
+    //p.color = true;
+    p.address = true;
+    p.print(st, stderr);
+}
+*/
 
 std::string singleLineCookies() {
     std::string result = "";
@@ -409,13 +427,17 @@ bool JavascriptHandler::OnQuery(CefRefPtr<CefBrowser> browser,
             return true;
         } else if (strncmp(request.ToString().c_str(), "VIDEO_SIZE: ", 12) == 0) {
             browserClient->SendToVdrString(CMD_STATUS, request.ToString().c_str());
+
+            // send also an OSD update
+            browser->GetHost()->Invalidate(PET_VIEW);
+
             return true;
         } else if (strncmp(request.ToString().c_str(), "CHANGE_URL: ", 12) == 0) {
             CefString url(request.ToString().substr(12));
             browserControl->LoadURL(url);
 
             // Save the last URL on a stack
-            applicationStack.push(url);
+            // applicationStack.push(url);
 
             return true;
         } else if (strncmp(request.ToString().c_str(), "CREATE_APP: ", 12) == 0) {
@@ -424,7 +446,7 @@ bool JavascriptHandler::OnQuery(CefRefPtr<CefBrowser> browser,
             CONSOLE_TRACE("Create application {}", url.ToString());
 
             // Save the last URL on a stack
-            applicationStack.push(url);
+            // applicationStack.push(url);
 
             return true;
         } else if (strncmp(request.ToString().c_str(), "DESTROY_APP", 11) == 0) {
@@ -434,11 +456,11 @@ bool JavascriptHandler::OnQuery(CefRefPtr<CefBrowser> browser,
             browserClient->SendToVdrString(CMD_STATUS, "STOP_VIDEO");
             browserClient->stop_video();
 
-            std::string lastUrl = applicationStack.top();
-            applicationStack.pop();
-            browserControl->LoadURL(lastUrl);
+            // std::string lastUrl = applicationStack.top();
+            // applicationStack.pop();
+            // browserControl->LoadURL(lastUrl);
 
-            CONSOLE_TRACE("Destroy application: Load new URL {}", lastUrl);
+            // CONSOLE_TRACE("Destroy application: Load new URL {}", lastUrl);
             return true;
         } else if (strncmp(request.ToString().c_str(), "CLEAR_DASH", 10) == 0) {
             audioDashHandler.ClearAll();
@@ -524,6 +546,7 @@ void JavascriptHandler::OnQueryCanceled(CefRefPtr<CefBrowser> browser, CefRefPtr
 
 BrowserClient::BrowserClient(spdlog::level::level_enum log_level, std::string vproto) {
     logger.set_level(log_level);
+    // stacker();
 
     // bind socket
     if ((toVdrSocketId = nn_socket(AF_SP, NN_PUSH)) < 0) {

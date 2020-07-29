@@ -47,7 +47,6 @@ export class VideoHandler {
             // new OipfAVControlMapper(node, true);
             // node.type = "video/mp4";
             // node.data = "client://movie/transparent-full.webm";
-
             new OipfAVControlMapper(node, true);
         }
     }

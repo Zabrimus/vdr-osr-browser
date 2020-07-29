@@ -86,6 +86,9 @@ function init() {
             var height = parseInt(position.height, 10);
 
             signalCef("VIDEO_SIZE: " + width + "," + height + "," + x + "," + y);
+        } else {
+            // no video tag found -> fullscreen
+            signalCef("VIDEO_SIZE: " + 1280 + "," + 720 + "," + 0 + "," + 0);
         }
     }
 

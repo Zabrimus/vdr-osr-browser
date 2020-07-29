@@ -770,7 +770,6 @@ class VideoHandler {
             // new OipfAVControlMapper(node, true);
             // node.type = "video/mp4";
             // node.data = "client://movie/transparent-full.webm";
-
             new _a_v_control_embedded_object__WEBPACK_IMPORTED_MODULE_1__["OipfAVControlMapper"](node, true);
         }
     }
@@ -1271,6 +1270,9 @@ function init() {
             var height = parseInt(position.height, 10);
 
             signalCef("VIDEO_SIZE: " + width + "," + height + "," + x + "," + y);
+        } else {
+            // no video tag found -> fullscreen
+            signalCef("VIDEO_SIZE: " + 1280 + "," + 720 + "," + 0 + "," + 0);
         }
     }
 

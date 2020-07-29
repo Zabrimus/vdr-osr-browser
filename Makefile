@@ -55,6 +55,17 @@ EXECUTABLE  = vdrosrbrowser
 # Starten mit z.B. ./cefsimple --url="file://<pfad>/movie.html"
 EXECUTABLE5  = cefsimple
 
+# binutils-dev
+#ifeq (exists, $(shell gcc -lbfd 2>&1 | grep -q -c main && echo exists))
+#   $(info binutils-dev found)
+#   SOURCES += thirdparty/backward-cpp/backward.cpp
+#   CFLAGS += -DBACKWARD_HAS_BFD=1
+#   LDFLAGS += -lbfd -ldl
+#endif
+#
+#CFLAGS += -I thirdparty/backward-cpp
+
+
 # CEF (debian packaged or self-installed version)
 ifndef PACKAGED_CEF
     $(info PACKAGED_CEF is undefined. Try to find CEF installation.)
