@@ -342,6 +342,8 @@ class OipfAVControlMapper {
                 // do nothing, there exists no video file
                 console.log("originalDataAttribute is empty, ignore video request");
             } else {
+                window.start_video_quirk();
+
                 // signal video URL and set the timestamp of the transparent video
                 let d = new Date();
                 let n = d.getTime();
@@ -350,8 +352,6 @@ class OipfAVControlMapper {
                 // this.videoElement.src = originalDataAttribute;
                 // copy object data url to html5 video tag src attribute ...
                 this.videoElement.src = "client://movie/transparent_" + String(n) + ".webm";
-
-                window.start_video_quirk();
             }
         }
 
@@ -499,6 +499,8 @@ class OipfAVControlMapper {
         const handleMutation = (mutationList, mutationObserver) => {
             mutationList.forEach((mutation) => {
                 if (mutation.attributeName === 'src') {
+                    window.start_video_quirk();
+
                     var target = mutation.target;
                     var newSrc = target.getAttribute("src");
 
@@ -520,8 +522,6 @@ class OipfAVControlMapper {
 
                     // overwrite src
                     target.src = "client://movie/transparent_" + String(n) + ".webm";
-
-                    window.start_video_quirk();
                 }
             });
         };

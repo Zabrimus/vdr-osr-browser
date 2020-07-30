@@ -1,12 +1,14 @@
 window.start_video_quirk = function() {
+  console.log("Start Window Quirk");
+
   // Tatort
   if (window.location.href.search("hbbtv-tatort.daserste.de") >= 0) {
-      var appscreen = document.getElementById('appscreen');
+      let appscreen = document.getElementById('appscreen');
       if (appscreen) {
           appscreen.style.visibility = "hidden";
       }
 
-      var playerbar = document.getElementsByClassName('playerbar');
+      let playerbar = document.getElementsByClassName('playerbar');
       if (playerbar && playerbar.length > 0) {
           playerbar[0].style.visibility = "visible";
       }
@@ -20,17 +22,32 @@ window.start_video_quirk = function() {
   // ARD replay dyn
   if (window.location.href.search("itv.ard.de/replay/dyn/index.php") >= 0) {
   }
+
+  // Pro 7
+  if (window.location.href.search("hbbtv.redbutton.de/extern/redorbit/hbbtv/apps/mediathek/v3/web/p7de/home/p7de")) {
+      document.body.setAttribute('style', 'background-color: transparent !important');
+
+      let screen = document.getElementById('screen');
+      if (screen) {
+          screen.style.visibility = "hidden";
+      }
+
+      let slides = document.getElementsByClassName('slider')[0];
+      if (slides) {
+          slides.style.display = 'none';
+      }
+  }
 }
 
 window.stop_video_quirk = function() {
   // Tatort
   if (window.location.href.search("hbbtv-tatort.daserste.de") >= 0) {
-      var appscreen = document.getElementById('appscreen');
+      let appscreen = document.getElementById('appscreen');
       if (appscreen) {
-        appscreen.style.visibility = "inherit";
+          appscreen.style.visibility = "inherit";
       }
 
-      var playerbar = document.getElementsByClassName('playerbar');
+      let playerbar = document.getElementsByClassName('playerbar');
       if (playerbar && playerbar.length > 0) {
           playerbar[0].style.visibility = null;
       }
@@ -44,4 +61,19 @@ window.stop_video_quirk = function() {
   // ARD replay dyn
   if (window.location.href.search("itv.ard.de/replay/dyn/index.php") >= 0) {
   }
+
+  // Pro 7
+  if (window.location.href.search("hbbtv.redbutton.de/extern/redorbit/hbbtv/apps/mediathek/v3/web/p7de/home/p7de")) {
+      document.body.setAttribute('style', 'background-color: #2c2c2c');
+      let screen = document.getElementById('screen');
+      if (screen) {
+          screen.style.visibility = "inherit";
+      }
+
+      let slides = document.getElementsByClassName('slider')[0];
+      if (slides) {
+        slides.style.display = 'block';
+      }
+  }
+
 }
