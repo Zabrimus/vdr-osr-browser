@@ -27,6 +27,7 @@ export class VideoHandler {
         document.querySelectorAll('*').forEach((node) => {
             this.checkNodeTypeAndInjectVideoMethods(node);
         });
+
         this.watchAndHandleVideoObjectMutations();
     }
 
@@ -36,6 +37,12 @@ export class VideoHandler {
             return;  
         } 
         mimeType = mimeType.toLowerCase(); // ensure lower case string comparison
+
+        if (node.getElementsByTagName('video').length > 0) {
+            // video already injected.
+            window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: checkNodeTypeAndInjectVideoMethods, video already injected ...');
+            return;
+        }
 
         if (mimeType.lastIndexOf('video/broadcast', 0) === 0) {
             window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: BROADCAST VIDEO PLAYER ...');
@@ -50,7 +57,7 @@ export class VideoHandler {
         }
         // setup mpeg dash player
         if(mimeType.lastIndexOf('application/dash+xml', 0) === 0){
-            // window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: DASH VIDEO PLAYER ...');
+            window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: DASH VIDEO PLAYER ...');
             // new OipfAVControlMapper(node, true);
             // node.type = "video/mp4";
             // node.data = "client://movie/transparent-full.webm";
