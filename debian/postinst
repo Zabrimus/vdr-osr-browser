@@ -1,0 +1,8 @@
+#!/bin/sh
+
+set -e
+chown -R vdr:vdr /opt/vdr-osr-browser
+
+#DEBHELPER#
+
+
