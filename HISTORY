@@ -8,6 +8,7 @@ VDR OSR Browser Revision History
   fixed a segfault in CookieVisitor
   fixed video playing Pro7Sat1 group
   fixed ARD Alpha Panorama-Bilder
+  fixed Arte Blue Button
 
 - New
   TV screen in a OSD window is supported (at least for some channels)

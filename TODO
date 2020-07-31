@@ -67,3 +67,6 @@ Sonstige interessante Links:
     https://trifinite.org/hbbtv/trifinite_hbbtv_channel_list.html
     http://urju.de/hbbtv/
 
+DRM:
+    https://pypi.org/project/python-ffmpeg-video-streaming/#encryptiondrm
+    https://shaka-player-demo.appspot.com/docs/api/tutorial-drm-config.html

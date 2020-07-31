@@ -111,6 +111,54 @@ function xmlToJson(xml) {
     return obj;
 }
 
+function getPrefixForMimeType(rep, adaptionSet) {
+    var prefix;
+    var mimetype;
+
+    if (typeof adaptionSet._attributes.mimeType !== "undefined") {
+        mimetype = adaptionSet._attributes.mimeType;
+    } else {
+        mimetype = rep._attributes.mimeType;
+    }
+
+    if (mimetype === 'video' || mimetype === 'video/mp4') {
+        prefix = "V";
+    } else if (mimetype === 'audio' || mimetype === 'audio/mp4') {
+        prefix = "A";
+    }
+
+    return prefix;
+}
+
+function getMediaInit(rep, stattributes, repid) {
+    var _st;
+    if (typeof rep.SegmentTemplate !== 'undefined') {
+        _st = rep.SegmentTemplate._attributes;
+    } else {
+        _st = rep._attributes;
+    }
+
+    var media;
+    if (typeof _st.media !== "undefined") {
+        media = _st.media;
+    } else {
+        media = stattributes.media;
+    }
+
+    if (typeof repid !== "undefined") {
+        media = media.replace("$RepresentationID$", repid);
+    }
+
+    var init;
+    if (typeof _st.initialization !== "undefined") {
+        init = _st.initialization;
+    } else {
+        init = stattributes.initialization;
+    }
+
+    return {"media":media, "init":init};
+}
+
 function GetAndParseMpd(uri) {
     // get the mpd file
     var request = new XMLHttpRequest();
@@ -139,15 +187,6 @@ function GetAndParseMpd(uri) {
             var _repidx = 0;
 
             for (var i in _adaptionSet) {
-                var prefix;
-                var _mimetype = _adaptionSet[i]._attributes.mimeType;
-
-                if (_mimetype === 'video' || _mimetype === 'video/mp4') {
-                    prefix = "V";
-                } else if (_mimetype === 'audio' || _mimetype === 'audio/mp4') {
-                    prefix = "A";
-                }
-
                 var _stAttributes = _adaptionSet[i].SegmentTemplate._attributes;
                 var _timescale = Number(_stAttributes.timescale);
                 var _duration = Number(_stAttributes.duration);
@@ -168,9 +207,11 @@ function GetAndParseMpd(uri) {
                         var height = (typeof _rep._attributes.height == 'undefined') ? 0 : _rep._attributes.height;
                         var bandwidth = _rep._attributes.bandwidth;
 
-                        var _st = _rep.SegmentTemplate._attributes;
-                        var media = _st.media;
-                        var init = _st.initialization;
+                        var repid = _rep._attributes.id;
+                        var prefix = getPrefixForMimeType(_rep, _adaptionSet[i]);
+                        var mediainit = getMediaInit(_rep, _stAttributes, repid);
+                        var media = mediainit.media;
+                        var init = mediainit.init;
 
                         signalCef("DASH:" + prefix + "C:" + _repidx + ":" + duration + ":" + firstseg + ":" + lastseg + ":" + startseg);
                         signalCef("DASH:" + prefix + "D:" + _repidx + ":" + width + ":" + height + ":" + bandwidth);
@@ -186,9 +227,11 @@ function GetAndParseMpd(uri) {
                     var height = (typeof _rep._attributes.height == 'undefined') ? 0 : _rep._attributes.height;
                     var bandwidth = _rep._attributes.bandwidth;
 
-                    var _st = _adaptionSet[i].SegmentTemplate._attributes;
-                    var media = _st.media;
-                    var init = _st.initialization;
+                    var repid = _rep._attributes.id;
+                    var prefix = getPrefixForMimeType(_rep, _adaptionSet[i]);
+                    var mediainit = getMediaInit(_rep, _stAttributes, repid);
+                    var media = mediainit.media;
+                    var init = mediainit.init;
 
                     signalCef("DASH:" + prefix + "C:" + _repidx + ":" + duration + ":" + firstseg + ":" + lastseg + ":" + startseg);
                     signalCef("DASH:" + prefix + "D:" + _repidx + ":" + width + ":" + height + ":" + bandwidth);
