@@ -13,6 +13,13 @@ Generelle Probleme/Wünsche
 
     Videos im Fenster überdecken evt. Popups. Z.B. Cookie-Zustimmung bei Pro7. Die Idee ist, das OSD vor dem Senden an VDR zu manipulieren.
 
+    Ich fürchte, es könnte notwendig sein, die Video-Funktionen zu überarbeiten:
+    https://developers.google.com/web/updates/2017/06/play-request-was-interrupted
+    Schon gesehen: DOMException: The play() request was interrupted
+
+    Die Bookmark-Konfiguration gehört gewaltig überarbeitet. Lesbarer und die Channelinformation gehören auch da rein.
+    Vielleicht wäre ein Shortcut, um Bookmarks zu speichern auch schön. Immer zum Sender zu wechseln und dann über Red-Button zu gehen ist schon lästig.
+
 Sender-Probleme:
     n-tv:
         Navigation funktioniert. Aber bei der Auswahl passiert häufig nichts.

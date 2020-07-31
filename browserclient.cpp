@@ -642,6 +642,15 @@ CefRefPtr<CefRenderHandler> BrowserClient::GetRenderHandler() {
 CefRefPtr<CefResourceRequestHandler> BrowserClient::GetResourceRequestHandler(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, bool is_navigation, bool is_download, const CefString &request_initiator, bool &disable_default_handling) {
     CONSOLE_TRACE("BrowserClient::GetResourceRequestHandler for {}, is_navigation {}, request_initiator {}", request->GetURL().ToString(), is_navigation, request_initiator.ToString());
 
+    // check if URL is blocked by pattern list
+    auto url = request->GetURL().ToString();
+    for (auto sub : urlBlockList) {
+        if (url.find(sub) != std::string::npos) {
+            // Return this. The request will be canceled later
+            return this;
+        }
+    }
+
     cookieMutex.lock();
     CefRefPtr<BrowserCookieVisitor> visitor = new BrowserCookieVisitor(logger.isTraceEnabled());
     cookieManager->VisitUrlCookies(request->GetURL(), false, visitor);
@@ -685,41 +694,42 @@ CefRefPtr<CefResourceHandler> BrowserClient::GetResourceHandler(CefRefPtr<CefBro
         }
 
         // filter known file types, this has to adapted accordingly
-        auto handle = (url.find("view-source:'", 0) == std::string::npos) &&
-                      (url.find(".json", 0) == std::string::npos) &&
-                      (url.find(".js", 0) == std::string::npos) &&
-                      (url.find(".css", 0) == std::string::npos) &&
-                      (url.find(".ico", 0) == std::string::npos) &&
-                      (url.find(".jpg", 0) == std::string::npos) &&
-                      (url.find(".png", 0) == std::string::npos) &&
-                      (url.find(".gif", 0) == std::string::npos) &&
-                      (url.find(".webp", 0) == std::string::npos) &&
-                      (url.find(".m3u8", 0) == std::string::npos) &&
-                      (url.find(".mpd", 0) == std::string::npos) &&
-                      (url.find(".ts", 0) == std::string::npos) &&
-                      (url.find(".mpg", 0) == std::string::npos) &&
-                      (url.find(".mp3", 0) == std::string::npos) &&
-                      (url.find(".mp4", 0) == std::string::npos) &&
-                      (url.find(".mov", 0) == std::string::npos) &&
-                      (url.find(".avi", 0) == std::string::npos) &&
-                      (url.find(".pdf", 0) == std::string::npos) &&
-                      (url.find(".ppt", 0) == std::string::npos) &&
-                      (url.find(".pptx", 0) == std::string::npos) &&
-                      (url.find(".xls", 0) == std::string::npos) &&
-                      (url.find(".xlsx", 0) == std::string::npos) &&
-                      (url.find(".doc", 0) == std::string::npos) &&
-                      (url.find(".docx", 0) == std::string::npos) &&
-                      (url.find(".zip", 0) == std::string::npos) &&
-                      (url.find(".rar", 0) == std::string::npos) &&
-                      (url.find(".woff2", 0) == std::string::npos) &&
-                      (url.find(".svg", 0) == std::string::npos) &&
-                      (url.find(".ogg", 0) == std::string::npos) &&
-                      (url.find(".ogm", 0) == std::string::npos) &&
-                      (url.find(".ttf", 0) == std::string::npos) &&
-                      (url.find(".7z", 0) == std::string::npos);
+        auto handle = endsWith(url,"view-source:'") ||
+                      endsWith(url, ".json") ||
+                      endsWith(url, ".js") ||
+                      endsWith(url, ".css") ||
+                      endsWith(url, ".ico") ||
+                      endsWith(url, ".jpg") ||
+                      endsWith(url, ".png") ||
+                      endsWith(url, ".gif") ||
+                      endsWith(url, ".webp") ||
+                      endsWith(url, ".m3u8") ||
+                      endsWith(url, ".mpd") ||
+                      endsWith(url, ".ts") ||
+                      endsWith(url, ".mpg") ||
+                      endsWith(url, ".mp3") ||
+                      endsWith(url, ".mp4") ||
+                      endsWith(url, ".mov") ||
+                      endsWith(url, ".avi") ||
+                      endsWith(url, ".pdf") ||
+                      endsWith(url, ".ppt") ||
+                      endsWith(url, ".pptx") ||
+                      endsWith(url, ".xls") ||
+                      endsWith(url, ".xlsx") ||
+                      endsWith(url, ".doc") ||
+                      endsWith(url, ".docx") ||
+                      endsWith(url, ".zip") ||
+                      endsWith(url, ".rar") ||
+                      endsWith(url, ".woff2") ||
+                      endsWith(url, ".svg") ||
+                      endsWith(url, ".ogg") ||
+                      endsWith(url, ".ogm") ||
+                      endsWith(url, ".ttf") ||
+                      endsWith(url, ".7z");
 
-        if (!handle) {
+        if (handle) {
             // use default handler
+            CONSOLE_TRACE("GetResourceHandler, URL {} -> use default Handler", url);
             return CefResourceRequestHandler::GetResourceHandler(browser, frame, request);
         } else {
             CefRequest::HeaderMap headers;
@@ -746,10 +756,14 @@ CefRefPtr<CefResourceHandler> BrowserClient::GetResourceHandler(CefRefPtr<CefBro
                 }
             }
 
+            CONSOLE_TRACE("GetResourceHandler, URL {} -> IsHbbtv: {}", url, isHbbtvHtml);
+
             if (isHbbtvHtml) {
+                CONSOLE_TRACE("GetResourceHandler, URL {} -> use special Handler");
                 // use special handler
                 return this;
             } else {
+                CONSOLE_TRACE("GetResourceHandler, URL {} -> use default Handler2");
                 // use default handler
                 return CefResourceRequestHandler::GetResourceHandler(browser, frame, request);
             }
