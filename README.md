@@ -42,10 +42,7 @@ Internetverbindung. Es werden ca. 20 GB heruntergeladen (+/- 1 GB). Ein Core i7 
 ### Debian/Ubuntu-Packages
 Im Ubuntu PPA sind Debian Packages verfügbar. Die Packages befinden sich hier:
 https://launchpad.net/~zabrimus/+archive/ubuntu/vdr-cef
-Nach der Installation reicht ein 
-```
-make
-```
+Der Browser in /opt/vdr-osr-browser installiert.
 
 ## Starten des Browsers
 Die einfachste Variante zum Start ist

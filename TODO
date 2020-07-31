@@ -11,6 +11,7 @@ Generelle Probleme/Wünsche
            oipfPluginObject.programmes.push({ name: 'Event 1, umlaut \u00e4', channelId: 'ccid:dvbt.0', duration: 600, startTime: Date.now() / 1000, description: 'EIT present event is under construction' });
            oipfPluginObject.programmes.push({ name: 'Event 2, umlaut \u00f6', channelId: 'ccid:dvbt.0', duration: 300, startTime: Date.now() / 1000 + 600, description: 'EIT following event is under construction' });
 
+    Videos im Fenster überdecken evt. Popups. Z.B. Cookie-Zustimmung bei Pro7. Die Idee ist, das OSD vor dem Senden an VDR zu manipulieren.
 
 Sender-Probleme:
     n-tv:
@@ -35,6 +36,9 @@ Sender-Probleme:
     Irgendwo bei dem Ersten:
         https://www.vdr-portal.de/forum/index.php?thread/133615-announce-hbbtv-plugin-offscreen-browser-v0-0-6/&postID=1327869#post1327869
         Der Full-Screen Button funktioniert nicht.
+
+    RTL2:
+        Fullscreen button funktioniert nicht
 
     ORF1:
     SRF1:
