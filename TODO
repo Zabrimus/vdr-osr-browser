@@ -68,6 +68,19 @@ Make:
     Testen, ob ein paralles Make (make -j x) funktioniert.
 
 
+Ajax:
+    Noch suche ich einen Ajax-Proxy, der mir erlaubt, den Request und den Response zu verändern (sowohl Header, als auch Body).
+    (Siehe xmlhttprequest_quirks.js, index.js, browserclient.cpp)
+    Gefunden habe ich bisher 2 (eigentlich interessante) Projekte, die aber beide jeweils ihre eigenen Schwierigkeiten machen:
+
+    https://github.com/wendux/Ajax-hook
+    Damit funktioniert der Red-Button von ARD nicht. Das OSD wird kurz sichtbar, aber verschwindet dann direkt wieder
+
+    https://github.com/jpillora/xhook
+    Damit funktioniert z.B. ARD Text nicht mehr. Die Seite wird nicht dargestellt, obwohl sie gelesen wird.
+
+
+
 Zukunftsmusik:
     Es gibt verschiedene HbbTV-Frameworks, mit denen man Seiten und Applikationen angeblich einfach erstellen kann. Wie z.B.
     MPAT: https://github.com/MPAT-eu

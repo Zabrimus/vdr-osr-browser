@@ -25,6 +25,8 @@
 #include "globaldefs.h"
 #include "nativejshandler.h"
 
+const auto VERSION = "0.0.8";
+
 MainApp::MainApp() {
     CefMessageRouterConfig config;
     config.js_query_function = "cefQuery";
@@ -209,7 +211,7 @@ std::string *logFile = nullptr;
 
 // Entry point function for all processes.
 int main(int argc, char *argv[]) {
-    spdlog::level::level_enum log_level = spdlog::level::err;
+    spdlog::level::level_enum log_level = spdlog::level::info;
 
     std::string *vproto = nullptr;
 
@@ -244,6 +246,8 @@ int main(int argc, char *argv[]) {
     }
 
     logger.set_level(log_level);
+
+    CONSOLE_INFO("vdrosrbrowser version {} started", VERSION);
 
     CONSOLE_INFO("In Main, argc={}, Parameter:", argc);
     for (int i = 0; i < argc; ++i) {

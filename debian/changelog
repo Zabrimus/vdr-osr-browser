@@ -1,3 +1,19 @@
+vdr-osr-browser (0.0.8-ppa1~focal) focal; urgency=medium
+
+  * Official release 0.0.8
+    - Bugfixes
+        another method to calculate video size (fixes n-tv video)
+        fixed a segfault while trying to show RTL II
+        fixed a segfault in CookieVisitor
+        fixed video playing Pro7Sat1 group
+        fixed ARD Alpha Panorama-Bilder
+        fixed Arte Blue Button
+
+    - New
+        TV screen in a OSD window is supported (at least for some channels)
+
+ -- Zabrimus <ppa@hannebauer.org>  Sun, 01 Aug 2020 13:45:00 +0000
+
 vdr-osr-browser (0.0.7-ppa1~focal) focal; urgency=medium
 
   * Official release 0.0.7

@@ -1333,7 +1333,9 @@ function init() {
         }
     }
 
+
     // intercept XMLHttpRequest
+    /* Enable/Disable if ajax module shall be used */
     let cefOldXHROpen = window.XMLHttpRequest.prototype.open;
     window.XMLHttpRequest.prototype.open = function(method, url, async, user, password) {
         // do something with the method, url and etc.
@@ -1352,7 +1354,7 @@ function init() {
             // window._HBBTV_DEBUG_ && console.log('XMLHttpRequest: url ' + url + ', load: ' + this.responseText);
         });
 
-        /* try to modify the response. But it's not really working as desired
+        /*
         this.addEventListener('readystatechange', function(event) {
             if (this.readyState === 4) {
                 var res = event.target.responseText;
@@ -1367,7 +1369,8 @@ function init() {
         */
 
         return cefOldXHROpen.call(this, method, url, async, user, password);
-    }
+    };
+    /* Enable/Disable if ajax module shall be used */
 
     // global helper namespace to simplify testing
     window.HBBTV_POLYFILL_NS = window.HBBTV_POLYFILL_NS || {

@@ -901,6 +901,7 @@ bool BrowserClient::ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr<CefC
             replaceAll(responseContent, head, inject);
             free(inject);
 
+
             // inject xmlhttprequest_quirks.js
             asprintf(&inject,
                      "%s\n<script id=\"xmlhttprequestquirk\" type=\"text/javascript\" src=\"client://js/xmlhttprequest_quirks.js\"/>\n",
@@ -908,11 +909,21 @@ bool BrowserClient::ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr<CefC
             replaceAll(responseContent, head, inject);
             free(inject);
 
+            /*
             // inject xhook.js
             asprintf(&inject, "%s\n<script id=\"hbbtvxhook\" type=\"text/javascript\" src=\"client://js/xhook.js\"/>\n",
                      head.c_str());
             replaceAll(responseContent, head, inject);
             free(inject);
+            */
+
+            /*
+            // inject ajaxhook.js
+            asprintf(&inject, "%s\n<script id=\"hbbtvajaxhook\" type=\"text/javascript\" src=\"client://js/ajaxhook.js\"/>\n",
+                     head.c_str());
+            replaceAll(responseContent, head, inject);
+            free(inject);
+            */
 
             // inject hbbtv_polyfill.js
             asprintf(&inject,
