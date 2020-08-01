@@ -210,8 +210,8 @@ std::string HbbtvCurl::ReadContentType(std::string url, CefRequest::HeaderMap he
         CONSOLE_TRACE("HbbtvCurl::ReadContentType, Found HbbTV Objects, return Content-Type 'application/vnd.hbbtv.xhtml+xml'");
         return "application/vnd.hbbtv.xhtml+xml";
     } else {
-        CONSOLE_TRACE("HbbtvCurl::ReadContentType, No HbbTV Objects found, return Content-Type 'text/html'");
-        return "text/html";
+        CONSOLE_TRACE("HbbtvCurl::ReadContentType, No HbbTV Objects found, return Content-Type {}", response_header["Content-Type"]);
+        return response_header["Content-Type"];
     }
 }
 
@@ -860,6 +860,8 @@ bool BrowserClient::ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr<CefC
         responseContent = hbbtvCurl.GetResponseContent();
         responseCode = hbbtvCurl.GetResponseCode();
         redirectUrl = hbbtvCurl.GetRedirectUrl();
+
+        responseHeader.insert(std::pair<std::string, std::string>("Access-Control-Allow-Origin", "*"));
 
         // Fix some Pages
         tryToFixPage(responseContent);
