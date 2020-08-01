@@ -876,6 +876,10 @@ bool BrowserClient::ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr<CefC
             size_t headEnd = responseContent.find(">", headStart);
             std::string head = responseContent.substr(headStart, headEnd - headStart + 1);
 
+            /***
+             The order of injected scripts is inverted! The first one will be the last one in the page.
+             ***/
+
             // Enable/disable debug messages
             asprintf(&inject, "%s\n<script type=\"text/javascript\">window._HBBTV_DEBUG_ = %s;</script>\n",
                      head.c_str(),
@@ -900,6 +904,12 @@ bool BrowserClient::ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr<CefC
             // inject xmlhttprequest_quirks.js
             asprintf(&inject,
                      "%s\n<script id=\"xmlhttprequestquirk\" type=\"text/javascript\" src=\"client://js/xmlhttprequest_quirks.js\"/>\n",
+                     head.c_str());
+            replaceAll(responseContent, head, inject);
+            free(inject);
+
+            // inject xhook.js
+            asprintf(&inject, "%s\n<script id=\"hbbtvxhook\" type=\"text/javascript\" src=\"client://js/xhook.js\"/>\n",
                      head.c_str());
             replaceAll(responseContent, head, inject);
             free(inject);

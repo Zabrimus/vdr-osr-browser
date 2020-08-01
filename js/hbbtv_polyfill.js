@@ -269,8 +269,6 @@ function GetAndParseMpd(uri) {
             var parsedXml = new window.DOMParser().parseFromString(xml, "text/xml");
             var parsedJson = xmlToJson(parsedXml);
 
-            console.log("ParsedJson:\n" + JSON.stringify(parsedJson, null, 4));
-
             var baseUrl = new URL('.', uri).href;
             if (typeof parsedJson.MPD.BaseURL !== 'undefined') {
                 baseUrl = parsedJson.MPD.BaseURL["#text"];

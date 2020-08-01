@@ -16,3 +16,7 @@ window.cefXmlHttpRequestQuirk = function(uri) {
   // return unchanged URL
   return uri;
 }
+
+window.xhook.after(function(request, response) {
+  // response.headers['Access-Control-Allow-Origin'] = '*';
+});

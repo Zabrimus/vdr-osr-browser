@@ -14,11 +14,16 @@ Generelle Probleme/Wünsche
     Videos im Fenster überdecken evt. Popups. Z.B. Cookie-Zustimmung bei Pro7. Die Idee ist, das OSD vor dem Senden an VDR zu manipulieren.
 
     Ich fürchte, es könnte notwendig sein, die Video-Funktionen zu überarbeiten:
-    https://developers.google.com/web/updates/2017/06/play-request-was-interrupted
-    Schon gesehen: DOMException: The play() request was interrupted
+        https://developers.google.com/web/updates/2017/06/play-request-was-interrupted
+        Schon gesehen: DOMException: The play() request was interrupted
 
     Die Bookmark-Konfiguration gehört gewaltig überarbeitet. Lesbarer und die Channelinformation gehören auch da rein.
     Vielleicht wäre ein Shortcut, um Bookmarks zu speichern auch schön. Immer zum Sender zu wechseln und dann über Red-Button zu gehen ist schon lästig.
+
+    Manchmal reagiert der Browser nicht mehr. Es scheint, also ob irgendein Mutex die weitere Verarbeitung blockiert.
+       Mein Verdacht fällt auf OSDU und dessen Mutex. Aber sicher bin ich nicht.
+       Es hilft nur ein Neustart des Browsers über das OSD-Menu.
+       => Testen und herausfinden, ob es reproduzierbar ist.
 
 Sender-Probleme:
     n-tv:
@@ -46,6 +51,13 @@ Sender-Probleme:
 
     RTL2:
         Fullscreen button funktioniert nicht
+
+    SAT1 Spiele:
+    RTL Spiele:
+    Und andere mit Blue-Button-Spiele:
+        hbbtv-polyfill: createApplication: dvb://current.ait/21.74?pid=rtl&country=de -> http://mg-rtl.spielecenter.tv/spielecenter/index.php?pid=rtl&country=de
+        Resource interpreted as Document but transferred with MIME type application/vnd.hbbtv.xhtml+xml: "http://mg-rtl.spielecenter.tv/spielecenter/cookie_fs.php?GCID=xxx".
+        Resource interpreted as Document but transferred with MIME type application/vnd.hbbtv.xhtml+xml: "http://pro7.gofresh.tv/pro7/cookie_fs.php?GCID=xxx&prod=pro7&pid=s1&redirect=1".
 
     ORF1:
     SRF1:
