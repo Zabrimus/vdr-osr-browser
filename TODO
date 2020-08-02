@@ -25,6 +25,8 @@ Generelle Probleme/Wünsche
        Es hilft nur ein Neustart des Browsers über das OSD-Menu.
        => Testen und herausfinden, ob es reproduzierbar ist.
 
+    Konfiguration eines Proxys für bestimmte Seiten/URLs/Kanäle. Stichwort Geo-Lokation.
+
 Sender-Probleme:
     n-tv:
         Navigation funktioniert. Aber bei der Auswahl passiert häufig nichts.
@@ -62,6 +64,7 @@ Sender-Probleme:
     ORF1:
     SRF1:
         Beide Seiten scheinen Probleme zu haben, aber zur Untersuchung muss ich erst an die Channelinformation und URLs kommen.
+        "Failed to execute 'observe' on 'MutationObserver': parameter 1 is not of type 'Node'."
 
 Make:
     https://www.vdr-portal.de/forum/index.php?thread/133615-announce-hbbtv-plugin-offscreen-browser-v0-0-6/&postID=1327497#post1327497

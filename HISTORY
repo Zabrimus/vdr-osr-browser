@@ -1,14 +1,11 @@
 VDR OSR Browser Revision History
 -----------------------------------
 
-2020-xx-xx: Version 0.0.9
+2020-08-02: Version 0.0.9
 - Bugfixes
   fixed CORS
   play site (blue button on some sites) is now visible
      => But not yet usable!
-
-- New
-
 
 2020-08-01: Version 0.0.8
 - Bugfixes
