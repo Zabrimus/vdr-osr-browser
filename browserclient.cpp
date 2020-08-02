@@ -211,7 +211,8 @@ std::string HbbtvCurl::ReadContentType(std::string url, CefRequest::HeaderMap he
         return "application/vnd.hbbtv.xhtml+xml";
     } else {
         CONSOLE_TRACE("HbbtvCurl::ReadContentType, No HbbTV Objects found, return Content-Type {}", response_header["Content-Type"]);
-        return response_header["Content-Type"];
+        // return response_header["Content-Type"];
+        return "text/html";
     }
 }
 
