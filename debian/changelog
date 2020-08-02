@@ -1,12 +1,11 @@
-vdr-osr-browser (0.0.9-ppa1~focal) focal; urgency=medium
+vdr-osr-browser (0.0.9-1-ppa1~focal) focal; urgency=medium
 
   * Official release 0.0.9
     - Bugfixes
       fixed CORS
       play site (blue button on some sites) is now visible
          => But not yet usable!
-
- -- Zabrimus <ppa@hannebauer.org>  Sun, 02 Aug 2020 11:45:00 +0000
+ -- Zabrimus <ppa@hannebauer.org>  Sun, 02 Aug 2020 12:15:00 +0000
 
 vdr-osr-browser (0.0.8-ppa1~focal) focal; urgency=medium
 
