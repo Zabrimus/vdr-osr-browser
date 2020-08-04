@@ -8,6 +8,7 @@ VDR OSR Browser Revision History
 - New
   Changed default version of CEF to 84.3.8%2Bgc8a556f%2Bchromium-84.0.4147.105 (Chromium 84)
       (to update an existing code branch: make clean; make prepare_release; make release)
+  New implementation of pause/resume
 
 2020-08-02: Version 0.0.9
 - Bugfixes
