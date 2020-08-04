@@ -56,8 +56,8 @@ public:
     void set_event_callback(void (*event_callback_)(std::string cmd));
 
     void pause_video();
-    void resume_video();
-    void stop_video();
+    void resume_video(const char* position);
+    void stop_video(bool cleanup = true);
     void seek_video(const char* ms);
     void speed_video(const char* speed);
 };

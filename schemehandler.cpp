@@ -17,6 +17,8 @@ ClientSchemeHandler:: ClientSchemeHandler() : offset(0), binary_offset(0) {
 bool ClientSchemeHandler::Open(CefRefPtr<CefRequest> request, bool& handle_request, CefRefPtr<CefCallback> callback) {
     std::string url = request->GetURL();
 
+    binary_data_length = 0;
+
     if ((strstr(url.c_str(), "client://js/") != NULL) || (strstr(url.c_str(), "client://css/") != NULL)) {
         if (GetResourceString(url.substr(9), data)) {
             handle_request = true;
@@ -182,6 +184,7 @@ bool ClientSchemeHandler::ReadFileToData(const char* path) {
         free(binary_data);
         binary_data = nullptr;
     }
+
     binary_data_length = 0;
 
     if (!FileExists(path)) {

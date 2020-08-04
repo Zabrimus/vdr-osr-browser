@@ -375,15 +375,15 @@ bool JavascriptHandler::OnQuery(CefRefPtr<CefBrowser> browser,
             frame->ExecuteJavaScript("window.cefVideoSize()", frame->GetURL(), 0);
 
             return true;
-        } else if (strncmp(request.ToString().c_str(), "PAUSE_VIDEO", 11) == 0) {
+        } else if (strncmp(request.ToString().c_str(), "PAUSE_VIDEO: ", 13) == 0) {
             CONSOLE_DEBUG("Video streaming pause");
 
             browserClient->pause_video();
             return true;
-        } else if (strncmp(request.ToString().c_str(), "RESUME_VIDEO", 12) == 0) {
+        } else if (strncmp(request.ToString().c_str(), "RESUME_VIDEO: ", 14) == 0) {
             CONSOLE_DEBUG("Video streaming resume");
 
-            browserClient->resume_video();
+            browserClient->resume_video(request.ToString().c_str() + 14);
             return true;
         } else if (strncmp(request.ToString().c_str(), "END_VIDEO", 9) == 0) {
             CONSOLE_DEBUG("Video streaming ended");
@@ -1252,11 +1252,11 @@ void BrowserClient::pause_video() {
     }
 }
 
-void BrowserClient::resume_video() {
+void BrowserClient::resume_video(const char* position) {
     CONSOLE_DEBUG("Resume video");
 
     if (transcoder != nullptr) {
-        transcoder->resume_video();
+        transcoder->resume_video(position);
     }
 }
 

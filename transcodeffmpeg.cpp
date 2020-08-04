@@ -295,11 +295,7 @@ bool TranscodeFFmpeg::fork_ffmpeg(long start_at_ms) {
             cmdline += "-hide_banner -loglevel warning ";
         }
 
-        if (!isDash) {
-            cmdline += "-re -ss " + std::string(ms_to_ffmpeg_time(start_at_ms)) + " ";
-        } else {
-            cmdline += "-re ";
-        }
+        cmdline += "-re -ss " + std::string(ms_to_ffmpeg_time(start_at_ms)) + " ";
 
         if (isDash) {
             // Mux Audio/Video
@@ -393,7 +389,7 @@ void TranscodeFFmpeg::seek_video(const char* ms) {
     stop_video();
 
     if (event_callback != nullptr) {
-        event_callback("SEEK");
+        event_callback("SEEK_VIDEO");
     }
 
     CONSOLE_TRACE("seek_video, fork_ffmpeg");
@@ -401,24 +397,36 @@ void TranscodeFFmpeg::seek_video(const char* ms) {
 }
 
 void TranscodeFFmpeg::pause_video() {
-    if (ffmpeg_pid > 0) {
-        kill(ffmpeg_pid, SIGSTOP);
+    stop_video(false);
+
+    if (event_callback != nullptr) {
+        event_callback("PAUSE_VIDEO");
     }
 }
 
-void TranscodeFFmpeg::resume_video() {
+void TranscodeFFmpeg::resume_video(const char* position) {
+    // restart ffmpeg
     if (ffmpeg_pid > 0) {
-        kill(ffmpeg_pid, SIGCONT);
+        // called resume without pause. Ignore this request
+        return;
+    }
+
+    fork_ffmpeg(strtol(position, (char **)nullptr, 10) * 1000);
+
+    if (event_callback != nullptr) {
+        event_callback("RESUME_VIDEO");
     }
 }
 
-void TranscodeFFmpeg::stop_video() {
-    videoDashHandler.StopLoadThread();
-    audioDashHandler.StopLoadThread();
+void TranscodeFFmpeg::stop_video(bool cleanup) {
+
+    if (cleanup) {
+        videoDashHandler.StopLoadThread();
+        audioDashHandler.StopLoadThread();
+    }
 
     if (ffmpeg_pid > 0) {
         CONSOLE_TRACE("stop video, kill ffmpeg with pid {}", ffmpeg_pid);
-        // kill(ffmpeg_pid, SIGTERM);
         kill(ffmpeg_pid, SIGKILL);
 
         CONSOLE_TRACE("stop video, wait for ffmpeg pid {}", ffmpeg_pid);
@@ -431,14 +439,16 @@ void TranscodeFFmpeg::stop_video() {
 
     ffmpeg_pid = 0;
 
-    char *transvideo;
-    asprintf(&transvideo, "movie/transparent_%s.webm", transparent_time.c_str());
-    unlink(transvideo);
-    free(transvideo);
+    if (cleanup) {
+        char *transvideo;
+        asprintf(&transvideo, "movie/transparent_%s.webm", transparent_time.c_str());
+        unlink(transvideo);
+        free(transvideo);
 
-    unlink(VIDEO_UNIX);
-    // unlink(DASH_VIDEO_FILE);
-    // unlink(DASH_AUDIO_FILE);
+        unlink(VIDEO_UNIX);
+        unlink(DASH_VIDEO_FILE);
+        unlink(DASH_AUDIO_FILE);
+    }
 }
 
 void TranscodeFFmpeg::speed_video(const char* speed) {

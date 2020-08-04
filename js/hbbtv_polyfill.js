@@ -417,7 +417,9 @@ class OipfAVControlMapper {
             console.log("Im Mapping, Play, speed = " + speed);
 
             if (speed === 0) {
-                signalCef("PAUSE_VIDEO");
+                // get current video position
+                let currentTime = this.videoElement.currentTime;
+                signalCef("PAUSE_VIDEO: " + currentTime);
 
                 setTimeout(() => {
                     this.videoElement.pause();
@@ -426,7 +428,8 @@ class OipfAVControlMapper {
             }
             else if (speed > 0) {
                 if (speed === 1) {
-                    signalCef("RESUME_VIDEO");
+                    let currentTime = this.videoElement.currentTime;
+                    signalCef("RESUME_VIDEO: " + currentTime);
                 } else {
                     signalCef("SPEED_VIDEO " + speed);
                 }

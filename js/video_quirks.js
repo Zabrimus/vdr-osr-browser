@@ -1,5 +1,5 @@
 window.start_video_quirk = function() {
-  console.log("Start Window Quirk");
+  console.log("Start Window Quirk: " + window.location.href);
 
   // Tatort
   if (window.location.href.search("hbbtv-tatort.daserste.de") >= 0) {

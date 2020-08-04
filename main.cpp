@@ -88,7 +88,8 @@ bool MainApp::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefRefPtr<
 }
 
 void MainApp::OnRegisterCustomSchemes(CefRawPtr<CefSchemeRegistrar> registrar) {
-    registrar->AddCustomScheme("client", CEF_SCHEME_OPTION_STANDARD);
+    // registrar->AddCustomScheme("client", CEF_SCHEME_OPTION_STANDARD);
+    registrar->AddCustomScheme("client", CEF_SCHEME_OPTION_STANDARD | CEF_SCHEME_OPTION_SECURE | CEF_SCHEME_OPTION_CORS_ENABLED);
 }
 
 void MainApp::OnContextInitialized() {

@@ -204,7 +204,7 @@ public:
     // transcode functions
     bool set_input_file(const char* time, const char* input);
     void pause_video();
-    void resume_video();
+    void resume_video(const char* position);
     void stop_video();
     void seek_video(const char* ms);
     void speed_video(const char* speed);

@@ -7,15 +7,11 @@
 # make buildjs		(compiles javascript files and install them in Release and js folder)
 # make cleanjs		(deletes all not needed files in thirdparty/HybridTvViewer)
 
-# WARNING
-# Version 83.3.12%2Bg0889ff0%2Bchromium-83.0.4103.97 of CEF segfaults in ClientSchemeHandler. Needs further investigation...
-# Version 83.5.0%2Bgbf03589%2Bchromium-83.0.4103.106 of CEF, while playing videos the OSD disappears and cannot be enabled anymore
-# Version 84.3.8%2Bgc8a556f%2Bchromium-84.0.4147.105 of CEF, while playing videos the OSD disappears and cannot be enabled anymore
-# WARNING
-
-
+# previous version
 # CEF_VERSION = 81.2.25%2Bg3afea62%2Bchromium-81.0.4044.113
-CEF_VERSION = 81.3.10%2Bgb223419%2Bchromium-81.0.4044.138
+
+# new default version
+CEF_VERSION = 84.3.8%2Bgc8a556f%2Bchromium-84.0.4147.105
 
 CEF_BUILD = http://opensource.spotify.com/cefbuilds/cef_binary_$(CEF_VERSION)_linux64_minimal.tar.bz2
 CEF_INSTALL_DIR = /opt/cef
