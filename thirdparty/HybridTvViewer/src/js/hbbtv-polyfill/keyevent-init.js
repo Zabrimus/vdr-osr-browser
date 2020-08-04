@@ -152,7 +152,9 @@ export const keyEventInit = function () {
     );
 
     function doKeyPress(keyCode) {
-        // create and dispatch the event
+        // document.activeElement.dispatchEvent(new Event('focus'));
+
+        // create and dispatch the event (keydown)
         var keyDownEvent = new KeyboardEvent("keydown", {
             bubbles: true,
             cancelable: true,
@@ -164,7 +166,7 @@ export const keyEventInit = function () {
 
         document.dispatchEvent(keyDownEvent);
 
-        // create and dispatch the event
+        // create and dispatch the event (keypress)
         var keypressEvent = new KeyboardEvent("keypress", {
             bubbles: true,
             cancelable: true,
@@ -174,6 +176,38 @@ export const keyEventInit = function () {
         Object.defineProperty(keypressEvent, "detail", { "value": { hbbInternal: true } });
 
         document.dispatchEvent(keypressEvent);
+
+        // create and dispatch the event (keyup)
+        var keyUpEvent = new KeyboardEvent("keyup", {
+          bubbles: true,
+          cancelable: true,
+        });
+
+        delete keyUpEvent.keyCode;
+        Object.defineProperty(keyUpEvent, "keyCode", { "value": window[keyCode] });
+        Object.defineProperty(keyUpEvent, "detail", { "value": { hbbInternal: true } });
+
+        document.dispatchEvent(keyUpEvent);
+
+        /*
+        $(document).ready(function() {
+          setTimeout(function() { document.activeElement.focus() }, 20);
+        });
+        */
+
+        /*
+        setTimeout(function() { document.activeElement.focus() }, 20);
+        */
+
+        /*
+        setTimeout(function() {
+            let el = document.activeElement;
+            if (typeof el !== 'undefined') {
+              el.blur();
+              el.focus();
+            }
+        }, 3000);
+        */
     };
 
     window.cefKeyPress = function(keyCode) {

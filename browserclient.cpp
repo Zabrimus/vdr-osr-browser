@@ -210,9 +210,14 @@ std::string HbbtvCurl::ReadContentType(std::string url, CefRequest::HeaderMap he
         CONSOLE_TRACE("HbbtvCurl::ReadContentType, Found HbbTV Objects, return Content-Type 'application/vnd.hbbtv.xhtml+xml'");
         return "application/vnd.hbbtv.xhtml+xml";
     } else {
-        CONSOLE_TRACE("HbbtvCurl::ReadContentType, No HbbTV Objects found, return Content-Type {}", response_header["Content-Type"]);
-        // return response_header["Content-Type"];
-        return "text/html";
+        std::string ct = "text/html";
+        if (url.find("pro7.gofresh.tv") != std::string::npos) {
+            ct = response_header["Content-Type"];
+        }
+
+        CONSOLE_TRACE("HbbtvCurl::ReadContentType, No HbbTV Objects found, return Content-Type {}", ct);
+
+        return ct;
     }
 }
 
@@ -912,6 +917,7 @@ bool BrowserClient::ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr<CefC
             replaceAll(responseContent, head, inject);
             free(inject);
 
+
             /*
             // inject xhook.js
             asprintf(&inject, "%s\n<script id=\"hbbtvxhook\" type=\"text/javascript\" src=\"client://js/xhook.js\"/>\n",
@@ -943,7 +949,8 @@ bool BrowserClient::ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr<CefC
             free(inject);
 
             // inject focus.js
-            asprintf(&inject, "%s\n<script id=\"hbbtvfocus\" type=\"text/javascript\" src=\"client://js/focus.js\"/>\n",
+            asprintf(&inject,
+                     "%s\n<script id=\"hbbtvfocus\" type=\"text/javascript\" src=\"client://js/focus.js\"/>\n",
                      head.c_str());
             replaceAll(responseContent, head, inject);
             free(inject);

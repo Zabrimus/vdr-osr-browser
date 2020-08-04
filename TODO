@@ -66,6 +66,9 @@ Sender-Probleme:
         Beide Seiten scheinen Probleme zu haben, aber zur Untersuchung muss ich erst an die Channelinformation und URLs kommen.
         "Failed to execute 'observe' on 'MutationObserver': parameter 1 is not of type 'Node'."
 
+    Sonnenklar TV:
+        Uncaught SyntaxError: Failed to set the 'innerHTML' property on 'Element': The provided markup is invalid XML, and therefore cannot be inserted into an XML document.
+
 Make:
     https://www.vdr-portal.de/forum/index.php?thread/133615-announce-hbbtv-plugin-offscreen-browser-v0-0-6/&postID=1327497#post1327497
     Testen, ob ein paralles Make (make -j x) funktioniert.

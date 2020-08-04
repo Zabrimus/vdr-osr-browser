@@ -152,6 +152,7 @@ function init() {
     };
 
     keyEventInit();
+
     hbbtvFn();
 
     window.HBBTV_VIDEOHANDLER = new VideoHandler();
