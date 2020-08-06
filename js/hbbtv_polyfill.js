@@ -366,7 +366,8 @@ class OipfAVControlMapper {
 
         // the opaque video only has size 16x16. To prevent image scaling set the container size to these values
         // this.videoElement.setAttribute('style', 'top:0px; left:0px; width:16px; height:16px;');
-        this.videoElement.setAttribute('style', 'top:0px; left:0px; width:100%; height:100%;');
+        // this.videoElement.setAttribute('style', 'top:0px; left:0px; width:100%; height:100%;');
+        this.videoElement.setAttribute('style', 'top:0px; left:0px; width:100%; height:100%; z-index: -1');
 
         // interval to simulate rewind functionality
         this.rewindInterval;
@@ -383,10 +384,8 @@ class OipfAVControlMapper {
         } else {
             if (originalDataAttribute.length <= 0) {
                 // do nothing, there exists no video file
-                console.log("originalDataAttribute is empty, ignore video request");
+                window._HBBTV_DEBUG_ && console.log("originalDataAttribute is empty, ignore video request");
             } else {
-                window.start_video_quirk();
-
                 // signal video URL and set the timestamp of the transparent video
                 let d = new Date();
                 let n = d.getTime();
@@ -414,7 +413,7 @@ class OipfAVControlMapper {
         // ANSI CTA-2014-B
         // 5.7.1.f
         this.avControlObject.play = (speed) => { // number
-            console.log("Im Mapping, Play, speed = " + speed);
+            window._HBBTV_DEBUG_ && console.log("Im Mapping, Play, speed = " + speed);
 
             if (speed === 0) {
                 // get current video position
@@ -477,8 +476,6 @@ class OipfAVControlMapper {
             this.avControlObject.playPosition = 0;
             this.avControlObject.speed = 0;
 
-            window.stop_video_quirk();
-
             return true;
         };
         this.avControlObject.seek = (posInMs) => {
@@ -503,18 +500,9 @@ class OipfAVControlMapper {
                     this.avControlObject.data = "client://movie/fail";
                     this.videoElement.load();
                 }
-            } /* else if (event.attributeName === 'width' || event.attributeName === 'height') {
-                var target = this.avControlObject;
-                var width = target.getAttribute("width");
-                var height = target.getAttribute("height");
-
-                var position = target.getBoundingClientRect();
-                var x = position.x;
-                var y = position.y;
-
-                signalCef("VIDEO_SIZE: " + width + "," + height + "," + x + "," + y);
+            } else if (event.attributeName === "style") {
+                window.cefVideoSize();
             }
-            */
         };
         const handleMutation = (mutationList, mutationObserver) => {
             mutationList.forEach((mutation) => {
@@ -545,8 +533,6 @@ class OipfAVControlMapper {
         const handleMutation = (mutationList, mutationObserver) => {
             mutationList.forEach((mutation) => {
                 if (mutation.attributeName === 'src') {
-                    window.start_video_quirk();
-
                     var target = mutation.target;
                     var newSrc = target.getAttribute("src");
 
@@ -666,7 +652,7 @@ class OipfAVControlMapper {
         videoElement && videoElement.addEventListener && videoElement.addEventListener('ended', function () {
             window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: ended');
 
-            console.log("ENDED: " + objectElement.playState + " --> " + 5)
+            window._HBBTV_DEBUG_ && console.log("ENDED: " + objectElement.playState + " --> " + 5)
 
             signalCef("END_VIDEO");
 
@@ -684,7 +670,7 @@ class OipfAVControlMapper {
         videoElement && videoElement.addEventListener && videoElement.addEventListener('error', function (e) {
             window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: error', e.message, e);
 
-            console.log("ENDED: " + objectElement.playState + " --> " + PLAY_STATES.error)
+            window._HBBTV_DEBUG_ && console.log("ENDED: " + objectElement.playState + " --> " + PLAY_STATES.error)
 
             signalCef("ERROR_VIDEO");
 
@@ -747,7 +733,7 @@ class OipfAVControlMapper {
         videoElement && videoElement.addEventListener && videoElement.addEventListener('durationchange', function () {
             window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: durationchanged');
             objectElement.playTime = videoElement.duration * 1000;
-            console.log('========> durationchanged ' + videoElement.duration * 1000);
+            window._HBBTV_DEBUG_ && console.log('========> durationchanged ' + videoElement.duration * 1000);
         }, false);
     }
 }
@@ -1273,7 +1259,7 @@ function init() {
         var videoplayer = document.getElementById("hbbtv-polyfill-video-player");
         var playerobject = document.getElementById("playerObject");
 
-        var target;
+        var target = null;
         var position;
         var maxwidth = 0, maxheight = 0;
 
@@ -1285,7 +1271,7 @@ function init() {
                 maxheight = position.height;
             }
 
-            console.log("===> VIDEO: "+ position.width + "," + position.height + "," + position.x + "," + position.y);
+            window._HBBTV_DEBUG_ && console.log("===> VIDEO: "+ position.width + "," + position.height + "," + position.x + "," + position.y);
         }
 
         if (typeof videocontainer !== 'undefined' && videocontainer !== null) {
@@ -1297,7 +1283,7 @@ function init() {
                 maxheight = position.height;
             }
 
-            console.log("===> VIDEOCONTAINER: "+ position.width + "," + position.height + "," + position.x + "," + position.y);
+            window._HBBTV_DEBUG_ && console.log("===> VIDEOCONTAINER: "+ position.width + "," + position.height + "," + position.x + "," + position.y);
         }
 
         if (typeof videoplayer !== 'undefined' && videoplayer !== null) {
@@ -1309,7 +1295,7 @@ function init() {
                 maxheight = position.height;
             }
 
-            console.log("===> VIDEOPLAYER: "+ position.width + "," + position.height + "," + position.x + "," + position.y);
+            window._HBBTV_DEBUG_ && console.log("===> VIDEOPLAYER: "+ position.width + "," + position.height + "," + position.x + "," + position.y);
         }
 
         if (typeof playerobject !== 'undefined' && playerobject !== null) {
@@ -1319,7 +1305,7 @@ function init() {
                 target = playerobject;
             }
 
-            console.log("===> PLAYEROBJECT: "+ position.width + "," + position.height + "," + position.x + "," + position.y);
+            window._HBBTV_DEBUG_ && console.log("===> PLAYEROBJECT: "+ position.width + "," + position.height + "," + position.x + "," + position.y);
         }
 
         if (target) {
@@ -1329,10 +1315,34 @@ function init() {
             var width = parseInt(position.width, 10);
             var height = parseInt(position.height, 10);
 
+            window.process_video_quirk(position, target);
+
             signalCef("VIDEO_SIZE: " + width + "," + height + "," + x + "," + y);
+
+            if (width === 1280 && height === 720) {
+                var overlay = document.getElementById('_video_color_overlay_');
+                if (overlay) {
+                    overlay.style.visibility = "hidden";
+                }
+            } else {
+                var overlay = document.getElementById('_video_color_overlay_');
+                if (overlay) {
+                    overlay.style.visibility = "visible";
+                    overlay.style.left = x.toString() + "px";
+                    overlay.style.top = y.toString() + "px";
+                    overlay.style.width = width.toString() + "px";
+                    overlay.style.height = height.toString() + "px";
+                    overlay.style.backgroundColor = "rgb(254, 46, 154)";
+                }
+            }
         } else {
             // no video tag found -> fullscreen
             signalCef("VIDEO_SIZE: " + 1280 + "," + 720 + "," + 0 + "," + 0);
+
+            var overlay = document.getElementById('_video_color_overlay_');
+            if (overlay) {
+                overlay.style.visibility = "hidden";
+            }
         }
     }
 
@@ -1431,7 +1441,7 @@ __webpack_require__.r(__webpack_exports__);
 
 
 const keyEventInit = function () {
-    console.log("hbbtv-polyfill: keyEventInit");
+    window._HBBTV_DEBUG_ && console.log("hbbtv-polyfill: keyEventInit");
 
     window.KeyEvent = window.KeyEvent || {}; // defining default global KeyEvent as defined in CEA-HTML 2014 specs
     window.KeyEvent.VK_LEFT = (typeof window.KeyEvent.VK_LEFT !== 'undefined' ? window.KeyEvent.VK_LEFT : 0x25);
@@ -1507,7 +1517,7 @@ const keyEventInit = function () {
     window.addEventListener(
         "keydown",
         (evt) => {
-            console.log("hbbtv-polyfill: browser keydown " + evt.keyCode, "internal", evt.detail && evt.detail.hbbInternal === true);
+            window._HBBTV_DEBUG_ &&  console.log("hbbtv-polyfill: browser keydown " + evt.keyCode, "internal", evt.detail && evt.detail.hbbInternal === true);
             if (evt.detail && evt.detail.hbbInternal === true) {
                 return;
             }

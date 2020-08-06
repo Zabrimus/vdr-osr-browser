@@ -2,7 +2,7 @@ import {PC_KEYCODES} from "../shared/pc-keycodes.js";
 
 
 export const keyEventInit = function () {
-    console.log("hbbtv-polyfill: keyEventInit");
+    window._HBBTV_DEBUG_ && console.log("hbbtv-polyfill: keyEventInit");
 
     window.KeyEvent = window.KeyEvent || {}; // defining default global KeyEvent as defined in CEA-HTML 2014 specs
     window.KeyEvent.VK_LEFT = (typeof window.KeyEvent.VK_LEFT !== 'undefined' ? window.KeyEvent.VK_LEFT : 0x25);
@@ -78,7 +78,7 @@ export const keyEventInit = function () {
     window.addEventListener(
         "keydown",
         (evt) => {
-            console.log("hbbtv-polyfill: browser keydown " + evt.keyCode, "internal", evt.detail && evt.detail.hbbInternal === true);
+            window._HBBTV_DEBUG_ &&  console.log("hbbtv-polyfill: browser keydown " + evt.keyCode, "internal", evt.detail && evt.detail.hbbInternal === true);
             if (evt.detail && evt.detail.hbbInternal === true) {
                 return;
             }

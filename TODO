@@ -30,29 +30,18 @@ Generelle Probleme/Wünsche
 Sender-Probleme:
     n-tv:
         Navigation funktioniert. Aber bei der Auswahl passiert häufig nichts.
-        (-- fixed? --) n-tv scheint auch das Live-TV in einem Fenster darzustellen.
-        (-- fixed? --) Die Videos scheinen hinter dem OSD zu laufen. Ein ähnliches Problem hatte ich mit Tatort.
 
     Tagesschau:
         Keine Navigation möglich. Es scheint als müsste der CE-HTML Code gepatcht werden.
         Hinweise auf eine bestehende Lösung hat 900H dazu geliefert. Siehe Github-Ticket.
         Die Farbbuttons funktionieren auch nicht.
 
-    Tatort:
-        (-- Das scheint auch bei echten HbbTV-Fernsehern so auszusehen. --) Encoding-Probleme 'Wunsch-&#034;Tatort&#034;'
-
     Anixe:
         Prüfen, ob der Browser noch crasht und die Seite funktioniert
-
-    Arte Extra / Arte:
-        Werden die Videos abgespielt?
 
     Irgendwo bei dem Ersten:
         https://www.vdr-portal.de/forum/index.php?thread/133615-announce-hbbtv-plugin-offscreen-browser-v0-0-6/&postID=1327869#post1327869
         Der Full-Screen Button funktioniert nicht.
-
-    RTL2:
-        Fullscreen button funktioniert nicht
 
     SAT1 Spiele:
     RTL Spiele:
@@ -68,6 +57,25 @@ Sender-Probleme:
 
     Sonnenklar TV:
         Uncaught SyntaxError: Failed to set the 'innerHTML' property on 'Element': The provided markup is invalid XML, and therefore cannot be inserted into an XML document.
+
+    TODO
+        Tagesschau
+        SAT1
+        Pro7
+        Servus TV: gurad prevented to enter Mediathek ???
+        Home&Garden TV 81
+        HS24 Extra     253
+        1-2-3          254
+        HSE            256
+        HSE            257
+        Juwelo         258
+        Sonnenklar     263 (Video liegt über dem Menu)
+        MTV            265
+        Bibel TV       366
+        n-tv           383
+        nick           385
+        Sport1         398 (Videos nicht aufrufen!)
+        Comedy Central 405
 
 Make:
     https://www.vdr-portal.de/forum/index.php?thread/133615-announce-hbbtv-plugin-offscreen-browser-v0-0-6/&postID=1327497#post1327497

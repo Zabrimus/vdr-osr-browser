@@ -285,10 +285,8 @@ export class OipfAVControlMapper {
         } else {
             if (originalDataAttribute.length <= 0) {
                 // do nothing, there exists no video file
-                console.log("originalDataAttribute is empty, ignore video request");
+                window._HBBTV_DEBUG_ && console.log("originalDataAttribute is empty, ignore video request");
             } else {
-                window.start_video_quirk();
-
                 // signal video URL and set the timestamp of the transparent video
                 let d = new Date();
                 let n = d.getTime();
@@ -316,7 +314,7 @@ export class OipfAVControlMapper {
         // ANSI CTA-2014-B
         // 5.7.1.f
         this.avControlObject.play = (speed) => { // number
-            console.log("Im Mapping, Play, speed = " + speed);
+            window._HBBTV_DEBUG_ && console.log("Im Mapping, Play, speed = " + speed);
 
             if (speed === 0) {
                 // get current video position
@@ -379,8 +377,6 @@ export class OipfAVControlMapper {
             this.avControlObject.playPosition = 0;
             this.avControlObject.speed = 0;
 
-            window.stop_video_quirk();
-
             return true;
         };
         this.avControlObject.seek = (posInMs) => {
@@ -405,18 +401,9 @@ export class OipfAVControlMapper {
                     this.avControlObject.data = "client://movie/fail";
                     this.videoElement.load();
                 }
-            } /* else if (event.attributeName === 'width' || event.attributeName === 'height') {
-                var target = this.avControlObject;
-                var width = target.getAttribute("width");
-                var height = target.getAttribute("height");
-
-                var position = target.getBoundingClientRect();
-                var x = position.x;
-                var y = position.y;
-
-                signalCef("VIDEO_SIZE: " + width + "," + height + "," + x + "," + y);
+            } else if (event.attributeName === "style") {
+                window.cefVideoSize();
             }
-            */
         };
         const handleMutation = (mutationList, mutationObserver) => {
             mutationList.forEach((mutation) => {
@@ -447,8 +434,6 @@ export class OipfAVControlMapper {
         const handleMutation = (mutationList, mutationObserver) => {
             mutationList.forEach((mutation) => {
                 if (mutation.attributeName === 'src') {
-                    window.start_video_quirk();
-
                     var target = mutation.target;
                     var newSrc = target.getAttribute("src");
 
@@ -568,7 +553,7 @@ export class OipfAVControlMapper {
         videoElement && videoElement.addEventListener && videoElement.addEventListener('ended', function () {
             window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: ended');
 
-            console.log("ENDED: " + objectElement.playState + " --> " + 5)
+            window._HBBTV_DEBUG_ && console.log("ENDED: " + objectElement.playState + " --> " + 5)
 
             signalCef("END_VIDEO");
 
@@ -586,7 +571,7 @@ export class OipfAVControlMapper {
         videoElement && videoElement.addEventListener && videoElement.addEventListener('error', function (e) {
             window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: error', e.message, e);
 
-            console.log("ENDED: " + objectElement.playState + " --> " + PLAY_STATES.error)
+            window._HBBTV_DEBUG_ && console.log("ENDED: " + objectElement.playState + " --> " + PLAY_STATES.error)
 
             signalCef("ERROR_VIDEO");
 
@@ -649,7 +634,7 @@ export class OipfAVControlMapper {
         videoElement && videoElement.addEventListener && videoElement.addEventListener('durationchange', function () {
             window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: durationchanged');
             objectElement.playTime = videoElement.duration * 1000;
-            console.log('========> durationchanged ' + videoElement.duration * 1000);
+            window._HBBTV_DEBUG_ && console.log('========> durationchanged ' + videoElement.duration * 1000);
         }, false);
     }
 }

@@ -390,12 +390,14 @@ bool JavascriptHandler::OnQuery(CefRefPtr<CefBrowser> browser,
 
             browserClient->SendToVdrString(CMD_STATUS, "STOP_VIDEO");
             browserClient->stop_video();
+
             return true;
         } else if (strncmp(request.ToString().c_str(), "STOP_VIDEO", 10) == 0) {
             CONSOLE_DEBUG("Video streaming stopped");
 
             browserClient->SendToVdrString(CMD_STATUS, "STOP_VIDEO");
             browserClient->stop_video();
+
             return true;
         } else if (strncmp(request.ToString().c_str(), "SEEK_VIDEO ", 11) == 0) {
             CONSOLE_DEBUG("Video streaming seeked to {}", request.ToString().c_str() + 11);
@@ -958,6 +960,10 @@ bool BrowserClient::ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr<CefC
             // inject beforeend.js at the end of the document
             replaceAll(responseContent, "</body>",
                        "\n<script type=\"text/javascript\" src=\"client://js/beforeend.js\"></script>\n</body>");
+
+            // inject video div at the end of the document
+            replaceAll(responseContent, "</body>",
+                       "\n<div id=\"_video_color_overlay_\" style=\"visibility:hidden;position: absolute; background-color: rgb(254, 46, 154); z-index: 999;\"></div>\n</body>");
 
             /**
              * inject hbbtv javascript (end)

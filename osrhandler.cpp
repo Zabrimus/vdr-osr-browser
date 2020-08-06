@@ -78,7 +78,11 @@ void OSRHandler::GetViewRect(CefRefPtr<CefBrowser> browser, CefRect &rect) {
 }
 
 void OSRHandler::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList &dirtyRects, const void *buffer, int width, int height) {
-    CONSOLE_TRACE("OnPaint called: width: {}, height: {}, dirtyRects: {}", width, height, dirtyRects.size());
+    // CONSOLE_TRACE("OnPaint called: width: {}, height: {}, dirtyRects: {}", width, height, dirtyRects.size());
+
+    // hex = 0xAARRGGBB.
+    // rgb(254, 46, 154) = #fe2e9a
+    // fffe2e9a => 00fe2e9a
 
     if (shmp != nullptr) {
         int w = std::min(width, 1920);
@@ -91,6 +95,15 @@ void OSRHandler::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, c
         // CONSOLE_TRACE("OnPaint: Got shm_mutek.lock");
 
         memcpy(shmp, buffer, w * h * 4);
+
+        // delete parts of the OSD where a video shall be visible
+        uint32_t* buf = (uint32_t*)shmp;
+        for (uint32_t i = 0; i < (uint32_t)(width * height); ++i) {
+            if (buf[i] == 0xfffe2e9a) {
+                buf[i] = 0x00fe2e9a;
+            }
+        }
+
         browserClient->SendToVdrOsd("OSDU", w, h);
 
         // CONSOLE_TRACE("OnPaint: Send OSDU to VDR");
