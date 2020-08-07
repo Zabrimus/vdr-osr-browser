@@ -122,6 +122,15 @@ const quirks = {
         stop: [
             { body_background: "visible" }
         ]
+    },
+
+    "bibeltv.c.nmdn.net": {
+        start: [
+            { visible_id: { name: [ "application" ], value: "hidden" } },
+        ],
+        stop: [
+            { visible_id: { name: [ "application" ], value: "visible" } },
+        ]
     }
 }
 

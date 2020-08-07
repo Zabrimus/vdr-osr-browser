@@ -326,10 +326,13 @@ export const hbbtvFn = function () {
         var sType = oipfPluginObject.getAttribute("type");
         if (sType === "application/oipfApplicationManager") {
             mixin(window.oipfApplicationManager, oipfPluginObject);
+            oipfPluginObject.style.visibility = "hidden";
         } else if (sType === "application/oipfConfiguration") {
             mixin(window.oipfConfiguration, oipfPluginObject);
+            oipfPluginObject.style.visibility = "hidden";
         } else if (sType === "oipfCapabilities") {
             mixin(window.oipfCapabilities, oipfPluginObject);
+            oipfPluginObject.style.visibility = "hidden";
             break;
         }
     }

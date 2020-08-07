@@ -4,6 +4,9 @@ VDR OSR Browser Revision History
 2020-xx-xx: Version 0.1.0
 - Bugfixes
   fixed a segfault in ClientSchemeHandler which was triggered by newer version of CEF
+  fixed channels containing an ampersend (e.g. Home & Garden TV)
+  hide plugin windows per default
+  fixed HS24 Extra, HSE*, Bibel TV
 
 - New
   Changed default version of CEF to 84.3.8%2Bgc8a556f%2Bchromium-84.0.4147.105 (Chromium 84)

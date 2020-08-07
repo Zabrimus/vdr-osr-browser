@@ -905,7 +905,7 @@ bool BrowserClient::ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr<CefC
 
             // set current channel
             asprintf(&inject,
-                     "%s\n<script type=\"text/javascript\">window.HBBTV_POLYFILL_NS = window.HBBTV_POLYFILL_NS || {}; window.HBBTV_POLYFILL_NS.currentChannel = %s;</script>\n",
+                     "%s\n<script type=\"text/javascript\">\n/* <![CDATA[ */\nwindow.HBBTV_POLYFILL_NS = window.HBBTV_POLYFILL_NS || {}; window.HBBTV_POLYFILL_NS.currentChannel = %s;\n/* ]]> */\n</script>\n",
                      head.c_str(),
                      currentChannel.c_str());
             replaceAll(responseContent, head, inject);
@@ -914,7 +914,7 @@ bool BrowserClient::ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr<CefC
 
             // inject xmlhttprequest_quirks.js
             asprintf(&inject,
-                     "%s\n<script id=\"xmlhttprequestquirk\" type=\"text/javascript\" src=\"client://js/xmlhttprequest_quirks.js\"/>\n",
+                     "%s\n<script id=\"xmlhttprequestquirk\" type=\"text/javascript\" src=\"client://js/xmlhttprequest_quirks.js\"></script>\n",
                      head.c_str());
             replaceAll(responseContent, head, inject);
             free(inject);
@@ -938,21 +938,21 @@ bool BrowserClient::ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr<CefC
 
             // inject hbbtv_polyfill.js
             asprintf(&inject,
-                     "%s\n<script id=\"hbbtvpolyfill\" type=\"text/javascript\" src=\"client://js/hbbtv_polyfill.js\"/>\n",
+                     "%s\n<script id=\"hbbtvpolyfill\" type=\"text/javascript\" src=\"client://js/hbbtv_polyfill.js\"></script>\n",
                      head.c_str());
             replaceAll(responseContent, head, inject);
             free(inject);
 
             // inject video_quirks.js
             asprintf(&inject,
-                     "%s\n<script id=\"videoquirk\" type=\"text/javascript\" src=\"client://js/video_quirks.js\"/>\n",
+                     "%s\n<script id=\"videoquirk\" type=\"text/javascript\" src=\"client://js/video_quirks.js\"></script>\n",
                      head.c_str());
             replaceAll(responseContent, head, inject);
             free(inject);
 
             // inject focus.js
             asprintf(&inject,
-                     "%s\n<script id=\"hbbtvfocus\" type=\"text/javascript\" src=\"client://js/focus.js\"/>\n",
+                     "%s\n<script id=\"hbbtvfocus\" type=\"text/javascript\" src=\"client://js/focus.js\"></script>\n",
                      head.c_str());
             replaceAll(responseContent, head, inject);
             free(inject);
