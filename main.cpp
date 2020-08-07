@@ -25,7 +25,7 @@
 #include "globaldefs.h"
 #include "nativejshandler.h"
 
-const auto VERSION = "0.0.8";
+const auto VERSION = "0.1.0pre1";
 
 MainApp::MainApp() {
     CefMessageRouterConfig config;

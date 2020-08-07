@@ -34,7 +34,6 @@ Sender-Probleme:
     Tagesschau:
         Keine Navigation möglich. Es scheint als müsste der CE-HTML Code gepatcht werden.
         Hinweise auf eine bestehende Lösung hat 900H dazu geliefert. Siehe Github-Ticket.
-        Die Farbbuttons funktionieren auch nicht.
 
     Anixe:
         Prüfen, ob der Browser noch crasht und die Seite funktioniert
