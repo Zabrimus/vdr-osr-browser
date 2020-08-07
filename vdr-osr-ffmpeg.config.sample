@@ -21,6 +21,11 @@ ffprobe_executable = FFPROBE_EXECUTABLE
 # encode_video = -c:v libx264 -preset veryfast -x264-params keyint=60:min-keyint=60:scenecut=0:force-cfr=1:crf=28
 # encode_audio = -c:a aac -b:a 192k
 
+# force audio/video transcoding. Every video will be transcoded, nevertheless if the input codec is h.264 or aac
+# values not equals to "true" are handled "false" and no transcoding happens, if not necessary
+# always_encode_video = true
+# always_encode_audio = true
+
 # UDP packet size - default, if not configured is 1316
 # Packet size must be a multiple of 188
 # if udp_packet_size x is less than 188, then the packet size will be 188 * x

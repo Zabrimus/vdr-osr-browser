@@ -35,6 +35,9 @@ private:
     std::string encode_video_param;
     std::string encode_audio_param;
 
+    bool alwaysEncodeVideo;
+    bool alwaysEncodeAudio;
+
     std::string user_agent;
     std::string cookies;
 

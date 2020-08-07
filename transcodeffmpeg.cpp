@@ -43,8 +43,10 @@ std::string getbrowserexepath() {
 
 
 TranscodeFFmpeg::TranscodeFFmpeg(Protocol proto) {
-    read_configuration();
     protocol = proto;
+    alwaysEncodeVideo = false;
+    alwaysEncodeAudio = false;
+    read_configuration();
 }
 
 TranscodeFFmpeg::~TranscodeFFmpeg() {
@@ -59,7 +61,6 @@ void TranscodeFFmpeg::read_configuration() {
 
     udp_packet_size = 1316;
     udp_buffer_size = 31960;
-    protocol = UDP;
 
     std::string exepath = getbrowserexepath();
 
@@ -81,6 +82,10 @@ void TranscodeFFmpeg::read_configuration() {
                 encode_video_param = value;
             } else if (key == "encode_audio") {
                 encode_audio_param = value;
+            } else if (key == "always_encode_video") {
+                alwaysEncodeVideo = (value == "true");
+            } else if (key == "always_encode_audio") {
+                alwaysEncodeAudio = (value == "true");
             } else if (key == "ffmpeg_executable") {
                 ffmpeg_executable = std::string(value);
             } else if (key == "ffprobe_executable") {
@@ -98,7 +103,6 @@ void TranscodeFFmpeg::read_configuration() {
                     // must be a multiple of 188
                     udp_packet_size = 1316;
                 }
-
             } else if (key == "udp_buffer_size") {
                 udp_buffer_size = strtoul(value.c_str(), NULL, 0);
                 if (udp_buffer_size == ULONG_MAX) {
@@ -308,6 +312,14 @@ bool TranscodeFFmpeg::set_input(const char* time, const char* input, bool verbos
 bool TranscodeFFmpeg::fork_ffmpeg(long start_at_ms) {
     std::string inter;
 
+    if (alwaysEncodeVideo) {
+        copy_video = false;
+    }
+
+    if (alwaysEncodeAudio) {
+        copy_audio = false;
+    }
+
     // fork and start ffmpeg
     pid_t pid = fork();
     if (pid == -1) {
@@ -351,9 +363,18 @@ bool TranscodeFFmpeg::fork_ffmpeg(long start_at_ms) {
             cmd_params.push_back(strdup((std::string("file:") + std::string(DASH_VIDEO_FILE)).c_str()));
             cmd_params.push_back(strdup("-i"));
             cmd_params.push_back(strdup((std::string("file:") + std::string(DASH_AUDIO_FILE)).c_str()));
-            cmd_params.push_back(strdup("-c:v"));
-            cmd_params.push_back(strdup("copy"));
 
+            if (copy_video) {
+                cmd_params.push_back(strdup("-c:v"));
+                cmd_params.push_back(strdup("copy"));
+            } else {
+                std::stringstream ev(encode_video_param);
+                while(getline(ev, inter, ' ')) {
+                    cmd_params.push_back(strdup(inter.c_str()));
+                }
+            }
+
+            // FIXME: always encode audio. Otherwise the stream is not usable
             std::stringstream ea(encode_audio_param);
             while(getline(ea, inter, ' ')) {
                 cmd_params.push_back(strdup(inter.c_str()));
