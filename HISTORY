@@ -7,10 +7,14 @@ VDR OSR Browser Revision History
   fixed channels containing an ampersend (e.g. Home & Garden TV)
   hide plugin windows per default
   fixed HS24 Extra, HSE*, Bibel TV
+  replaced ffprobe popen call with pipe/fork/exec
+  use a more secure way to create the ffmpeg command line
+  prevent playing video client://movie/fail because it will always fail
 
 - New
-  Changed default version of CEF to 84.3.8%2Bgc8a556f%2Bchromium-84.0.4147.105 (Chromium 84)
-      (to update an existing code branch: make clean; make prepare_release; make release)
+  Reverted: ---- Changed default version of CEF to 84.3.8%2Bgc8a556f%2Bchromium-84.0.4147.105 (Chromium 84) ----
+  Changed default version of CEF to 81.3.10%2Bgb223419%2Bchromium-81.0.4044.138 (Chromium 81)
+      (to update an existing code branch:  make distclean; make prepare_release; make release)
   New implementation of pause/resume
   New implementation of showing scaled videos
 

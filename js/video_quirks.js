@@ -79,12 +79,14 @@ const quirks = {
         start: [
             { backgroundColor: "transparent" },
             { visible_id: { name: [ "screen" ], value: "hidden" } },
-            { display_class: { index: 0, class: "slider", value: "none" } }
+            { display_class: { index: 0, class: "slider", value: "none" } },
+            { display_class: { index: 1, class: "slider", value: "none" } }
         ],
         stop: [
             { backgroundColor: "#2c2c2c" },
             { visible_id: { name: [ "screen" ], value: "visible" } },
-            { display_class: { index: 0, class: "slider", value: "block" } }
+            { display_class: { index: 0, class: "slider", value: "block" } },
+            { display_class: { index: 1, class: "slider", value: "block" } }
         ]
     },
 
@@ -94,15 +96,6 @@ const quirks = {
         ],
         stop: [
             { body_background: "visible" },
-        ]
-    },
-
-    "cdn.digitaltext.rtl.de": {
-        start: [
-            { body_background: "hidden" }
-        ],
-        stop: [
-            { body_background: "visible" }
         ]
     },
 
@@ -124,6 +117,15 @@ const quirks = {
         ]
     },
 
+    "cdn.digitaltext.rtl.de": {
+        start: [
+            { body_background: "hidden" }
+        ],
+        stop: [
+            { body_background: "visible" }
+        ]
+    },
+
     "bibeltv.c.nmdn.net": {
         start: [
             { visible_id: { name: [ "application" ], value: "hidden" } },
@@ -133,6 +135,7 @@ const quirks = {
         ]
     }
 }
+
 
 function visible_class(config) {
     let cfg = config.visible_class;

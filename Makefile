@@ -11,7 +11,10 @@
 # CEF_VERSION = 81.2.25%2Bg3afea62%2Bchromium-81.0.4044.113
 
 # new default version
-CEF_VERSION = 84.3.8%2Bgc8a556f%2Bchromium-84.0.4147.105
+CEF_VERSION = 81.3.10%2Bgb223419%2Bchromium-81.0.4044.138
+
+# new default version (reverted)
+# CEF_VERSION = 84.3.8%2Bgc8a556f%2Bchromium-84.0.4147.105
 
 CEF_BUILD = http://opensource.spotify.com/cefbuilds/cef_binary_$(CEF_VERSION)_linux64_minimal.tar.bz2
 CEF_INSTALL_DIR = /opt/cef
@@ -233,6 +236,9 @@ clean:
 	rm -Rf thirdparty/spdlog/buildbin
 	rm -Rf thirdparty/cef/build
 	rm -f *.d
+
+distclean: clean
+	rm -Rf rm -Rf thirdparty/cef
 
 # download and install cef binary in directory /opt/cef
 prepare:
