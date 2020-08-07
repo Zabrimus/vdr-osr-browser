@@ -1365,40 +1365,42 @@ function init() {
 
     // intercept XMLHttpRequest
     /* Enable/Disable if ajax module shall be used */
-    let cefOldXHROpen = window.XMLHttpRequest.prototype.open;
-    window.XMLHttpRequest.prototype.open = function(method, url, async, user, password) {
-        // do something with the method, url and etc.
-        window._HBBTV_DEBUG_ && console.log("XMLHttpRequest.method: " + method);
-        window._HBBTV_DEBUG_ && console.log("XMLHttpRequest.async: "  + async);
-        window._HBBTV_DEBUG_ && console.log("XMLHttpRequest.url: "    + url);
+    if (location.href.search("hbbtv.swisstxt.ch") === -1) {
+        let cefOldXHROpen = window.XMLHttpRequest.prototype.open;
+        window.XMLHttpRequest.prototype.open = function (method, url, async, user, password) {
+            // do something with the method, url and etc.
+            window._HBBTV_DEBUG_ && console.log("XMLHttpRequest.method: " + method);
+            window._HBBTV_DEBUG_ && console.log("XMLHttpRequest.async: " + async);
+            window._HBBTV_DEBUG_ && console.log("XMLHttpRequest.url: " + url);
 
-        url = window.cefXmlHttpRequestQuirk(url);
+            url = window.cefXmlHttpRequestQuirk(url);
 
-        window._HBBTV_DEBUG_ && console.log("XMLHttpRequest.newurl: " + url);
+            window._HBBTV_DEBUG_ && console.log("XMLHttpRequest.newurl: " + url);
 
-        this.addEventListener('load', function() {
-            // do something with the response text
+            this.addEventListener('load', function () {
+                // do something with the response text
 
-            // disabled: Too much information
-            // window._HBBTV_DEBUG_ && console.log('XMLHttpRequest: url ' + url + ', load: ' + this.responseText);
-        });
+                // disabled: Too much information
+                // window._HBBTV_DEBUG_ && console.log('XMLHttpRequest: url ' + url + ', load: ' + this.responseText);
+            });
 
-        /*
-        this.addEventListener('readystatechange', function(event) {
-            if (this.readyState === 4) {
-                var res = event.target.responseText;
-                Object.defineProperty(this, 'response',     {writable: true});
-                Object.defineProperty(this, 'responseText', {writable: true});
+            /*
+            this.addEventListener('readystatechange', function (event) {
+                if (this.readyState === 4) {
+                    var res = event.target.responseText;
+                    Object.defineProperty(this, 'response', {writable: true});
+                    Object.defineProperty(this, 'responseText', {writable: true});
 
-                this.response = this.responseText = res.split("&#034;").join("\\\"");
+                    this.response = this.responseText = res.split("&#034;").join("\\\"");
 
-                console.log("Res = " + this.responseText);
-            }
-        });
-        */
+                    console.log("Res = " + this.responseText);
+                }
+            });
+            */
 
-        return cefOldXHROpen.call(this, method, url, async, user, password);
-    };
+            return cefOldXHROpen.call(this, method, url, async, user, password);
+        };
+    }
     /* Enable/Disable if ajax module shall be used */
 
     // global helper namespace to simplify testing
