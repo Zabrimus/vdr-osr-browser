@@ -33,6 +33,14 @@ function init() {
         var position;
         var maxwidth = 0, maxheight = 0;
 
+        // --------------------------------------------------
+        // quirks:
+        // ignore videocontainer on hbbtv.daserste.de
+        // --------------------------------------------------
+        if (document.location.href.search('hbbtv.daserste.de') > 0) {
+            videocontainer = null;
+        }
+
         if (typeof video !== 'undefined' && video !== null) {
             position = video.getBoundingClientRect();
             if (position.width > 0 && position.height > 0) {
@@ -58,6 +66,12 @@ function init() {
 
         if (typeof videoplayer !== 'undefined' && videoplayer !== null) {
             position = videoplayer.getBoundingClientRect();
+
+            if (position.width === 0 && position.height === 0) {
+                // use parent element
+                videoplayer = videoplayer.parentElement;
+                position = videoplayer.getBoundingClientRect();
+            }
 
             if (position.width > 0 && position.height > 0 && position.width >= maxwidth && position.height >= maxheight) {
                 target = videoplayer;

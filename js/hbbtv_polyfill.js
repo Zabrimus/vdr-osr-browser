@@ -366,8 +366,7 @@ class OipfAVControlMapper {
 
         // the opaque video only has size 16x16. To prevent image scaling set the container size to these values
         // this.videoElement.setAttribute('style', 'top:0px; left:0px; width:16px; height:16px;');
-        // this.videoElement.setAttribute('style', 'top:0px; left:0px; width:100%; height:100%;');
-        this.videoElement.setAttribute('style', 'top:0px; left:0px; width:100%; height:100%; z-index: -1');
+        this.videoElement.setAttribute('style', 'top:0px; left:0px; width:100%; height:100%;');
 
         // interval to simulate rewind functionality
         this.rewindInterval;
@@ -1263,6 +1262,14 @@ function init() {
         var position;
         var maxwidth = 0, maxheight = 0;
 
+        // --------------------------------------------------
+        // quirks:
+        // ignore videocontainer on hbbtv.daserste.de
+        // --------------------------------------------------
+        if (document.location.href.search('hbbtv.daserste.de') > 0) {
+            videocontainer = null;
+        }
+
         if (typeof video !== 'undefined' && video !== null) {
             position = video.getBoundingClientRect();
             if (position.width > 0 && position.height > 0) {
@@ -1288,6 +1295,12 @@ function init() {
 
         if (typeof videoplayer !== 'undefined' && videoplayer !== null) {
             position = videoplayer.getBoundingClientRect();
+
+            if (position.width === 0 && position.height === 0) {
+                // use parent element
+                videoplayer = videoplayer.parentElement;
+                position = videoplayer.getBoundingClientRect();
+            }
 
             if (position.width > 0 && position.height > 0 && position.width >= maxwidth && position.height >= maxheight) {
                 target = videoplayer;
