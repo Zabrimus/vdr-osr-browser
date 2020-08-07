@@ -410,11 +410,12 @@ bool TranscodeFFmpeg::fork_ffmpeg(long start_at_ms) {
 
         cmd_params.push_back((char*)NULL);
 
-
+        /*
         fprintf(stderr, "ffmpeg command line:\n");
         for(auto it = std::begin(cmd_params); it != std::end(cmd_params); ++it) {
             fprintf(stderr, "%s ", (*it));
         }
+        */
 
         // let ffmpeg do the hard work like fixing dts/pts, transcoding, copying streams and all this stuff
         char **command = cmd_params.data();
