@@ -1,3 +1,25 @@
+# Informationen, die noch erwähnt werden müssen:
+## liva-vdpau-driver für NVidia Karten 
+https://gitlab.com/aar642/libva-vdpau-driver
+
+VP9 gibt es auch noch:
+https://www.reddit.com/r/linux/comments/eofov7/vp9_hardware_acceleration_now_available_on/
+
+## libffmpeg.so
+https://github.com/wang-bin/avbuild
+https://vivaldi.com/blog/vivaldi-1-14-linux-delayed-autoupdate/
+
+# Chromium und vaapi
+https://www.linuxuprising.com/2018/08/how-to-enable-hardware-accelerated.html
+https://bugs.chromium.org/p/chromium/issues/detail?id=1097029#c28
+
+Stimmt das noch? chrome://gpu zeigt Softwaredecoding, aber Hardwaredecoding funktioniert?
+
+--use-gl=desktop --ignore-gpu-blocklist --enable-accelerated-video-decode
+
+
+
+
 # CEF (chrome embedded framework) OSR (offscreen browser) für VDR
 Der Browser wird aktuell für den VDR Plugin vdr-plugin-hbbtv verwendet. Dabei wird eine HbbTV-Seite offscreen gerendert 
 und an das VDR Plugin zur Darstellung gesendet. Verwendet wird dabei libnanomsg und das IPC Protokoll.

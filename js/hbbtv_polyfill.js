@@ -390,9 +390,9 @@ class OipfAVControlMapper {
                 let n = d.getTime();
                 signalCef("VIDEO_URL:" + String(n) + ":" + originalDataAttribute);
 
-                // this.videoElement.src = originalDataAttribute;
                 // copy object data url to html5 video tag src attribute ...
-                this.videoElement.src = "client://movie/transparent_" + String(n) + ".webm";
+                this.videoElement.src = originalDataAttribute;
+                // this.videoElement.src = "client://movie/transparent_" + String(n) + ".webm";
             }
         }
 

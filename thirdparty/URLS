@@ -17,3 +17,7 @@ License:  License.spdlog.txt
 fmt:
 URL:      https://github.com/fmtlib/fmt
 License:  License.fmt.txt
+
+ffmpeg-cpp:
+URL:      https://github.com/ansumsingh/ffmpeg-cpp
+License:  License.ffpmeg-cpp.txt
