@@ -138,7 +138,7 @@ endif
 
 buildcef:
 ifneq (exists, $(shell test -e thirdparty/cef/build/libcef_dll_wrapper/libcef_dll_wrapper.a && echo exists))
-	(cd thirdparty/cef && ln -s -f include cef) && \
+	(cd thirdparty/cef && ln -s -f include/ cef) && \
 	mkdir -p thirdparty/cef/build && \
 	cd thirdparty/cef/build && \
 	cmake .. && \
