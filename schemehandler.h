@@ -1,7 +1,7 @@
 #ifndef VDR_OSR_BROWSER_SCHEMEHANDLER_H
 #define VDR_OSR_BROWSER_SCHEMEHANDLER_H
 
-#include "cef/cef_scheme.h"
+#include "include/cef_scheme.h"
 #include "include/wrapper/cef_helpers.h"
 
 class ClientSchemeHandlerFactory : public CefSchemeHandlerFactory {
