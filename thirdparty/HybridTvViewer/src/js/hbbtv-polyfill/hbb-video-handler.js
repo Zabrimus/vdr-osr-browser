@@ -14,13 +14,14 @@ export class VideoHandler {
     }
 
     initialize() {
+        /*
         // check at first, if the video object is already injected
         var videoexists = document.getElementById('hbbtv-polyfill-video-player');
         if (typeof videoexists !== 'undefined' && videoexists != null) {
             window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: VideoHandler already initialized');
             return;
         }
-
+        */
         window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: Init VideoHandler');
 
         // go through all existing nodes and check if we need to inject the video player emulation
@@ -37,6 +38,8 @@ export class VideoHandler {
             return;  
         } 
         mimeType = mimeType.toLowerCase(); // ensure lower case string comparison
+
+        window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: mimeType is ' + mimeType);
 
         if (node.getElementsByTagName('video').length > 0) {
             // video already injected.
@@ -58,9 +61,6 @@ export class VideoHandler {
         // setup mpeg dash player
         if(mimeType.lastIndexOf('application/dash+xml', 0) === 0){
             window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: DASH VIDEO PLAYER ...');
-            // new OipfAVControlMapper(node, true);
-            // node.type = "video/mp4";
-            // node.data = "client://movie/transparent-full.webm";
             new OipfAVControlMapper(node, true);
         }
     }

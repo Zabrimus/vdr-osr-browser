@@ -64,9 +64,12 @@ void ClientSchemeHandler::GetResponseHeaders(CefRefPtr<CefResponse> response, in
 
     response->SetStatus(response_code);
 
+    CefResponse::HeaderMap headerMap;
+    response->GetHeaderMap(headerMap);
+    headerMap.insert(std::pair<CefString,CefString>("Cache-Control", "no-store=true"));
 
     // add headers
-    response->SetHeaderByName("Cache-Control", "no-store", true);
+    // response->SetHeaderByName("Cache-Control", "no-store", true);
 }
 
 void ClientSchemeHandler::Cancel() {

@@ -17,16 +17,28 @@
 #include <mutex>
 #include "browser.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+#include <libavutil/time.h>
+#ifdef __cplusplus
+}
+#endif
+
 // #define DBG_MEASURE_TIME 1
 
 // FULL HD
 #define OSD_BUF_SIZE (1920 * 1080 * 4)
 #define OSD_KEY 0xDEADC0DE
 
+uint64_t startpts = 0;
+
 BrowserClient* OSRHandler::browserClient;
 
 OSRHandler::OSRHandler(BrowserClient *bc, int width, int height) {
     CONSOLE_TRACE("Create OSRHandler and open shared memory");
+
+    encoder = nullptr;
 
     browserClient = bc;
     renderWidth = width;
@@ -52,6 +64,9 @@ OSRHandler::OSRHandler(BrowserClient *bc, int width, int height) {
         perror("Unable to attach to shared memory");
         return;
     }
+
+    encoder = new Encoder("output.ts", true);
+    encoder->startEncoder(nullptr);
 }
 
 OSRHandler::~OSRHandler() {
@@ -65,7 +80,14 @@ OSRHandler::~OSRHandler() {
         // Either this process or VDR removes the shared memory
     }
 
-    // fprintf(stderr, "Delete shared memory\n");
+    // FIXME: Video events müssen erkannt werden. Start/Stop und damit, ob der Encoder überhaupt benötigt wird.
+    //        Im Moment ist er zum Test immer eingeschaltet.
+    encoder->stopEncoder();
+
+    if (encoder != nullptr) {
+        // encoder->close();
+        delete encoder;
+    }
 }
 
 void OSRHandler::setRenderSize(int width, int height) {
@@ -80,6 +102,17 @@ void OSRHandler::GetViewRect(CefRefPtr<CefBrowser> browser, CefRect &rect) {
 void OSRHandler::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList &dirtyRects, const void *buffer, int width, int height) {
     // CONSOLE_TRACE("OnPaint called: width: {}, height: {}, dirtyRects: {}", width, height, dirtyRects.size());
 
+    /* FIXME: Den Encoder permanent laufen zu lassen ist keine gute Idee.
+              Start und Stop von Videos müssen erkannt werden und der Encoder
+              entsprechend gesteuert werden.
+     */
+    if (!startpts) {
+        startpts = av_gettime();
+    }
+
+    encoder->addVideoFrame(1280, 720, (uint8_t *) buffer, av_gettime() - startpts);
+
+
     // hex = 0xAARRGGBB.
     // rgb(254, 46, 154) = #fe2e9a
     // fffe2e9a => 00fe2e9a
@@ -88,11 +121,11 @@ void OSRHandler::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, c
         int w = std::min(width, 1920);
         int h = std::min(height, 1080);
 
-        // CONSOLE_TRACE("OnPaint: Try to get shm_mutek.lock");
+        // CONSOLE_TRACE("OnPaint: Try to get shm_mutex.lock");
 
         shm_mutex.lock();
 
-        // CONSOLE_TRACE("OnPaint: Got shm_mutek.lock");
+        // CONSOLE_TRACE("OnPaint: Got shm_mutex.lock");
 
         memcpy(shmp, buffer, w * h * 4);
 

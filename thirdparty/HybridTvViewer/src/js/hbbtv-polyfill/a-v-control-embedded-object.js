@@ -6,7 +6,7 @@
  */
 
 // import dashjs file --> we want it sync so don't pull from cdn ->  downside is we need a copy in repo TODO: fetch latest in build process
-// import { MediaPlayer } from "dashjs";
+import { MediaPlayer } from "dashjs";
 
 const PLAY_STATES = {
     stopped: 0,
@@ -28,226 +28,6 @@ function scanChildrenForPlayer(items) {
     });
 }
 
-/*
-Copied from mpd-parser/src/utils/time.js
-https://github.com/videojs/mpd-parser/blob/master/src/utils/time.js
-*/
-function ParseDuration(str) {
-    const SECONDS_IN_YEAR = 365 * 24 * 60 * 60;
-    const SECONDS_IN_MONTH = 30 * 24 * 60 * 60;
-    const SECONDS_IN_DAY = 24 * 60 * 60;
-    const SECONDS_IN_HOUR = 60 * 60;
-    const SECONDS_IN_MIN = 60;
-
-    // P10Y10M10DT10H10M10.1S
-    const durationRegex =
-      /P(?:(\d*)Y)?(?:(\d*)M)?(?:(\d*)D)?(?:T(?:(\d*)H)?(?:(\d*)M)?(?:([\d.]*)S)?)?/;
-    const match = durationRegex.exec(str);
-
-    if (!match) {
-        return 0;
-    }
-
-    const [year, month, day, hour, minute, second] = match.slice(1);
-
-    return (parseFloat(year || 0) * SECONDS_IN_YEAR +
-      parseFloat(month || 0) * SECONDS_IN_MONTH +
-      parseFloat(day || 0) * SECONDS_IN_DAY +
-      parseFloat(hour || 0) * SECONDS_IN_HOUR +
-      parseFloat(minute || 0) * SECONDS_IN_MIN +
-      parseFloat(second || 0));
-}
-
-function ParseDate(str) {
-    // Date format without timezone according to ISO 8601
-    // YYY-MM-DDThh:mm:ss.ssssss
-    const dateRegex = /^\d+-\d+-\d+T\d+:\d+:\d+(\.\d+)?$/;
-
-    // If the date string does not specifiy a timezone, we must specifiy UTC. This is
-    // expressed by ending with 'Z'
-    if (dateRegex.test(str)) {
-        str += 'Z';
-    }
-
-    return Date.parse(str) / 1000;
-};
-// end Copied from mpd-parser/src/utils/time.js
-
-// https://davidwalsh.name/convert-xml-json
-function xmlToJson(xml) {
-    // Create the return object
-    var obj = {};
-
-    if (xml.nodeType === 1) { // element
-        // do attributes
-        if (xml.attributes.length > 0) {
-            obj["_attributes"] = {};
-            for (var j = 0; j < xml.attributes.length; j++) {
-                var attribute = xml.attributes.item(j);
-                obj["_attributes"][attribute.nodeName] = attribute.nodeValue;
-            }
-        }
-    } else if (xml.nodeType === 3) { // text
-        obj = xml.nodeValue;
-    }
-
-    // do children
-    if (xml.hasChildNodes()) {
-        for(var i = 0; i < xml.childNodes.length; i++) {
-            var item = xml.childNodes.item(i);
-            var nodeName = item.nodeName;
-            if (typeof(obj[nodeName]) == "undefined") {
-                obj[nodeName] = xmlToJson(item);
-            } else {
-                if (typeof(obj[nodeName].push) == "undefined") {
-                    var old = obj[nodeName];
-                    obj[nodeName] = [];
-                    obj[nodeName].push(old);
-                }
-                obj[nodeName].push(xmlToJson(item));
-            }
-        }
-    }
-    return obj;
-}
-
-function getPrefixForMimeType(rep, adaptionSet) {
-    var prefix;
-    var mimetype;
-
-    if (typeof adaptionSet._attributes.mimeType !== "undefined") {
-        mimetype = adaptionSet._attributes.mimeType;
-    } else {
-        mimetype = rep._attributes.mimeType;
-    }
-
-    if (mimetype === 'video' || mimetype === 'video/mp4') {
-        prefix = "V";
-    } else if (mimetype === 'audio' || mimetype === 'audio/mp4') {
-        prefix = "A";
-    }
-
-    return prefix;
-}
-
-function getMediaInit(rep, stattributes, repid) {
-    var _st;
-    if (typeof rep.SegmentTemplate !== 'undefined') {
-        _st = rep.SegmentTemplate._attributes;
-    } else {
-        _st = rep._attributes;
-    }
-
-    var media;
-    if (typeof _st.media !== "undefined") {
-        media = _st.media;
-    } else {
-        media = stattributes.media;
-    }
-
-    if (typeof repid !== "undefined") {
-        media = media.replace("$RepresentationID$", repid);
-    }
-
-    var init;
-    if (typeof _st.initialization !== "undefined") {
-        init = _st.initialization;
-    } else {
-        init = stattributes.initialization;
-    }
-
-    return {"media":media, "init":init};
-}
-
-function GetAndParseMpd(uri) {
-    // get the mpd file
-    var request = new XMLHttpRequest();
-
-    request.open("GET", uri);
-    request.addEventListener('load', function(event) {
-        if (request.status >= 200 && request.status < 300) {
-            let xml = request.responseText;
-
-            var parsedXml = new window.DOMParser().parseFromString(xml, "text/xml");
-            var parsedJson = xmlToJson(parsedXml);
-
-            var baseUrl = new URL('.', uri).href;
-            if (typeof parsedJson.MPD.BaseURL !== 'undefined') {
-                baseUrl = parsedJson.MPD.BaseURL["#text"];
-            }
-
-            signalCef("DASH:BA:0:" + baseUrl);
-
-            var _now = Date.now() / 1000.0;
-            var _availabilityStartTime = ParseDate(parsedJson.MPD._attributes.availabilityStartTime);
-            var _timeShiftBufferDepth = ParseDuration(parsedJson.MPD._attributes.timeShiftBufferDepth);
-            var _periodStart = ParseDuration(parsedJson.MPD.Period._attributes.start);
-            var _adaptionSet = parsedJson.MPD.Period.AdaptationSet;
-
-            var _repidx = 0;
-
-            for (var i in _adaptionSet) {
-                var _stAttributes = _adaptionSet[i].SegmentTemplate._attributes;
-                var _timescale = Number(_stAttributes.timescale);
-                var _duration = Number(_stAttributes.duration);
-                var _startNumber = Number(_stAttributes.startNumber);
-
-                var duration = _duration / _timescale;
-                var firstseg = Math.floor(_startNumber + (_now - _availabilityStartTime - _timeShiftBufferDepth) / duration);
-                var lastseg = Math.floor((_now - _availabilityStartTime) / duration + _startNumber - 1);
-                var startseg = Math.floor(lastseg - _periodStart / duration - 1);
-
-                var _representation = _adaptionSet[i].Representation;
-
-                if (Array.isArray(_representation)) {
-                    for (var k in _representation) {
-                        var _rep = _representation[k];
-
-                        var width = (typeof _rep._attributes.width == 'undefined') ? 0 : _rep._attributes.width;
-                        var height = (typeof _rep._attributes.height == 'undefined') ? 0 : _rep._attributes.height;
-                        var bandwidth = _rep._attributes.bandwidth;
-
-                        var repid = _rep._attributes.id;
-                        var prefix = getPrefixForMimeType(_rep, _adaptionSet[i]);
-                        var mediainit = getMediaInit(_rep, _stAttributes, repid);
-                        var media = mediainit.media;
-                        var init = mediainit.init;
-
-                        signalCef("DASH:" + prefix + "C:" + _repidx + ":" + duration + ":" + firstseg + ":" + lastseg + ":" + startseg);
-                        signalCef("DASH:" + prefix + "D:" + _repidx + ":" + width + ":" + height + ":" + bandwidth);
-                        signalCef("DASH:" + prefix + "I:" + _repidx + ":" + init);
-                        signalCef("DASH:" + prefix + "M:" + _repidx + ":" + media);
-
-                        _repidx = _repidx + 1;
-                    }
-                } else {
-                    var _rep = _representation;
-
-                    var width = (typeof _rep._attributes.width == 'undefined') ? 0 : _rep._attributes.width;
-                    var height = (typeof _rep._attributes.height == 'undefined') ? 0 : _rep._attributes.height;
-                    var bandwidth = _rep._attributes.bandwidth;
-
-                    var repid = _rep._attributes.id;
-                    var prefix = getPrefixForMimeType(_rep, _adaptionSet[i]);
-                    var mediainit = getMediaInit(_rep, _stAttributes, repid);
-                    var media = mediainit.media;
-                    var init = mediainit.init;
-
-                    signalCef("DASH:" + prefix + "C:" + _repidx + ":" + duration + ":" + firstseg + ":" + lastseg + ":" + startseg);
-                    signalCef("DASH:" + prefix + "D:" + _repidx + ":" + width + ":" + height + ":" + bandwidth);
-                    signalCef("DASH:" + prefix + "I:" + _repidx + ":" + init);
-                    signalCef("DASH:" + prefix + "M:" + _repidx + ":" + media);
-
-                    _repidx = _repidx + 1;
-                }
-            }
-        } else {
-            console.warn(request.statusText, request.responseText);
-        }
-    });
-    request.send();
-}
-
 export class OipfAVControlMapper {
 
     /**
@@ -265,44 +45,28 @@ export class OipfAVControlMapper {
         this.videoElement = document.createElement('video'); // setup artificial video tag
         this.videoElement.setAttribute('id', 'hbbtv-polyfill-video-player');
         this.videoElement.setAttribute('autoplay', ''); // setting src will start the video and send an event
-
-        // the opaque video only has size 16x16. To prevent image scaling set the container size to these values
-        // this.videoElement.setAttribute('style', 'top:0px; left:0px; width:16px; height:16px;');
         this.videoElement.setAttribute('style', 'top:0px; left:0px; width:100%; height:100%;');
 
         // interval to simulate rewind functionality
         this.rewindInterval;
 
+        this.dashPlayer;
         // user dash.js to init player
         if (this.isDashVideo) {
-            // dash player
-            // this.dashPlayer = MediaPlayer().create();
-            // this.dashPlayer.initialize(this.videoElement, originalDataAttribute, true);
-
-            // get the mpd file
-            signalCef("CLEAR_DASH");
-            GetAndParseMpd(originalDataAttribute);
+            this.dashPlayer = MediaPlayer().create();
+            this.dashPlayer.initialize(this.videoElement, originalDataAttribute, true);
         } else {
-            if (originalDataAttribute.length <= 0) {
-                // do nothing, there exists no video file
-                window._HBBTV_DEBUG_ && console.log("originalDataAttribute is empty, ignore video request");
-            } else {
-                // signal video URL and set the timestamp of the transparent video
-                let d = new Date();
-                let n = d.getTime();
-                signalCef("VIDEO_URL:" + String(n) + ":" + originalDataAttribute);
-
-                // copy object data url to html5 video tag src attribute ...
-                this.videoElement.src = originalDataAttribute;
-                // this.videoElement.src = "client://movie/transparent_" + String(n) + ".webm";
-            }
+            this.videoElement.src = originalDataAttribute;
         }
 
         this.mapAvControlToHtml5Video();
         this.watchAvControlObjectMutations(this.avControlObject);
-        this.watchAvVideoElementAttributeMutations(this.videoElement);
         this.registerEmbeddedVideoPlayerEvents(this.avControlObject, this.videoElement);
-        this.avControlObject.appendChild(this.videoElement);
+
+        // this does not work as desired: <object...><video.../></object>
+        // it has to be <object/></video>
+        // this.avControlObject.appendChild(this.videoElement);
+        this.avControlObject.parentNode.insertBefore(this.videoElement, this.avControlObject.nextSibling);
         this.avControlObject.playTime = this.videoElement.duration * 1000;
 
         // ANSI CTA-2014-B - 5.7.1.f - 5
@@ -319,7 +83,6 @@ export class OipfAVControlMapper {
             if (speed === 0) {
                 // get current video position
                 let currentTime = this.videoElement.currentTime;
-                signalCef("PAUSE_VIDEO: " + currentTime);
 
                 setTimeout(() => {
                     this.videoElement.pause();
@@ -329,9 +92,6 @@ export class OipfAVControlMapper {
             else if (speed > 0) {
                 if (speed === 1) {
                     let currentTime = this.videoElement.currentTime;
-                    signalCef("RESUME_VIDEO: " + currentTime);
-                } else {
-                    signalCef("SPEED_VIDEO " + speed);
                 }
 
                 // delay play as some code may made some initializations beforehand in same event loop
@@ -346,8 +106,6 @@ export class OipfAVControlMapper {
                 }, 0);
             }
             else if (speed < 0) {
-                signalCef("SPEED_VIDEO " + speed);
-
                 this.avControlObject.speed = speed;
                 this.videoElement.playbackRate = 1.0;
                 this.videoElement.play().catch((e) => {
@@ -380,8 +138,6 @@ export class OipfAVControlMapper {
             return true;
         };
         this.avControlObject.seek = (posInMs) => {
-            signalCef("SEEK_VIDEO " + posInMs);
-
             // need seconds HTMLMediaElement.currentTime
             this.videoElement.currentTime = posInMs / 1000;
             this.avControlObject.playPosition = posInMs;
@@ -401,8 +157,6 @@ export class OipfAVControlMapper {
                     this.avControlObject.data = "client://movie/fail";
                     this.videoElement.load();
                 }
-            } else if (event.attributeName === "style") {
-                window.cefVideoSize();
             }
         };
         const handleMutation = (mutationList, mutationObserver) => {
@@ -422,49 +176,12 @@ export class OipfAVControlMapper {
         };
 
         const mutationObserver = new MutationObserver(handleMutation);
-        mutationObserver.observe(this.avControlObject, {
+        mutationObserver.observe(avControlObject, {
             'subtree': true,
             'childList': true,
             'attributes': true,
-            'characterData': true
-        });
-    }
-
-    watchAvVideoElementAttributeMutations(videoElement) {
-        const handleMutation = (mutationList, mutationObserver) => {
-            mutationList.forEach((mutation) => {
-                if (mutation.attributeName === 'src') {
-                    var target = mutation.target;
-                    var newSrc = target.getAttribute("src");
-
-                    if (newSrc.search("client://movie/transparent") >= 0) {
-                        // prevent recursion
-                        return;
-                    }
-
-                    // get the mpd file
-                    var isMpd = newSrc.endsWith(".mpd");
-                    signalCef("CLEAR_DASH");
-                    if (isMpd) {
-                        GetAndParseMpd(newSrc);
-                    }
-
-                    let d = new Date();
-                    let n = d.getTime();
-                    signalCef("CHANGE_VIDEO_URL:" + String(n) + ":" + newSrc);
-
-                    // overwrite src
-                    target.src = "client://movie/transparent_" + String(n) + ".webm";
-                }
-            });
-        };
-
-        const mutationObserver = new MutationObserver(handleMutation);
-        mutationObserver.observe(videoElement, {
-            'subtree': false,
-            'childList': false,
-            'attributes': true,
-            'characterData': false
+            'characterData': true,
+            'attributeFilte': ["type"]
         });
 
     }

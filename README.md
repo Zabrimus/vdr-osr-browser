@@ -1,3 +1,7 @@
+# ! Warnung Warnung Warnung !
+## Dieser Branch ist noch nicht brauchbar und dient dazu etwas zu testen
+## Z.B. wird das Video im OSD des VDR abgespielt... :D
+
 # Informationen, die noch erwähnt werden müssen:
 ## liva-vdpau-driver für NVidia Karten 
 https://gitlab.com/aar642/libva-vdpau-driver

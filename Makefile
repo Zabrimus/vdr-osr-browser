@@ -10,7 +10,7 @@
 # 89.0.2+g6c06fde+chromium-89.0.4389.40
 # branch 4389, based on Chromium 89
 
-VERSION = 0.2.0
+VERSION = 0.2.0-dev
 
 # Alternative ffmpeg installation.
 # FFMPEG_PKG_CONFIG_PATH=/usr/local/ffmpeg/lib/pkgconfig/
@@ -25,11 +25,11 @@ FFPROBE_EXECUTABLE = /usr/bin/ffprobe
 #FFPROBE_EXECUTABLE = /usr/local/ffmpeg/bin/ffprobe
 
 CC = g++
-CFLAGS = -g -c -O3  -Wall -std=c++11
-#CFLAGS = -c -O0 -g -Wall -std=c++11
+#CFLAGS = -g -c -O3  -Wall -std=c++11
+CFLAGS = -c -O0 -g -Wall -std=c++11
 LDFLAGS = -pthread -lrt
 
-SOURCES = main.cpp osrhandler.cpp browserclient.cpp browsercontrol.cpp transcodeffmpeg.cpp schemehandler.cpp logger.cpp javascriptlogging.cpp globaldefs.cpp nativejshandler.cpp dashhandler.cpp
+SOURCES = main.cpp osrhandler.cpp browserclient.cpp browsercontrol.cpp browserpaintupdater.cpp transcodeffmpeg.cpp schemehandler.cpp logger.cpp javascriptlogging.cpp globaldefs.cpp nativejshandler.cpp dashhandler.cpp encoder.cpp
 OBJECTS = $(SOURCES:.cpp=.o)
 
 SOURCES5 = schemehandler.cpp logger.cpp thirdparty/cefsimple/cefsimple_linux.cpp thirdparty/cefsimple/simple_app.cpp thirdparty/cefsimple/simple_handler.cpp thirdparty/cefsimple/simple_handler_linux.cpp globaldefs.cpp
@@ -50,10 +50,6 @@ EXECUTABLE5  = cefsimple
 #
 #CFLAGS += -I thirdparty/backward-cpp
 
-# CEF
-CFLAGS += -Ithirdparty/cef/include -Ithirdparty/cef
-LDFLAGS += -Lthirdparty/cef/build/libcef_dll_wrapper -Lthirdparty/cef/Release -Wl,-rpath,. -lcef -lcef_dll_wrapper -lX11
-
 # libcurl
 CFLAGS += $(shell pkg-config --cflags libcurl)
 LDFLAGS += $(shell pkg-config --libs libcurl)
@@ -67,12 +63,35 @@ NNGLDFLAGS = thirdparty/nng-$(NNGVERSION)/build/libnng.a
 LOGCFLAGS = -Ithirdparty/spdlog/buildbin/include -DSPDLOG_COMPILED_LIB
 LOGLDFLAGS = thirdparty/spdlog/buildbin/lib/libspdlog.a
 
-# ffmpegcpp
-FFMPEGCPPCFLAGS = -Ithirdparty/ffmpeg-cpp/include
-FFMPEGCPPLDFLAGS = thirdparty/ffmpeg-cpp/libffmpeg-cpp.a
+# ffmpeg
+AVCFLAGS += $(shell pkg-config --cflags libavformat)
+AVCFLAGS += $(shell pkg-config --cflags libavcodec)
+AVCFLAGS += $(shell pkg-config --cflags libavfilter)
+AVCFLAGS += $(shell pkg-config --cflags libavdevice)
+AVCFLAGS += $(shell pkg-config --cflags libswresample)
+AVCFLAGS += $(shell pkg-config --cflags libpostproc)
+AVCFLAGS += $(shell pkg-config --cflags libswscale)
+AVCFLAGS += $(shell pkg-config --cflags libavutil)
+
+AVLDFLAGS += $(shell pkg-config --libs libcurl)
+AVLDFLAGS += $(shell pkg-config --libs libavformat)
+AVLDFLAGS += $(shell pkg-config --libs libavcodec)
+AVLDFLAGS += $(shell pkg-config --libs libavfilter)
+AVLDFLAGS += $(shell pkg-config --libs libavdevice)
+AVLDFLAGS += $(shell pkg-config --libs libswresample)
+AVLDFLAGS += $(shell pkg-config --libs libpostproc)
+AVLDFLAGS += $(shell pkg-config --libs libswscale)
+AVLDFLAGS += $(shell pkg-config --libs libavutil)
+# ffnvcodec?
+
+CFLAGS += $(AVCFLAGS)
+LDFLAGS += $(AVLDFLAGS)
+
+# CEF
+CFLAGS += -Ithirdparty/cef/include -Ithirdparty/cef
+LDFLAGS += -Lthirdparty/cef/build/libcef_dll_wrapper -Lthirdparty/cef/Release -Wl,-rpath,. -lcef -lcef_dll_wrapper -lX11
 
 all:
-	$(MAKE) buildffmpegcpp
 	$(MAKE) buildspdlog
 	$(MAKE) prepareexe
 	$(MAKE) emptyvideo
@@ -80,13 +99,13 @@ all:
 	$(MAKE) buildnng
 	$(MAKE) browser
 
-browser: $(SOURCES) $(EXECUTABLE) $(EXECUTABLE2) $(EXECUTABLE3) $(EXECUTABLE5)
+browser: $(SOURCES) $(EXECUTABLE) $(EXECUTABLE5)
 
 dist:
 	tar -cJf vdr-osr-browser-$(VERSION).tar.xz Release
 
 $(EXECUTABLE): $(OBJECTS) transcodeffmpeg.h globaldefs.h main.h browser.h nativejshandler.h schemehandler.h javascriptlogging.h
-	$(CC) $(OBJECTS) $(NNGCFLAGS) $(LOGCFLAGS) $(FFMPEGCPPCFLAGS) -o $@ $(LDFLAGS) $(NNGLDFLAGS) $(LOGLDFLAGS) $(FFMPEGCPPLDFLAGS)
+	$(CC) $(OBJECTS) $(NNGCFLAGS) $(LOGCFLAGS) -o $@ $(LDFLAGS) $(NNGLDFLAGS) $(LOGLDFLAGS)
 	mv $(EXECUTABLE) Release
 	cp -r js Release
 
@@ -119,6 +138,7 @@ endif
 
 buildcef:
 ifneq (exists, $(shell test -e thirdparty/cef/build/libcef_dll_wrapper/libcef_dll_wrapper.a && echo exists))
+	(cd thirdparty/cef && ln -s -f include cef) && \
 	mkdir -p thirdparty/cef/build && \
 	cd thirdparty/cef/build && \
 	cmake .. && \
@@ -139,12 +159,6 @@ ifneq (exists, $(shell test -e thirdparty/spdlog/buildbin/lib/libspdlog.a && ech
 	cmake -DCMAKE_INSTALL_PREFIX=../buildbin .. && \
 	$(MAKE) install
 	cd thirdparty/spdlog/buildbin/ && if [ -d lib64 ]; then ln -s lib64 lib; fi
-endif
-
-buildffmpegcpp:
-ifneq (exists, $(shell test -e thirdparty/ffmpeg-cpp/libffmpeg-cpp.a && echo exists))
-	cd thirdparty/ffmpeg-cpp && \
-	$(MAKE)
 endif
 
 preparejs:
@@ -170,6 +184,10 @@ ifneq (exists, $(shell test -e movie/transparent-full.webm && echo exists))
 	$(FFMPEG_EXECUTABLE) -y -loop 1 -i movie/transparent-16x16.png -t 21600 -r 1 -c:v libvpx -auto-alt-ref 0 movie/transparent-full.webm
 endif
 
+# test programs (will be removed at some time)
+encodetest: encodetest.o encoder.o
+	$(CC) $+ -o $@ $(AVLDFLAGS)
+
 .cpp.o:
 	$(CC) -I. $(CFLAGS) $(NNGCFLAGS) $(LOGCFLAGS) -MMD $< -o $@
 
@@ -185,7 +203,6 @@ clean:
 	rm -Rf thirdparty/spdlog/buildbin
 	rm -Rf thirdparty/cef/build
 	rm -f *.d
-	cd thirdparty/ffmpeg-cpp && make clean
 
 distclean: clean
 

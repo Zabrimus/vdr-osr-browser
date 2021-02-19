@@ -112,6 +112,11 @@ void startBrowserControl(BrowserControl ctrl) {
     kill(getpid(), SIGINT);
 }
 
+void startBrowserPaintUpdater(BrowserPaintUpdater paintUpdater) {
+    paintUpdater.Start();
+    kill(getpid(), SIGINT);
+}
+
 /*
 void quit_handler(int sig) {
     *
@@ -324,14 +329,27 @@ int main(int argc, char *argv[]) {
     CefInitialize(main_args, settings, app.get(), nullptr);
 
     CefBrowserSettings browserSettings;
+    browserSettings.windowless_frame_rate = 25;
+
     CefWindowInfo window_info;
     window_info.SetAsWindowless(0);
+    // window_info.shared_texture_enabled = true;
+
+    // TODO:
+    // Das funktioniert leider nicht. Es gibt dazu ein Ticket #2800
+    // https://bitbucket.org/chromiumembedded/cef/issues/2800/osr-sendexternalbeginframe-does-not-call
+    //
+    // Siehe auch den Forenbeitrag
+    // https://magpcss.org/ceforum/viewtopic.php?f=6&t=17985
+    //
+    // Der Thread, der regelmäßig SendExternalBeginFrame aufrufen soll, befindet sich im BrowserPaintUpdater.
+    // window_info.external_begin_frame_enabled = true;
 
     CefRefPtr<BrowserClient> browserClient = new BrowserClient(log_level, *vproto);
     browser = CefBrowserHost::CreateBrowserSync(window_info, browserClient.get(), initUrl ? initUrl->c_str() : "", browserSettings, nullptr, nullptr);
 
     browser->GetHost()->WasHidden(true);
-    browser->GetHost()->SetAudioMuted(true);
+    browser->GetHost()->SetAudioMuted(false);
 
     if (initUrl != nullptr) {
         delete initUrl;
@@ -343,6 +361,7 @@ int main(int argc, char *argv[]) {
 
     browserClient->initJavascriptCallback();
     BrowserControl browserControl(browser, browserClient);
+    BrowserPaintUpdater paintUpdater(browser);
 
     {
         /*
@@ -355,8 +374,12 @@ int main(int argc, char *argv[]) {
         */
 
         std::thread controlThread(startBrowserControl, browserControl);
-        CefRunMessageLoop();
         controlThread.detach();
+
+        std::thread paintUpdateThread(startBrowserPaintUpdater, paintUpdater);
+        paintUpdateThread.detach();
+
+        CefRunMessageLoop();
     }
 
     printf("Shutdown...");

@@ -159,6 +159,10 @@ void TranscodeFFmpeg::set_cookies(std::string co) {
 }
 
 bool TranscodeFFmpeg::set_input(const char* time, const char* input, bool verbose) {
+
+    // FIXME: DISABLED
+    return true;
+
     CONSOLE_TRACE("TranscodeFFmpeg::set_input, time = {}, input = {}", time, input);
 
     if (strncmp(input, "client://movie/fail", 19) == 0) {

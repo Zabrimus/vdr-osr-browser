@@ -371,9 +371,6 @@ bool JavascriptHandler::OnQuery(CefRefPtr<CefBrowser> browser,
                 return true;
             }
 
-            // get Video size (callback)
-            frame->ExecuteJavaScript("window.cefVideoSize()", frame->GetURL(), 0);
-
             return true;
         } else if (strncmp(request.ToString().c_str(), "PAUSE_VIDEO: ", 13) == 0) {
             CONSOLE_DEBUG("Video streaming pause");
@@ -430,9 +427,6 @@ bool JavascriptHandler::OnQuery(CefRefPtr<CefBrowser> browser,
                 browserClient->SendToVdrString(CMD_STATUS, "VIDEO_FAILED");
                 return true;
             }
-
-            // get Video size (callback)
-            frame->ExecuteJavaScript("window.cefVideoSize()", frame->GetURL(), 0);
 
             return true;
         } else if (strncmp(request.ToString().c_str(), "VIDEO_SIZE: ", 12) == 0) {
@@ -669,13 +663,6 @@ CefRefPtr<CefResourceRequestHandler> BrowserClient::GetResourceRequestHandler(Ce
         injectJavascript = true;
     } else {
         CONSOLE_TRACE("BrowserClient::GetResourceRequestHandler, use default ResourceRequestHandler");
-
-        // special case: if the requested URL is client://movie/transparent-full.webm then the live TV shall be shown with different size
-        if (request->GetURL() == "client://movie/transparent-full.webm") {
-            // get Video size (callback)
-            frame->ExecuteJavaScript("window.cefVideoSize()", frame->GetURL(), 0);
-        }
-
         return CefRequestHandler::GetResourceRequestHandler(browser, frame, request, is_navigation, is_download,
                                                             request_initiator, disable_default_handling);
     }
@@ -943,27 +930,12 @@ bool BrowserClient::ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr<CefC
             replaceAll(responseContent, head, inject);
             free(inject);
 
-            // inject video_quirks.js
-            asprintf(&inject,
-                     "%s\n<script id=\"videoquirk\" type=\"text/javascript\" src=\"client://js/video_quirks.js\"></script>\n",
-                     head.c_str());
-            replaceAll(responseContent, head, inject);
-            free(inject);
-
             // inject focus.js
             asprintf(&inject,
                      "%s\n<script id=\"hbbtvfocus\" type=\"text/javascript\" src=\"client://js/focus.js\"></script>\n",
                      head.c_str());
             replaceAll(responseContent, head, inject);
             free(inject);
-
-            // inject beforeend.js at the end of the document
-            replaceAll(responseContent, "</body>",
-                       "\n<script type=\"text/javascript\" src=\"client://js/beforeend.js\"></script>\n</body>");
-
-            // inject video div at the end of the document
-            replaceAll(responseContent, "</body>",
-                       "\n<div id=\"_video_color_overlay_\" style=\"visibility:hidden;position: absolute; background-color: rgb(254, 46, 154); z-index: 999;\"></div>\n</body>");
 
             /**
              * inject hbbtv javascript (end)

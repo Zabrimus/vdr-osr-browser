@@ -13,6 +13,7 @@
 #include "include/wrapper/cef_message_router.h"
 #include "transcodeffmpeg.h"
 #include "logger.h"
+#include "encoder.h"
 
 class BrowserClient;
 class BrowserControl;
@@ -33,6 +34,8 @@ private:
     int shmid;
     uint8_t *shmp;
     std::mutex shm_mutex;
+
+    Encoder* encoder;
 
     static BrowserClient *browserClient;
 
@@ -259,5 +262,18 @@ private:
     std::string url;
 };
 
+class BrowserPaintUpdater {
+    public:
+        explicit BrowserPaintUpdater(CefRefPtr<CefBrowser> _browser);
+        ~BrowserPaintUpdater();
+
+    private:
+        CefRefPtr<CefBrowser> browser;
+        bool isRunning;
+
+    public:
+        void Start();
+        void Stop();
+};
 
 #endif // VDR_OSR_BROWSER_BROWSER_H
