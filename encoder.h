@@ -41,8 +41,12 @@ private:
     StreamingContext *encoder;
     SwsContext* swsCtx;
 
+    AVFrame *audioFrame;
+
     int srcWidth;
     int srcHeight;
+
+    int channelCount;
 
     unsigned char *outbuffer;
 
@@ -54,9 +58,9 @@ private:
 
     // encode
     int prepare_video_encoder(int width, int height, AVRational input_framerate);
-    int prepare_audio_encoder(int channels, int sample_rate);
+    int prepare_audio_encoder(int channels, int sample_rate, AVRational input_framerate);
     int encode_video(uint64_t pts, AVFrame *input_frame);
-    int encode_audio(AVFrame *input_frame);
+    int encode_audio(uint64_t pts, AVFrame *input_frame);
 
 public:
     // Transcode video stream
@@ -66,7 +70,10 @@ public:
     int startEncoder(int (*write_packet)(void *opaque, uint8_t *buf, int buf_size));
     int stopEncoder();
 
+    void setAudioParameters(int channels, int sample_rate);
+
     int addVideoFrame(int width, int height, uint8_t* image, uint64_t pts);
+    int addAudioFrame(const float **data, int frames, uint64_t pts);
 };
 
 

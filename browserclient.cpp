@@ -578,8 +578,8 @@ BrowserClient::BrowserClient(spdlog::level::level_enum log_level, std::string vp
     heartbeat_thread = std::thread(&BrowserClient::heartbeat, this);
     heartbeat_thread.detach();
 
-    osrHandler = new OSRHandler(this,1280, 720);
-    renderHandler = osrHandler;
+    osrHandler = new OSRHandler(this, 1280, 720);
+    videoRenderHandler = osrHandler;
 
     injectJavascript = true;
 
@@ -629,7 +629,7 @@ BrowserClient::~BrowserClient() {
     if (osrHandler != NULL) {
         delete osrHandler;
         osrHandler = NULL;
-        renderHandler = NULL;
+        videoRenderHandler = NULL;
     }
 
     browser_side_router->RemoveHandler(handler);
@@ -638,7 +638,11 @@ BrowserClient::~BrowserClient() {
 
 // getter for the different handler
 CefRefPtr<CefRenderHandler> BrowserClient::GetRenderHandler() {
-    return renderHandler;
+    return videoRenderHandler;
+}
+
+CefRefPtr<CefAudioHandler> BrowserClient::GetAudioHandler() {
+    return osrHandler;
 }
 
 CefRefPtr<CefResourceRequestHandler> BrowserClient::GetResourceRequestHandler(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, bool is_navigation, bool is_download, const CefString &request_initiator, bool &disable_default_handling) {

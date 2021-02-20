@@ -9,6 +9,7 @@
 #include "include/cef_app.h"
 #include "include/cef_client.h"
 #include "include/cef_render_handler.h"
+#include "include/cef_audio_handler.h"
 #include "include/cef_callback.h"
 #include "include/wrapper/cef_message_router.h"
 #include "transcodeffmpeg.h"
@@ -26,7 +27,8 @@ const uint8_t CMD_PING = 5;
 const int HTML_MODE = 1;
 const int HBBTV_MODE = 2;
 
-class OSRHandler : public CefRenderHandler {
+class OSRHandler : public CefRenderHandler,
+                   public CefAudioHandler {
 private:
     int renderWidth;
     int renderHeight;
@@ -43,11 +45,18 @@ public:
     OSRHandler(BrowserClient *bc, int width, int height);
     ~OSRHandler() override;
 
+    // video handler
     void setRenderSize(int width, int height);
     void GetViewRect(CefRefPtr<CefBrowser> browser, CefRect &rect) override;
     void OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList &dirtyRects, const void *buffer, int width, int height) override;
+    void osdProcessed() { shm_mutex.unlock(); };
 
-    void osdProcessed() { /* CONSOLE_TRACE("Unlock shm_mutex"); */ shm_mutex.unlock(); };
+    // audio handler
+    bool GetAudioParameters(CefRefPtr<CefBrowser> browser, CefAudioParameters &params) override;
+    void OnAudioStreamStarted(CefRefPtr<CefBrowser> browser, const CefAudioParameters &params, int channels) override;
+    void OnAudioStreamPacket(CefRefPtr<CefBrowser> browser, const float **data, int frames, int64 pts) override;
+    void OnAudioStreamStopped(CefRefPtr<CefBrowser> browser) override;
+    void OnAudioStreamError(CefRefPtr<CefBrowser> browser, const CefString &message) override;
 
     IMPLEMENT_REFCOUNTING(OSRHandler);
 };
@@ -109,8 +118,9 @@ class BrowserClient : public CefClient,
                       public CefLifeSpanHandler {
 
 private:
-    CefRefPtr<CefRenderHandler> renderHandler;
+    CefRefPtr<CefRenderHandler> videoRenderHandler;
     CefRefPtr<CefMessageRouterBrowserSide> browser_side_router;
+
     OSRHandler* osrHandler;
 
     std::string exePath;
@@ -167,6 +177,7 @@ public:
     CefRefPtr<CefLifeSpanHandler> GetLifeSpanHandler() override { return this; }
 
     CefRefPtr<CefRenderHandler> GetRenderHandler() override;
+    CefRefPtr<CefAudioHandler> GetAudioHandler() override;
     CefRefPtr<CefResourceRequestHandler> GetResourceRequestHandler(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, bool is_navigation, bool is_download, const CefString& request_initiator, bool& disable_default_handling) override;
     CefRefPtr<CefResourceHandler> GetResourceHandler(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request) override;
 

@@ -54,6 +54,10 @@ Encoder::~Encoder() {
     if (fp_output != nullptr) {
         fclose(fp_output);
     }
+
+    if (audioFrame != nullptr) {
+        av_free(audioFrame);
+    }
 }
 
 // Logging functions
@@ -142,9 +146,9 @@ int Encoder::prepare_video_encoder(int width, int height, AVRational input_frame
         encoder->video_avcc->pix_fmt = AV_PIX_FMT_YUV420P;
     }
 
-    encoder->video_avcc->time_base = av_inv_q(input_framerate);
+    encoder->video_avcc->time_base = input_framerate;
     encoder->video_avcc->sample_rate = 1000;
-    encoder->video_avs->time_base = (AVRational){1, 25};
+    encoder->video_avs->time_base = input_framerate;
 
     if (avcodec_open2(encoder->video_avcc, encoder->video_avc, nullptr) < 0) {
         logging("could not open the codec");
@@ -154,7 +158,7 @@ int Encoder::prepare_video_encoder(int width, int height, AVRational input_frame
     return 0;
 }
 
-int Encoder::prepare_audio_encoder(int channels, int sample_rate) {
+int Encoder::prepare_audio_encoder(int channels, int sample_rate, AVRational input_framerate) {
     encoder->audio_avs = avformat_new_stream(encoder->avfc, nullptr);
 
     encoder->audio_avc = avcodec_find_encoder_by_name("aac");
@@ -172,19 +176,33 @@ int Encoder::prepare_audio_encoder(int channels, int sample_rate) {
     encoder->audio_avcc->channels = channels;
     encoder->audio_avcc->channel_layout = av_get_default_channel_layout(channels);
     encoder->audio_avcc->sample_rate = sample_rate;
-    encoder->audio_avcc->sample_fmt = encoder->audio_avc->sample_fmts[0];
+    encoder->audio_avcc->sample_fmt = AV_SAMPLE_FMT_FLTP;
     // encoder->audio_avcc->bit_rate = decoder->audio_avcc->bit_rate;
-    encoder->audio_avcc->time_base = (AVRational) {1, sample_rate};
+    encoder->audio_avcc->time_base = input_framerate;
 
     encoder->audio_avcc->strict_std_compliance = FF_COMPLIANCE_EXPERIMENTAL;
 
-    encoder->audio_avs->time_base = encoder->audio_avcc->time_base;
+    encoder->audio_avs->time_base = input_framerate;
 
     if (avcodec_open2(encoder->audio_avcc, encoder->audio_avc, nullptr) < 0) {
         logging("could not open the codec");
         return -1;
     }
     avcodec_parameters_from_context(encoder->audio_avs->codecpar, encoder->audio_avcc);
+
+    // alloc audioFrame
+    audioFrame = av_frame_alloc();
+    if (!audioFrame) {
+        fprintf(stderr, "could not allocate audio frame\n");
+        return -1;
+    }
+
+    audioFrame->nb_samples     = encoder->audio_avcc->frame_size;
+    audioFrame->format         = AV_SAMPLE_FMT_FLTP;
+
+    // FIXME: Das Layout stimmt nicht. Der muss aus der Anzahl der Channels bestimmt werden.
+    audioFrame->channel_layout = AV_CH_LAYOUT_STEREO;
+
     return 0;
 }
 
@@ -230,7 +248,7 @@ int Encoder::encode_video(uint64_t pts, AVFrame *input_frame) {
     return 0;
 }
 
-int Encoder::encode_audio(AVFrame *input_frame) {
+int Encoder::encode_audio(uint64_t pts, AVFrame *input_frame) {
     AVPacket *output_packet = av_packet_alloc();
     if (!output_packet) {
         logging("could not allocate memory for output packet");
@@ -249,6 +267,8 @@ int Encoder::encode_audio(AVFrame *input_frame) {
         }
 
         output_packet->stream_index = 1;
+        output_packet->pts = av_rescale_q(pts, (AVRational){1, 1000000}, encoder->video_avs->time_base);
+        output_packet->dts = AV_NOPTS_VALUE;
 
         // av_packet_rescale_ts(output_packet, decoder->audio_avs->time_base, encoder->audio_avs->time_base);
         response = av_interleaved_write_frame(encoder->avfc, output_packet);
@@ -276,8 +296,10 @@ int Encoder::startEncoder(int (*write_packet)(void *opaque, uint8_t *buf, int bu
         return -1;
     }
 
-    prepare_video_encoder(1280, 720, (AVRational) {25, 1});
-    // prepare_audio_encoder();
+    prepare_video_encoder(1280, 720, (AVRational) {1, 25});
+
+    // FIXME: Channels und Sample_Rate werden hier wohl nicht stimmen. Wie komme ich rechtzeitig an die richtigen Werte?
+    prepare_audio_encoder(2, 44100, (AVRational) {1, 25});
 
     if (encoder->avfc->oformat->flags & AVFMT_GLOBALHEADER)
         encoder->avfc->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
@@ -308,109 +330,10 @@ int Encoder::stopEncoder() {
     return 0;
 }
 
-/*
-int Encoder::transcode(int (*write_packet)(void *opaque, uint8_t *buf, int buf_size)) {
-
-    if (write_packet == nullptr && fp_output != nullptr) {
-        // use default file writer
-        write_packet = write_buffer_to_file;
-    }
-
-    avformat_alloc_output_context2(&encoder->avfc, nullptr, nullptr, encoder->filename);
-    if (!encoder->avfc) {
-        logging("could not allocate memory for output format");
-        return -1;
-    }
-
-    AVRational input_framerate = av_guess_frame_rate(decoder->avfc, decoder->video_avs, nullptr);
-    prepare_video_encoder(decoder->video_avcc, input_framerate);
-
-    if (decoder->audio_avc != nullptr) {
-        if (prepare_audio_encoder()) {
-            return -1;
-        }
-    }
-
-    if (encoder->avfc->oformat->flags & AVFMT_GLOBALHEADER)
-        encoder->avfc->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
-
-    unsigned char* outbuffer = (unsigned char*)av_malloc(32712);
-    AVIOContext *avio_out = avio_alloc_context(outbuffer, 32712, 1, nullptr, nullptr, write_packet, nullptr);
-
-    if (avio_out == nullptr) {
-        av_free(outbuffer);
-        return -1;
-    }
-
-    encoder->avfc->pb = avio_out;
-    encoder->avfc->flags = AVFMT_FLAG_CUSTOM_IO;
-
-    if (avformat_write_header(encoder->avfc, nullptr) < 0) {
-        logging("an error occurred when opening output file");
-        return -1;
-    }
-
-    AVFrame *input_frame = av_frame_alloc();
-    if (!input_frame) {
-        logging("failed to allocated memory for AVFrame");
-        return -1;
-    }
-
-    AVPacket *input_packet = av_packet_alloc();
-    if (!input_packet) {
-        logging("failed to allocated memory for AVPacket");
-        return -1;
-    }
-
-    // check if a buffered image exists and push it
-    if (tmpOverlayImage != nullptr) {
-        add_overlay_frame(tmpOverlayWidth, tmpOverlayHeight, tmpOverlayImage);
-
-        tmpOverlayWidth = 0;
-        tmpOverlayHeight = 0;
-        free(tmpOverlayImage);
-        tmpOverlayImage = nullptr;
-    }
-
-    while (av_read_frame(decoder->avfc, input_packet) >= 0) {
-        if (decoder->avfc->streams[input_packet->stream_index]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
-            if (transcode_video(input_packet, input_frame)) {
-                return -1;
-            }
-
-            av_packet_unref(input_packet);
-        } else if (decoder->avfc->streams[input_packet->stream_index]->codecpar->codec_type == AVMEDIA_TYPE_AUDIO) {
-            if (transcode_audio(input_packet, input_frame)) {
-                return -1;
-            }
-
-            av_packet_unref(input_packet);
-        } else {
-            logging("ignoring all non video or audio packets");
-        }
-    }
-
-    av_write_trailer(encoder->avfc);
-
-    if (input_frame != nullptr) {
-        av_frame_free(&input_frame);
-        input_frame = nullptr;
-    }
-
-    if (input_packet != nullptr) {
-        av_packet_free(&input_packet);
-        input_packet = nullptr;
-    }
-
-    avfilter_graph_free(&decoder->audio_fgraph);
-    avfilter_graph_free(&decoder->video_fgraph);
-    avformat_close_input(&decoder->avfc);
-
-    av_free(outbuffer);
-
-    return 0;
+// FIXME: Ist das nicht zu spät? Ich brauche channels und sample_rate früher.
+void Encoder::setAudioParameters(int channels, int sample_rate) {
+    channelCount = channels;
 }
-*/
 
 // add an bgra image
 int Encoder::addVideoFrame(int width, int height, uint8_t* image, uint64_t pts) {
@@ -424,7 +347,7 @@ int Encoder::addVideoFrame(int width, int height, uint8_t* image, uint64_t pts) 
     videoFrame = av_frame_alloc();
 
     if (!videoFrame) {
-        av_log(nullptr, AV_LOG_ERROR, "error creating frame\n");
+        av_log(nullptr, AV_LOG_ERROR, "error creating video frame\n");
         return -1;
     }
 
@@ -447,5 +370,15 @@ int Encoder::addVideoFrame(int width, int height, uint8_t* image, uint64_t pts) 
     encode_video(pts, videoFrame);
 
     av_frame_free(&videoFrame);
+    return 0;
+}
+
+int Encoder::addAudioFrame(const float **data, int frames, uint64_t pts) {
+    uint8_t **pcm = (uint8_t **)data;
+    for (int i = 0; i < 2; i++)
+        audioFrame->data[i] = pcm[i];
+
+    encode_audio(pts, audioFrame);
+
     return 0;
 }

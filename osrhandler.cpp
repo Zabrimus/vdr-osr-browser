@@ -85,7 +85,7 @@ OSRHandler::~OSRHandler() {
     encoder->stopEncoder();
 
     if (encoder != nullptr) {
-        // encoder->close();
+        encoder->stopEncoder();
         delete encoder;
     }
 }
@@ -165,3 +165,34 @@ void OSRHandler::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, c
         CONSOLE_CRITICAL("Shared memory does not exists!");
     }
 }
+
+bool OSRHandler::GetAudioParameters(CefRefPtr<CefBrowser> browser, CefAudioParameters &params) {
+    auto ret = CefAudioHandler::GetAudioParameters(browser, params);
+
+    // 48k default sample rate seems to better work with different input videos
+    params.sample_rate = 48000;
+
+    return ret;
+}
+
+void OSRHandler::OnAudioStreamStarted(CefRefPtr<CefBrowser> browser, const CefAudioParameters &params, int channels) {
+    CONSOLE_TRACE("OSRVideoHandler::OnAudioStreamStarted: Sample rate: {}, Channel layout: {}, Frames per buffer: {}, Channels: {} ", params.sample_rate, params.channel_layout, params.frames_per_buffer, channels);
+    encoder->setAudioParameters(channels, params.sample_rate);
+}
+
+void OSRHandler::OnAudioStreamPacket(CefRefPtr<CefBrowser> browser, const float **data, int frames, int64 pts) {
+    if (!startpts) {
+        startpts = av_gettime();
+    }
+
+    encoder->addAudioFrame(data, frames, pts * 1000 - startpts);
+}
+
+void OSRHandler::OnAudioStreamStopped(CefRefPtr<CefBrowser> browser) {
+    CONSOLE_DEBUG("OSRVideoHandler::OnAudioStreamStopped");
+}
+
+void OSRHandler::OnAudioStreamError(CefRefPtr<CefBrowser> browser, const CefString &message) {
+    CONSOLE_DEBUG("OSRVideoHandler::OnAudioStreamError: {}", message.ToString());
+}
+
