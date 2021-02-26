@@ -9,7 +9,12 @@
 #include <string.h>
 #include <inttypes.h>
 #include <chrono>
-
+#include <netinet/in.h>
+#include <strings.h>
+#include <sys/socket.h>
+#include <unistd.h>
+#include <thread>
+#include "logger.h"
 #include "encoder.h"
 
 // Fix some compile problems
@@ -23,6 +28,7 @@
 #define av_ts2timestr(ts, tb) av_ts_make_time_string((char*)__builtin_alloca(AV_TS_MAX_STRING_SIZE), ts, tb)
 
 FILE *fp_output = nullptr;
+OSRHandler *osrHandler = nullptr;
 
 int write_buffer_to_file(void *opaque, uint8_t *buf, int buf_size) {
     if (!feof(fp_output)) {
@@ -33,13 +39,28 @@ int write_buffer_to_file(void *opaque, uint8_t *buf, int buf_size) {
     }
 }
 
-Encoder::Encoder(const char* out, bool write2File) {
+int write_buffer_to_shm(void *opaque, uint8_t *buf, int buf_size) {
+    if (osrHandler != nullptr) {
+        return osrHandler->writeVideoToShm(buf, buf_size);
+    }
+
+    // discard buffer
+    return buf_size;
+}
+
+Encoder::Encoder(OSRHandler *osrHndl, const char* out, bool writeToFile) {
+    osrHandler = osrHndl;
     encoder = (StreamingContext *) calloc(1, sizeof(StreamingContext));
+
+    swsCtx = nullptr;
+
     asprintf(&encoder->filename, "%s.ts", out);
 
-    if (write2File) {
+    if (writeToFile) {
         fp_output = fopen(encoder->filename, "wb+");
     }
+
+    encoder->writeToFile = writeToFile;
 }
 
 Encoder::~Encoder() {
@@ -47,6 +68,10 @@ Encoder::~Encoder() {
 
     sws_freeContext(swsCtx);
     swsCtx = nullptr;
+
+    if (encoder->filename) {
+        free(encoder->filename);
+    }
 
     free(encoder);
     encoder = nullptr;
@@ -60,81 +85,28 @@ Encoder::~Encoder() {
     }
 }
 
-// Logging functions
-void Encoder::logging(const char *fmt, ...)
-{
-    va_list args;
-    fprintf( stderr, "LOG: " );
-    va_start( args, fmt );
-    vfprintf( stderr, fmt, args );
-    va_end( args );
-    fprintf( stderr, "\n" );
-}
-
-void Encoder::log_packet(const AVFormatContext *fmt_ctx, const AVPacket *pkt)
-{
-    AVRational *time_base = &fmt_ctx->streams[pkt->stream_index]->time_base;
-
-    logging("pts:%s pts_time:%s dts:%s dts_time:%s duration:%s duration_time:%s stream_index:%d",
-            av_ts2str(pkt->pts), av_ts2timestr(pkt->pts, time_base),
-            av_ts2str(pkt->dts), av_ts2timestr(pkt->dts, time_base),
-            av_ts2str(pkt->duration), av_ts2timestr(pkt->duration, time_base),
-            pkt->stream_index);
-}
-
-void Encoder::print_timing(char *name, AVFormatContext *avf, AVCodecContext *avc, AVStream *avs) {
-    logging("=================================================");
-    logging("%s", name);
-
-    logging("\tAVFormatContext");
-    if (avf != nullptr) {
-        logging("\t\tstart_time=%d duration=%d bit_rate=%d start_time_realtime=%d", avf->start_time, avf->duration, avf->bit_rate, avf->start_time_realtime);
-    } else {
-        logging("\t\t->NULL");
-    }
-
-    logging("\tAVCodecContext");
-    if (avc != nullptr) {
-        logging("\t\tbit_rate=%d ticks_per_frame=%d width=%d height=%d gop_size=%d keyint_min=%d sample_rate=%d profile=%d level=%d ",
-                avc->bit_rate, avc->ticks_per_frame, avc->width, avc->height, avc->gop_size, avc->keyint_min, avc->sample_rate, avc->profile, avc->level);
-        logging("\t\tavc->time_base=num/den %d/%d", avc->time_base.num, avc->time_base.den);
-        logging("\t\tavc->framerate=num/den %d/%d", avc->framerate.num, avc->framerate.den);
-        logging("\t\tavc->pkt_timebase=num/den %d/%d", avc->pkt_timebase.num, avc->pkt_timebase.den);
-    } else {
-        logging("\t\t->NULL");
-    }
-
-    logging("\tAVStream");
-    if (avs != nullptr) {
-        logging("\t\tindex=%d start_time=%d duration=%d ", avs->index, avs->start_time, avs->duration);
-        logging("\t\tavs->time_base=num/den %d/%d", avs->time_base.num, avs->time_base.den);
-        logging("\t\tavs->sample_aspect_ratio=num/den %d/%d", avs->sample_aspect_ratio.num, avs->sample_aspect_ratio.den);
-        logging("\t\tavs->avg_frame_rate=num/den %d/%d", avs->avg_frame_rate.num, avs->avg_frame_rate.den);
-        logging("\t\tavs->r_frame_rate=num/den %d/%d", avs->r_frame_rate.num, avs->r_frame_rate.den);
-    } else {
-        logging("\t\t->NULL");
-    }
-
-    logging("=================================================");
-}
-
 int Encoder::prepare_video_encoder(int width, int height, AVRational input_framerate) {
     encoder->video_avs = avformat_new_stream(encoder->avfc, nullptr);
 
     encoder->video_avc = avcodec_find_encoder_by_name("libx264");
+    // encoder->video_avc = avcodec_find_encoder_by_name("h264_nvenc");
     if (!encoder->video_avc) {
-        logging("could not find the proper codec");
+        CONSOLE_ERROR("could not find the proper codec");
         return -1;
     }
 
     encoder->video_avcc = avcodec_alloc_context3(encoder->video_avc);
     if (!encoder->video_avcc) {
-        logging("could not allocated memory for codec context");
+        CONSOLE_ERROR("could not allocated memory for codec context");
         return -1;
     }
 
-    av_opt_set(encoder->video_avcc->priv_data, "preset", "veryfast", 0);
-    av_opt_set(encoder->video_avcc->priv_data, "x264-params", "keyint=60:min-keyint=60:scenecut=0:force-cfr=1:crf=28", 0);
+    // av_opt_set(encoder->video_avcc->priv_data, "preset", "veryfast", 0);
+    // av_opt_set(encoder->video_avcc->priv_data, "x264-params", "keyint=60:min-keyint=60:scenecut=0:force-cfr=1:crf=28", 0);
+
+    av_opt_set(encoder->video_avcc->priv_data, "preset", "ultrafast", 0);
+    av_opt_set(encoder->video_avcc->priv_data, "tune", "zerolatency", 0);
+    av_opt_set(encoder->video_avcc->priv_data, "x264-params", "intra-refresh=1", 0);
 
     encoder->video_avcc->height = height;
     encoder->video_avcc->width = width;
@@ -147,11 +119,14 @@ int Encoder::prepare_video_encoder(int width, int height, AVRational input_frame
     }
 
     encoder->video_avcc->time_base = input_framerate;
-    encoder->video_avcc->sample_rate = 1000;
-    encoder->video_avs->time_base = input_framerate;
+    encoder->video_avs->time_base = AVRational {1, 1000000};
+
+    // encoder->video_avcc->time_base = AVRational {1, 1000000};
+    // encoder->video_avcc->sample_rate = 1000;
+    // encoder->video_avs->time_base = input_framerate;
 
     if (avcodec_open2(encoder->video_avcc, encoder->video_avc, nullptr) < 0) {
-        logging("could not open the codec");
+        CONSOLE_ERROR("could not open the codec");
         return -1;
     }
     avcodec_parameters_from_context(encoder->video_avs->codecpar, encoder->video_avcc);
@@ -163,13 +138,13 @@ int Encoder::prepare_audio_encoder(int channels, int sample_rate, AVRational inp
 
     encoder->audio_avc = avcodec_find_encoder_by_name("aac");
     if (!encoder->audio_avc) {
-        logging("could not find the proper codec");
+        CONSOLE_ERROR("could not find the proper codec");
         return -1;
     }
 
     encoder->audio_avcc = avcodec_alloc_context3(encoder->audio_avc);
     if (!encoder->audio_avcc) {
-        logging("could not allocated memory for codec context");
+        CONSOLE_ERROR("could not allocated memory for codec context");
         return -1;
     }
 
@@ -182,10 +157,11 @@ int Encoder::prepare_audio_encoder(int channels, int sample_rate, AVRational inp
 
     encoder->audio_avcc->strict_std_compliance = FF_COMPLIANCE_EXPERIMENTAL;
 
-    encoder->audio_avs->time_base = input_framerate;
+    // encoder->audio_avs->time_base = input_framerate;
+    encoder->video_avs->time_base = AVRational {1, 1000000};
 
     if (avcodec_open2(encoder->audio_avcc, encoder->audio_avc, nullptr) < 0) {
-        logging("could not open the codec");
+        CONSOLE_ERROR("could not open the codec");
         return -1;
     }
     avcodec_parameters_from_context(encoder->audio_avs->codecpar, encoder->audio_avcc);
@@ -211,11 +187,11 @@ int Encoder::encode_video(uint64_t pts, AVFrame *input_frame) {
 
     AVPacket *output_packet = av_packet_alloc();
     if (!output_packet) {
-        logging("could not allocate memory for output packet");
+        CONSOLE_ERROR("could not allocate memory for output packet");
         return -1;
     }
 
-    static int i = 0;
+    input_frame->pts = pts;
 
     int response = avcodec_send_frame(encoder->video_avcc, input_frame);
 
@@ -225,21 +201,23 @@ int Encoder::encode_video(uint64_t pts, AVFrame *input_frame) {
             break;
         } else if (response < 0) {
             auto errstr = av_err2str(response);
-            logging("Error while receiving packet from encoder: %s", errstr);
+            CONSOLE_ERROR("Error while receiving packet from encoder: {} -> {}", response, errstr);
             return -1;
         }
 
         output_packet->stream_index = 0;
-        output_packet->pts = av_rescale_q(pts, (AVRational){1, 1000000}, encoder->video_avs->time_base);
-        output_packet->dts = AV_NOPTS_VALUE;
+        output_packet->pts = av_rescale_q(output_packet->pts, (AVRational){1, 1000000}, encoder->video_avs->time_base);
+        output_packet->dts = av_rescale_q(output_packet->dts, (AVRational){1, 1000000}, encoder->video_avs->time_base);
 
         // av_packet_rescale_ts(output_packet, encoder->video_avcc->time_base, encoder->video_avs->time_base);
+        av_packet_rescale_ts(output_packet, (AVRational){1, 90000}, encoder->video_avs->time_base);
+
         // log_packet(encoder->avfc, output_packet);
 
         response = av_interleaved_write_frame(encoder->avfc, output_packet);
 
         if (response != 0) {
-            logging("Error %d while receiving packet from decoder: %s", response, av_err2str(response));
+            CONSOLE_ERROR("Error {} while receiving packet from decoder: {}", response, av_err2str(response));
             return -1;
         }
     }
@@ -251,9 +229,11 @@ int Encoder::encode_video(uint64_t pts, AVFrame *input_frame) {
 int Encoder::encode_audio(uint64_t pts, AVFrame *input_frame) {
     AVPacket *output_packet = av_packet_alloc();
     if (!output_packet) {
-        logging("could not allocate memory for output packet");
+        CONSOLE_ERROR("could not allocate memory for output packet");
         return -1;
     }
+
+    input_frame->pts = pts;
 
     int response = avcodec_send_frame(encoder->audio_avcc, input_frame);
 
@@ -262,18 +242,28 @@ int Encoder::encode_audio(uint64_t pts, AVFrame *input_frame) {
         if (response == AVERROR(EAGAIN) || response == AVERROR_EOF) {
             break;
         } else if (response < 0) {
-            logging("Error while receiving packet from encoder: %s", av_err2str(response));
+            CONSOLE_ERROR("Error while receiving packet from encoder: {}", av_err2str(response));
             return -1;
         }
 
         output_packet->stream_index = 1;
-        output_packet->pts = av_rescale_q(pts, (AVRational){1, 1000000}, encoder->video_avs->time_base);
-        output_packet->dts = AV_NOPTS_VALUE;
+        output_packet->pts = av_rescale_q(output_packet->pts, (AVRational){1, 1000000}, encoder->audio_avs->time_base);
+        output_packet->dts = av_rescale_q(output_packet->dts, (AVRational){1, 1000000}, encoder->audio_avs->time_base);
 
-        // av_packet_rescale_ts(output_packet, decoder->audio_avs->time_base, encoder->audio_avs->time_base);
+        // av_packet_rescale_ts(output_packet, encoder->video_avcc->time_base, encoder->video_avs->time_base);
+        av_packet_rescale_ts(output_packet, (AVRational){1, 90000}, encoder->audio_avs->time_base);
+
+
+        // output_packet->pts = av_rescale_q(pts, (AVRational){1, 1000000}, encoder->video_avs->time_base);
+        // output_packet->dts = AV_NOPTS_VALUE;
+        // output_packet->dts = output_packet->pts;
+
+        // av_packet_rescale_ts(output_packet, encoder->audio_avcc->time_base, encoder->audio_avs->time_base);
+        // av_packet_rescale_ts(output_packet, (AVRational){1, 1000000}, encoder->audio_avs->time_base);
+
         response = av_interleaved_write_frame(encoder->avfc, output_packet);
         if (response != 0) {
-            logging("Error %d while receiving packet from decoder: %s", response, av_err2str(response));
+            CONSOLE_ERROR("Error {} while receiving packet from decoder: {}", response, av_err2str(response));
             return -1;
         }
     }
@@ -284,28 +274,37 @@ int Encoder::encode_audio(uint64_t pts, AVFrame *input_frame) {
 
 int Encoder::startEncoder(int (*write_packet)(void *opaque, uint8_t *buf, int buf_size)) {
 
-    if (write_packet == nullptr && fp_output != nullptr) {
+    if (encoder->writeToFile) {
         // use default file writer
         write_packet = write_buffer_to_file;
+    } else {
+        // socket writer
+        write_packet = write_buffer_to_shm;
     }
 
-    // avformat_alloc_output_context2(&encoder->avfc, nullptr, nullptr, encoder->filename);
     int response = avformat_alloc_output_context2(&encoder->avfc, nullptr, nullptr, encoder->filename);
     if (!encoder->avfc) {
-        logging("Error %d: could not allocate memory for output format: %s", response, av_err2str(response));
+        CONSOLE_ERROR("Error {}: could not allocate memory for output format: {}", response, av_err2str(response));
         return -1;
     }
 
-    prepare_video_encoder(1280, 720, (AVRational) {1, 25});
+    if (prepare_video_encoder(1280, 720, (AVRational) {1, 25}) != 0) {
+        CONSOLE_CRITICAL("Prepare video encoder failed.");
+        return -1;
+    }
 
-    // FIXME: Channels und Sample_Rate werden hier wohl nicht stimmen. Wie komme ich rechtzeitig an die richtigen Werte?
-    prepare_audio_encoder(2, 44100, (AVRational) {1, 25});
+    if (prepare_audio_encoder(channelCount, sampleRate, (AVRational) {1, 25}) != 0) {
+        CONSOLE_CRITICAL("Prepare audio encoder failed.");
+        return -1;
+    }
 
     if (encoder->avfc->oformat->flags & AVFMT_GLOBALHEADER)
         encoder->avfc->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
 
-    outbuffer = (unsigned char *) av_malloc(32712);
-    AVIOContext *avio_out = avio_alloc_context(outbuffer, 32712, 1, nullptr, nullptr, write_packet, nullptr);
+    // int bufferSize = 32712;
+    int bufferSize = 1000 * 188;
+    outbuffer = (unsigned char *) av_malloc(bufferSize);
+    AVIOContext *avio_out = avio_alloc_context(outbuffer, bufferSize, 1, nullptr, nullptr, write_packet, nullptr);
 
     if (avio_out == nullptr) {
         av_free(outbuffer);
@@ -316,7 +315,7 @@ int Encoder::startEncoder(int (*write_packet)(void *opaque, uint8_t *buf, int bu
     encoder->avfc->flags = AVFMT_FLAG_CUSTOM_IO;
 
     if (avformat_write_header(encoder->avfc, nullptr) < 0) {
-        logging("an error occurred when opening output file");
+        CONSOLE_ERROR("an error occurred when opening output file");
         return -1;
     }
 
@@ -330,9 +329,9 @@ int Encoder::stopEncoder() {
     return 0;
 }
 
-// FIXME: Ist das nicht zu spät? Ich brauche channels und sample_rate früher.
 void Encoder::setAudioParameters(int channels, int sample_rate) {
     channelCount = channels;
+    sampleRate = sample_rate;
 }
 
 // add an bgra image
@@ -340,9 +339,22 @@ int Encoder::addVideoFrame(int width, int height, uint8_t* image, uint64_t pts) 
     AVFrame *videoFrame;
 
     // get sws context
-    swsCtx = sws_getCachedContext(swsCtx, width, height, AV_PIX_FMT_BGRA,
-                                  1280, 720, AV_PIX_FMT_YUVA420P,
-                                  SWS_BICUBIC, nullptr, nullptr, nullptr);
+    if (swsCtx == nullptr) {
+        swsCtx = sws_getContext(width,
+                                height,
+                                AV_PIX_FMT_BGRA,
+                                1280, 720,
+                                AV_PIX_FMT_YUVA420P,
+                                SWS_BICUBIC, nullptr, nullptr, nullptr);
+    } else {
+        swsCtx = sws_getCachedContext(swsCtx,
+                                      width,
+                                      height,
+                                      AV_PIX_FMT_BGRA,
+                                     1280, 720,
+                                     AV_PIX_FMT_YUVA420P,
+                                      SWS_BICUBIC, nullptr, nullptr, nullptr);
+    }
 
     videoFrame = av_frame_alloc();
 

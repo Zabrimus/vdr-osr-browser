@@ -248,6 +248,8 @@ export class OipfAVControlMapper {
                 playerEvent.state = objectElement.playState;
                 objectElement.dispatchEvent(playerEvent);
             }
+
+            signalCef("PLAY_VIDEO");
         }, false);
 
         videoElement && videoElement.addEventListener && videoElement.addEventListener('pause', function () {
@@ -270,8 +272,6 @@ export class OipfAVControlMapper {
         videoElement && videoElement.addEventListener && videoElement.addEventListener('ended', function () {
             window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: ended');
 
-            window._HBBTV_DEBUG_ && console.log("ENDED: " + objectElement.playState + " --> " + 5)
-
             signalCef("END_VIDEO");
 
             objectElement.playState = 5;
@@ -287,8 +287,6 @@ export class OipfAVControlMapper {
 
         videoElement && videoElement.addEventListener && videoElement.addEventListener('error', function (e) {
             window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: error', e.message, e);
-
-            window._HBBTV_DEBUG_ && console.log("ENDED: " + objectElement.playState + " --> " + PLAY_STATES.error)
 
             signalCef("ERROR_VIDEO");
 
@@ -309,7 +307,12 @@ export class OipfAVControlMapper {
             objectElement.duration = videoElement.duration;
         }, false);
         videoElement && videoElement.addEventListener && videoElement.addEventListener('timeupdate', function () {
-            // window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: timeupdate');
+            // window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: timeupdate:' + (videoElement.currentTime * 1000));
+
+            if (videoElement.currentTime > 0) {
+                signalCef("TIMEUPDATE: " + videoElement.currentTime * 1000 * 1000);
+            }
+
             var pos = Math.floor(videoElement.currentTime * 1000);
             objectElement.playPostion = pos;
             //objectElement.currentTime = videoElement.currentTime;
@@ -349,9 +352,18 @@ export class OipfAVControlMapper {
         }, false);
 
         videoElement && videoElement.addEventListener && videoElement.addEventListener('durationchange', function () {
-            window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: durationchanged');
+            window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: durationchange');
             objectElement.playTime = videoElement.duration * 1000;
-            window._HBBTV_DEBUG_ && console.log('========> durationchanged ' + videoElement.duration * 1000);
+            window._HBBTV_DEBUG_ && console.log('========> durationchange ' + videoElement.duration * 1000);
+        }, false);
+
+        // FIXME: TEST
+        videoElement && videoElement.addEventListener && videoElement.addEventListener('loadeddata', function () {
+            // window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: loadeddata');
+        }, false);
+
+        videoElement && videoElement.addEventListener && videoElement.addEventListener('play', function () {
+            // window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: play !');
         }, false);
     }
 }

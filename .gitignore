@@ -6,3 +6,8 @@ compile_commands.json
 thirdparty/HybridTvViewer/build
 thirdparty/HybridTvViewer/node_modules
 thirdparty/HybridTvViewer/package-lock.json
+/thirdparty/spdlog/build/
+/thirdparty/spdlog/buildbin/
+/thirdparty/cef/build/
+/thirdparty/cef/Release/
+

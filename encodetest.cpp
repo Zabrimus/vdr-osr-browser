@@ -1,6 +1,6 @@
 #include "encoder.h"
 
-Encoder encoder("output.ts", true);
+Encoder encoder("output", true);
 
 int main(int argc, char* argv[]) {
     char buffer[1280 * 720 * 4];

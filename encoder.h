@@ -1,9 +1,6 @@
 #ifndef VDR_OSR_BROWSER_ENCODER_H
 #define VDR_OSR_BROWSER_ENCODER_H
 
-#ifndef TRANSCODEFFMPEG_H
-#define TRANSCODEFFMPEG_H
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -21,6 +18,8 @@ extern "C" {
 }
 #endif
 
+#include "osrhandler.h"
+
 typedef struct StreamingContext {
     AVFormatContext *avfc;
 
@@ -33,6 +32,7 @@ typedef struct StreamingContext {
     AVCodecContext *video_avcc;
     AVCodecContext *audio_avcc;
 
+    bool writeToFile;
     char *filename;
 } StreamingContext;
 
@@ -47,15 +47,11 @@ private:
     int srcHeight;
 
     int channelCount;
+    int sampleRate;
 
     unsigned char *outbuffer;
 
 private:
-    // Logging functions
-    void logging(const char *fmt, ...);
-    void log_packet(const AVFormatContext *fmt_ctx, const AVPacket *pkt);
-    void print_timing(char *name, AVFormatContext *avf, AVCodecContext *avc, AVStream *avs);
-
     // encode
     int prepare_video_encoder(int width, int height, AVRational input_framerate);
     int prepare_audio_encoder(int channels, int sample_rate, AVRational input_framerate);
@@ -64,7 +60,7 @@ private:
 
 public:
     // Transcode video stream
-    Encoder(const char* output, bool write2File = true);
+    Encoder(OSRHandler *osrHandler, const char* output, bool writeToFile = false);
     ~Encoder();
 
     int startEncoder(int (*write_packet)(void *opaque, uint8_t *buf, int buf_size));
@@ -75,9 +71,5 @@ public:
     int addVideoFrame(int width, int height, uint8_t* image, uint64_t pts);
     int addAudioFrame(const float **data, int frames, uint64_t pts);
 };
-
-
-#endif // TRANSCODEFFMPEG_H
-
 
 #endif //VDR_OSR_BROWSER_ENCODER_H

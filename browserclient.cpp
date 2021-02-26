@@ -25,7 +25,6 @@
 #include "browser.h"
 #include "javascriptlogging.h"
 #include "dashhandler.h"
-//#include <backward.hpp>
 
 #define HEADERSIZE (4 * 1024)
 
@@ -57,23 +56,6 @@ std::string HbbtvCurl::response_content;
 std::mutex cookieMutex;
 std::string singleLineCookies;
 std::string ffmpegCookies;
-
-/*
-void stacker() {
-    using namespace backward;
-
-    StackTrace st;
-    st.load_here(99);
-    st.skip_n_firsts(3);
-
-    Printer p;
-    p.snippet = true;
-    p.object = true;
-    //p.color = true;
-    p.address = true;
-    p.print(st, stderr);
-}
-*/
 
 /*
  * very primitive try to fix some common errors
@@ -347,7 +329,7 @@ bool JavascriptHandler::OnQuery(CefRefPtr<CefBrowser> browser,
              CefRefPtr<Callback> callback) {
 
     // process the javascript callback
-    if (strncmp(request.ToString().c_str(), "DASH_PL", 7) != 0) {
+    if (strncmp(request.ToString().c_str(), "TIMEUPDATE", 10) != 0) {
         CONSOLE_TRACE("Javascript called me: {}", request.ToString());
     }
 
@@ -355,32 +337,12 @@ bool JavascriptHandler::OnQuery(CefRefPtr<CefBrowser> browser,
         browserClient->SendToVdrString(CMD_STATUS, request.ToString().c_str() + 4);
         return true;
     } else {
-        if (strncmp(request.ToString().c_str(), "VIDEO_URL:", 10) == 0) {
-            CONSOLE_DEBUG("Video URL: {}", request.ToString().c_str() + 10);
+         if (strncmp(request.ToString().c_str(), "PLAY_VIDEO", 10) == 0) {
+            CONSOLE_DEBUG("Start video playing");
 
-            auto video = std::string(request.ToString().c_str() + 10);
-            auto delimiterPos = video.find(":");
-            auto time = video.substr(0, delimiterPos);
-            auto url = video.substr(delimiterPos + 1);
-
-            unlink(VIDEO_UNIX);
-
+            browserClient->start_video();
             browserClient->SendToVdrString(CMD_STATUS, "PLAY_VIDEO:");
-            if (!browserClient->set_input_file(time.c_str(), url.c_str())) {
-                browserClient->SendToVdrString(CMD_STATUS, "VIDEO_FAILED");
-                return true;
-            }
 
-            return true;
-        } else if (strncmp(request.ToString().c_str(), "PAUSE_VIDEO: ", 13) == 0) {
-            CONSOLE_DEBUG("Video streaming pause");
-
-            browserClient->pause_video();
-            return true;
-        } else if (strncmp(request.ToString().c_str(), "RESUME_VIDEO: ", 14) == 0) {
-            CONSOLE_DEBUG("Video streaming resume");
-
-            browserClient->resume_video(request.ToString().c_str() + 14);
             return true;
         } else if (strncmp(request.ToString().c_str(), "END_VIDEO", 9) == 0) {
             CONSOLE_DEBUG("Video streaming ended");
@@ -396,53 +358,14 @@ bool JavascriptHandler::OnQuery(CefRefPtr<CefBrowser> browser,
             browserClient->stop_video();
 
             return true;
-        } else if (strncmp(request.ToString().c_str(), "SEEK_VIDEO ", 11) == 0) {
-            CONSOLE_DEBUG("Video streaming seeked to {}", request.ToString().c_str() + 11);
-
-            browserClient->seek_video(request.ToString().c_str() + 11);
-            return true;
-        } else if (strncmp(request.ToString().c_str(), "SPEED_VIDEO ", 12) == 0) {
-            CONSOLE_DEBUG("Video streaming speed change to {}", request.ToString().c_str() + 12);
-
-            browserClient->speed_video(request.ToString().c_str() + 12);
-            return true;
         } else if (strncmp(request.ToString().c_str(), "ERROR_VIDEO", 11) == 0) {
             CONSOLE_ERROR("Video playing throws an error");
 
             // TODO: Gibt es eine bessere Lösung?
             browserClient->stop_video();
             return true;
-        } else if (strncmp(request.ToString().c_str(), "CHANGE_VIDEO_URL:", 17) == 0) {
-            CONSOLE_DEBUG("Video URL: {}", request.ToString().c_str() + 17);
-
-            auto video = std::string(request.ToString().c_str() + 17);
-            auto delimiterPos = video.find(":");
-            auto time = video.substr(0, delimiterPos);
-            auto url = video.substr(delimiterPos + 1);
-
-            unlink(VIDEO_UNIX);
-
-            browserClient->SendToVdrString(CMD_STATUS, "PLAY_VIDEO:");
-            if (!browserClient->set_input_file(time.c_str(), url.c_str())) {
-                browserClient->SendToVdrString(CMD_STATUS, "VIDEO_FAILED");
-                return true;
-            }
-
-            return true;
-        } else if (strncmp(request.ToString().c_str(), "VIDEO_SIZE: ", 12) == 0) {
-            browserClient->SendToVdrString(CMD_STATUS, request.ToString().c_str());
-
-            // send also an OSD update
-            browser->GetHost()->Invalidate(PET_VIEW);
-
-            return true;
-        } else if (strncmp(request.ToString().c_str(), "CHANGE_URL: ", 12) == 0) {
-            CefString url(request.ToString().substr(12));
-            browserControl->LoadURL(url);
-
-            // Save the last URL on a stack
-            // applicationStack.push(url);
-
+        } else if (strncmp(request.ToString().c_str(), "TIMEUPDATE: ", 12) == 0) {
+            browserClient->setVideoStarted();
             return true;
         } else if (strncmp(request.ToString().c_str(), "CREATE_APP: ", 12) == 0) {
             CefString url(request.ToString().substr(12));
@@ -466,78 +389,6 @@ bool JavascriptHandler::OnQuery(CefRefPtr<CefBrowser> browser,
 
             // CONSOLE_TRACE("Destroy application: Load new URL {}", lastUrl);
             return true;
-        } else if (strncmp(request.ToString().c_str(), "CLEAR_DASH", 10) == 0) {
-            audioDashHandler.ClearAll();
-            videoDashHandler.ClearAll();
-            return true;
-        } else if (strncmp(request.ToString().c_str(), "DASH:", 5) == 0) {
-            char stype = request.ToString().at(5);
-            char type = request.ToString().at(6);
-            std::string info = request.ToString().substr(8);
-
-            uint streamIdx = -1;
-            auto pos = info.find(':');
-            streamIdx = std::stoi(info.substr(0, pos));
-            info = info.substr(pos + 1);
-
-            std::istringstream f(info);
-            std::string s;
-            int idx = 0;
-
-            DashStream& stream = (stype == 'V') ? videoDashHandler.GetStream(streamIdx) : audioDashHandler.GetStream(streamIdx);
-
-            if (stype == 'V') {
-                stream.type = Video;
-            } else {
-                stream.type = Audio;
-            }
-
-            if (stype == 'B' && type == 'A') {
-                audioDashHandler.SetBaseUrl(info);
-                videoDashHandler.SetBaseUrl(info);
-            } else {
-                switch (type) {
-                    case 'C':
-                        idx = 0;
-                        while (getline(f, s, ':')) {
-                            switch (idx) {
-                                case 0: stream.duration = std::stoul(s); break;
-                                case 1: stream.firstSegment = std::stoul(s); break;
-                                case 2: stream.lastSegment = std::stoul(s); break;
-                                case 3: stream.startSegment = std::stoul(s); break;
-                            }
-                            idx++;
-                        }
-                        break;
-
-                    case 'D':
-                        idx = 0;
-                        while (getline(f, s, ':')) {
-                            switch (idx) {
-                                case 0: stream.width = std::stoi(s); break;
-                                case 1: stream.height = std::stoi(s); break;
-                                case 2: stream.bandwidth = std::stoul(s); break;
-                            }
-                            idx++;
-                        }
-
-                        break;
-
-                    case 'I':
-                        stream.initUrl = info;
-                        break;
-
-                    case 'M':
-                        stream.segmentUrl = info;
-                        break;
-
-                    default:
-                        // ignore
-                        break;
-                }
-            }
-
-            return true;
         }
     }
 
@@ -548,9 +399,8 @@ void JavascriptHandler::OnQueryCanceled(CefRefPtr<CefBrowser> browser, CefRefPtr
     // TODO: cancel our async query task...
 }
 
-BrowserClient::BrowserClient(spdlog::level::level_enum log_level, std::string vproto) {
+BrowserClient::BrowserClient(spdlog::level::level_enum log_level) {
     logger.set_level(log_level);
-    // stacker();
 
     // bind socket
     if ((toVdrSocketId = nn_socket(AF_SP, NN_PUSH)) < 0) {
@@ -562,16 +412,6 @@ BrowserClient::BrowserClient(spdlog::level::level_enum log_level, std::string vp
     }
 
     browserClient = this;
-
-    if (vproto == "UDP") {
-        this->vproto = UDP;
-    } else if (vproto == "TCP") {
-        this->vproto = TCP;
-    } else if (vproto == "UNIX") {
-        this->vproto = UNIX;
-    } else {
-        fprintf(stderr, "BrowserClient: invalid video protocol %s\n", vproto.c_str());
-    }
 
     // start heartbeat_thread
     heartbeat_running = true;
@@ -598,8 +438,6 @@ BrowserClient::BrowserClient(spdlog::level::level_enum log_level, std::string vp
         auto exe = std::string(result, static_cast<unsigned long>((count > 0) ? count : 0));
         exePath = exe.substr(0, exe.find_last_of("/"));
     }
-
-    transcoder = nullptr;
 
     cookieManager = CefCookieManager::GetGlobalManager(nullptr);
 
@@ -1169,7 +1007,7 @@ void BrowserClient::eventCallback(std::string cmd) {
 }
 
 void BrowserClient::SendToVdrString(uint8_t messageType, const char* message) {
-    if (messageType != 5) {
+    if (messageType != CMD_PING && messageType != CMD_VIDEO) {
         CONSOLE_TRACE("Send String to VDR, Message {}", message);
     }
 
@@ -1205,65 +1043,26 @@ void BrowserClient::SendToVdrPing() {
     SendToVdrString(CMD_PING, "B");
 }
 
-bool BrowserClient::set_input_file(const char* time, const char* input) {
-    CONSOLE_DEBUG("Set Input video, time {}, url {}", time, input);
+void BrowserClient::start_video() {
+    CONSOLE_DEBUG("Start video");
 
-    cookieMutex.lock();
-    std::string cookies = ffmpegCookies;
-    cookieMutex.unlock();
+    osrHandler->enableEncoder();
 
-    if (transcoder != nullptr) {
-        stop_video();
-
-        delete transcoder;
-        transcoder = nullptr;
-    }
-
-    transcoder = new TranscodeFFmpeg(vproto);
-    transcoder->set_event_callback(eventCallback);
-    transcoder->set_cookies(cookies);
-    transcoder->set_user_agent(USER_AGENT);
-    return transcoder->set_input(time, input, false);
-}
-
-void BrowserClient::pause_video() {
-    CONSOLE_DEBUG("Pause video");
-
-    if (transcoder != nullptr) {
-        transcoder->pause_video();
-    }
-}
-
-void BrowserClient::resume_video(const char* position) {
-    CONSOLE_DEBUG("Resume video");
-
-    if (transcoder != nullptr) {
-        transcoder->resume_video(position);
-    }
+    // TODO: Encoder initialisieren
+    // TODO: Verbindung zum VDR (tcp, udp oder ...)
 }
 
 void BrowserClient::stop_video() {
     CONSOLE_DEBUG("Stop video");
 
-    if (transcoder != nullptr) {
-        transcoder->stop_video();
-    }
+    osrHandler->disableEncoder();
+
+    // TODO: encoder stoppen
+    // TODO: Verbindung zum VDR stoppen
 }
 
-void BrowserClient::seek_video(const char* ms) {
-    CONSOLE_DEBUG("Seek video to {} ms", ms);
-
-    if (transcoder != nullptr) {
-        transcoder->seek_video(ms);
-    }
-}
-
-void BrowserClient::speed_video(const char* speed) {
-    CONSOLE_DEBUG("Speed video to speed {}", speed);
-
-    if (transcoder != nullptr) {
-        transcoder->speed_video(speed);
-    }
+void BrowserClient::setVideoStarted() {
+    osrHandler->setVideoStarted();
 }
 
 void BrowserClient::heartbeat() {

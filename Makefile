@@ -12,6 +12,10 @@
 
 VERSION = 0.2.0-dev
 
+# Don't enable this!
+# Needs a different CEF installation with different compile flags. Also clang is needed.
+ASAN=0
+
 # Alternative ffmpeg installation.
 # FFMPEG_PKG_CONFIG_PATH=/usr/local/ffmpeg/lib/pkgconfig/
 
@@ -25,14 +29,17 @@ FFPROBE_EXECUTABLE = /usr/bin/ffprobe
 #FFPROBE_EXECUTABLE = /usr/local/ffmpeg/bin/ffprobe
 
 CC = g++
+
 #CFLAGS = -g -c -O3  -Wall -std=c++11
 CFLAGS = -c -O0 -g -Wall -std=c++11
 LDFLAGS = -pthread -lrt
 
-SOURCES = main.cpp osrhandler.cpp browserclient.cpp browsercontrol.cpp browserpaintupdater.cpp transcodeffmpeg.cpp schemehandler.cpp logger.cpp javascriptlogging.cpp globaldefs.cpp nativejshandler.cpp dashhandler.cpp encoder.cpp
+SOURCES = main.cpp osrhandler.cpp browserclient.cpp browsercontrol.cpp browserpaintupdater.cpp schemehandler.cpp \
+          logger.cpp javascriptlogging.cpp globaldefs.cpp nativejshandler.cpp dashhandler.cpp encoder.cpp
 OBJECTS = $(SOURCES:.cpp=.o)
 
-SOURCES5 = schemehandler.cpp logger.cpp thirdparty/cefsimple/cefsimple_linux.cpp thirdparty/cefsimple/simple_app.cpp thirdparty/cefsimple/simple_handler.cpp thirdparty/cefsimple/simple_handler_linux.cpp globaldefs.cpp
+SOURCES5 = schemehandler.cpp logger.cpp thirdparty/cefsimple/cefsimple_linux.cpp thirdparty/cefsimple/simple_app.cpp \
+           thirdparty/cefsimple/simple_handler.cpp thirdparty/cefsimple/simple_handler_linux.cpp globaldefs.cpp
 OBJECTS5 = $(SOURCES5:.cpp=.o)
 
 EXECUTABLE  = vdrosrbrowser
@@ -40,15 +47,8 @@ EXECUTABLE  = vdrosrbrowser
 # Starten mit z.B. ./cefsimple --url="file://<pfad>/movie.html"
 EXECUTABLE5  = cefsimple
 
-# binutils-dev
-#ifeq (exists, $(shell gcc -lbfd 2>&1 | grep -q -c main && echo exists))
-#   $(info binutils-dev found)
-#   SOURCES += thirdparty/backward-cpp/backward.cpp
-#   CFLAGS += -DBACKWARD_HAS_BFD=1
-#   LDFLAGS += -lbfd -ldl
-#endif
-#
-#CFLAGS += -I thirdparty/backward-cpp
+# Socket.cpp
+CFLAGS += -Ithirdparty/Socket.cpp
 
 # libcurl
 CFLAGS += $(shell pkg-config --cflags libcurl)
@@ -60,7 +60,7 @@ NNGCFLAGS  = -Ithirdparty/nng-$(NNGVERSION)/include/nng/compat
 NNGLDFLAGS = thirdparty/nng-$(NNGVERSION)/build/libnng.a
 
 # spdlog
-LOGCFLAGS = -Ithirdparty/spdlog/buildbin/include -DSPDLOG_COMPILED_LIB
+LOGCFLAGS = -Ithirdparty/spdlog/buildbin/include -D SPDLOG_COMPILED_LIB
 LOGLDFLAGS = thirdparty/spdlog/buildbin/lib/libspdlog.a
 
 # ffmpeg
@@ -91,6 +91,13 @@ LDFLAGS += $(AVLDFLAGS)
 CFLAGS += -Ithirdparty/cef/include -Ithirdparty/cef
 LDFLAGS += -Lthirdparty/cef/build/libcef_dll_wrapper -Lthirdparty/cef/Release -Wl,-rpath,. -lcef -lcef_dll_wrapper -lX11
 
+# Sanitizer
+ifeq ($(ASAN), 1)
+CC=clang++-12
+ASANCFLAGS = -ggdb -fsanitize=address -fno-omit-frame-pointer
+ASANLDFLAGS = -ggdb -fsanitize=address -fno-omit-frame-pointer /usr/lib/llvm-12/lib/libc++abi.a
+endif
+
 all:
 	$(MAKE) buildspdlog
 	$(MAKE) prepareexe
@@ -105,12 +112,12 @@ dist:
 	tar -cJf vdr-osr-browser-$(VERSION).tar.xz Release
 
 $(EXECUTABLE): $(OBJECTS) transcodeffmpeg.h globaldefs.h main.h browser.h nativejshandler.h schemehandler.h javascriptlogging.h
-	$(CC) $(OBJECTS) $(NNGCFLAGS) $(LOGCFLAGS) -o $@ $(LDFLAGS) $(NNGLDFLAGS) $(LOGLDFLAGS)
+	$(CC) $(OBJECTS) $(NNGCFLAGS) $(LOGCFLAGS) -o $@ $(ASANLDFLAGS) $(LDFLAGS) $(NNGLDFLAGS) $(LOGLDFLAGS)
 	mv $(EXECUTABLE) Release
 	cp -r js Release
 
 $(EXECUTABLE5): $(OBJECTS5)
-	$(CC) -O3 $(OBJECTS5) $(LOGCFLAGS) $(CEFCFLAGS) -o $@ -pthread $(LDFLAGS) $(LOGLDFLAGS) $(CEFLDFLAGS)
+	$(CC) -O3 $(OBJECTS5) $(LOGCFLAGS) $(CEFCFLAGS) -o $@ -pthread $(ASANLDFLAGS) $(LDFLAGS) $(LOGLDFLAGS) $(CEFLDFLAGS)
 	mv $(EXECUTABLE5) Release
 	cp thirdparty/cefsimple/movie.html Release
 
@@ -126,9 +133,9 @@ prepareexe:
 	echo "localespath = ." >> Release/vdr-osr-browser.config && \
 	echo "frameworkpath  = ." >> Release/vdr-osr-browser.config && \
 	cp -a thirdparty/cef/Resources/* Release && \
-	cp -a thirdparty/cef/Release/* Release && \
-	strip thirdparty/cef/Release/*.so && \
-	strip thirdparty/cef/Release/swiftshader/*.so
+	cp -a thirdparty/cef/Release/* Release
+	#strip thirdparty/cef/Release/*.so && \
+	#strip thirdparty/cef/Release/swiftshader/*.so
 ifneq (exists, $(shell test -e Release/vdr-osr-ffmpeg.config && echo exists))
 	sed -e "s#FFMPEG_EXECUTABLE#$(FFMPEG_EXECUTABLE)#" -e "s#FFPROBE_EXECUTABLE#$(FFPROBE_EXECUTABLE)#" vdr-osr-ffmpeg.config.sample > Release/vdr-osr-ffmpeg.config
 endif
@@ -188,7 +195,10 @@ encodetest: encodetest.o encoder.o
 	$(CC) $+ -o $@ $(AVLDFLAGS)
 
 .cpp.o:
-	$(CC) -I. $(CFLAGS) $(NNGCFLAGS) $(LOGCFLAGS) -MMD $< -o $@
+	$(CC) $(ASANCFLAGS) -I. $(CFLAGS) $(NNGCFLAGS) $(LOGCFLAGS) -MMD $< -o $@
+
+.c.o:
+	$(CC) $(ASANCFLAGS) -I. $(CFLAGS) $(NNGCFLAGS) $(LOGCFLAGS) -MMD $< -o $@
 
 DEPS := $(OBJECTS:.o=.d)
 -include $(DEPS)
@@ -201,6 +211,8 @@ clean:
 	rm -Rf thirdparty/spdlog/build
 	rm -Rf thirdparty/spdlog/buildbin
 	rm -Rf thirdparty/cef/build
+	rm -f thirdparty/cefsimple/*.o
+	rm -f thirdparty/cefsimple/*.d
 	rm -f *.d
 
 distclean: clean

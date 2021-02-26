@@ -16,6 +16,7 @@
 #include <sys/shm.h>
 #include <mutex>
 #include "browser.h"
+#include "encoder.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -65,8 +66,7 @@ OSRHandler::OSRHandler(BrowserClient *bc, int width, int height) {
         return;
     }
 
-    encoder = new Encoder("output.ts", true);
-    encoder->startEncoder(nullptr);
+    isEncoderInitialized = false;
 }
 
 OSRHandler::~OSRHandler() {
@@ -82,12 +82,37 @@ OSRHandler::~OSRHandler() {
 
     // FIXME: Video events müssen erkannt werden. Start/Stop und damit, ob der Encoder überhaupt benötigt wird.
     //        Im Moment ist er zum Test immer eingeschaltet.
-    encoder->stopEncoder();
-
     if (encoder != nullptr) {
         encoder->stopEncoder();
         delete encoder;
     }
+}
+
+void OSRHandler::enableEncoder() {
+    if (encoder != nullptr) {
+        disableEncoder();
+    }
+
+    // send fully transparent OSD to VDR
+    shm_mutex.lock();
+    memset(shmp, 0, 1280 * 720 * 4);
+    browserClient->SendToVdrOsd("OSDU", 1280, 720);
+
+    // start encoder
+    // encoder = new Encoder(this, "movie/streaming", true);
+    encoder = new Encoder(this, "movie/streaming");
+    isEncoderInitialized = false;
+}
+
+void OSRHandler::disableEncoder() {
+    if (encoder != nullptr) {
+        encoder->stopEncoder();
+        delete encoder;
+        encoder = nullptr;
+    }
+
+    isEncoderInitialized = false;
+    isVideoStarted = false;
 }
 
 void OSRHandler::setRenderSize(int width, int height) {
@@ -102,16 +127,21 @@ void OSRHandler::GetViewRect(CefRefPtr<CefBrowser> browser, CefRect &rect) {
 void OSRHandler::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList &dirtyRects, const void *buffer, int width, int height) {
     // CONSOLE_TRACE("OnPaint called: width: {}, height: {}, dirtyRects: {}", width, height, dirtyRects.size());
 
-    /* FIXME: Den Encoder permanent laufen zu lassen ist keine gute Idee.
-              Start und Stop von Videos müssen erkannt werden und der Encoder
-              entsprechend gesteuert werden.
-     */
-    if (!startpts) {
-        startpts = av_gettime();
+    if (isEncoderInitialized && isVideoStarted) {
+        if (!startpts) {
+            startpts = av_gettime();
+
+            // CONSOLE_ERROR("StartPts in Video: {}", startpts);
+        }
+
+        // CONSOLE_ERROR("VideoPts: {}", av_gettime() - startpts);
+        encoder->addVideoFrame(1280, 720, (uint8_t *) buffer, av_gettime() - startpts);
     }
 
-    encoder->addVideoFrame(1280, 720, (uint8_t *) buffer, av_gettime() - startpts);
-
+    if (isVideoStarted) {
+        // dont't send OSD update to VDR
+        return;
+    }
 
     // hex = 0xAARRGGBB.
     // rgb(254, 46, 154) = #fe2e9a
@@ -129,14 +159,16 @@ void OSRHandler::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, c
 
         memcpy(shmp, buffer, w * h * 4);
 
+        // FIXME: Das sollte mittlerweile obsolete sein
         // delete parts of the OSD where a video shall be visible
+        /*
         uint32_t* buf = (uint32_t*)shmp;
         for (uint32_t i = 0; i < (uint32_t)(width * height); ++i) {
             if (buf[i] == 0xfffe2e9a) {
                 buf[i] = 0x00fe2e9a;
             }
         }
-
+        */
         browserClient->SendToVdrOsd("OSDU", w, h);
 
         // CONSOLE_TRACE("OnPaint: Send OSDU to VDR");
@@ -178,14 +210,25 @@ bool OSRHandler::GetAudioParameters(CefRefPtr<CefBrowser> browser, CefAudioParam
 void OSRHandler::OnAudioStreamStarted(CefRefPtr<CefBrowser> browser, const CefAudioParameters &params, int channels) {
     CONSOLE_TRACE("OSRVideoHandler::OnAudioStreamStarted: Sample rate: {}, Channel layout: {}, Frames per buffer: {}, Channels: {} ", params.sample_rate, params.channel_layout, params.frames_per_buffer, channels);
     encoder->setAudioParameters(channels, params.sample_rate);
+    if (encoder->startEncoder(nullptr) != 0) {
+        CONSOLE_CRITICAL("Starting the encoder failed.");
+        isEncoderInitialized = false;
+    } else {
+        isEncoderInitialized = true;
+    }
 }
 
 void OSRHandler::OnAudioStreamPacket(CefRefPtr<CefBrowser> browser, const float **data, int frames, int64 pts) {
-    if (!startpts) {
-        startpts = av_gettime();
-    }
+    if (isEncoderInitialized && isVideoStarted) {
+        if (!startpts) {
+            startpts = av_gettime();
 
-    encoder->addAudioFrame(data, frames, pts * 1000 - startpts);
+            // CONSOLE_ERROR("StartPts in Audio: {}", startpts);
+        }
+
+        // CONSOLE_ERROR("AudioPts: {}", pts * 1000 - startpts);
+        encoder->addAudioFrame(data, frames, pts * 1000 - startpts);
+    }
 }
 
 void OSRHandler::OnAudioStreamStopped(CefRefPtr<CefBrowser> browser) {
@@ -196,3 +239,25 @@ void OSRHandler::OnAudioStreamError(CefRefPtr<CefBrowser> browser, const CefStri
     CONSOLE_DEBUG("OSRVideoHandler::OnAudioStreamError: {}", message.ToString());
 }
 
+int OSRHandler::writeVideoToShm(uint8_t *buf, int buf_size) {
+    if (shmp != nullptr) {
+        int i = 0;
+        int maxIteration = 50;
+
+        // wait some time, maximal maxIteration*10 milliseconds
+        while (*(uint8_t*)shmp != 0 && i < maxIteration) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            ++i;
+        }
+
+        if (i < maxIteration) {
+            memcpy(shmp + 1, &buf_size, sizeof(int));
+            memcpy(shmp + sizeof(int) + 1, buf, buf_size);
+
+            // trigger VDR update
+            *(uint8_t*)shmp = 1;
+        }
+    }
+
+    return buf_size;
+}

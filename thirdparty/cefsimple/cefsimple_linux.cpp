@@ -60,8 +60,8 @@ int main(int argc, char* argv[]) {
   settings.no_sandbox = true;
 #endif
 
-  CefString(&settings.resources_dir_path).FromASCII("/usr/share/cef/Resources");
-  CefString(&settings.locales_dir_path).FromASCII("/usr/share/cef/Resources/locales");
+  // CefString(&settings.resources_dir_path).FromASCII(".");
+  // CefString(&settings.locales_dir_path).FromASCII(".");
 
   // SimpleApp implements application-level callbacks for the browser process.
   // It will create the first browser instance in OnContextInitialized() after

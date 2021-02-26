@@ -219,8 +219,6 @@ std::string *logFile = nullptr;
 int main(int argc, char *argv[]) {
     spdlog::level::level_enum log_level = spdlog::level::info;
 
-    std::string *vproto = nullptr;
-
     // try to find some parameters
     for (int i = 0; i < argc; ++i) {
         if (strncmp(argv[i], "--skinurl=", 10) == 0) {
@@ -237,13 +235,7 @@ int main(int argc, char *argv[]) {
             log_level = spdlog::level::critical;
         } else if (strncmp(argv[i], "--logfile=", 10) == 0) {
             logFile = new std::string(argv[i] + 10);
-        } else if (strncmp(argv[i], "--video=", 8) == 0) {
-            vproto = new std::string(argv[i] + 8);
         }
-    }
-
-    if (vproto == nullptr) {
-        vproto = new std::string("UDP");
     }
 
     if (logFile != nullptr) {
@@ -336,16 +328,16 @@ int main(int argc, char *argv[]) {
     // window_info.shared_texture_enabled = true;
 
     // TODO:
-    // Das funktioniert leider nicht. Es gibt dazu ein Ticket #2800
-    // https://bitbucket.org/chromiumembedded/cef/issues/2800/osr-sendexternalbeginframe-does-not-call
+    //  Das funktioniert leider nicht. Es gibt dazu ein Ticket #2800
+    //  https://bitbucket.org/chromiumembedded/cef/issues/2800/osr-sendexternalbeginframe-does-not-call
     //
-    // Siehe auch den Forenbeitrag
-    // https://magpcss.org/ceforum/viewtopic.php?f=6&t=17985
+    //  Siehe auch den Forenbeitrag
+    //  https://magpcss.org/ceforum/viewtopic.php?f=6&t=17985
     //
-    // Der Thread, der regelmäßig SendExternalBeginFrame aufrufen soll, befindet sich im BrowserPaintUpdater.
-    // window_info.external_begin_frame_enabled = true;
+    //  Der Thread, der regelmäßig SendExternalBeginFrame aufrufen soll, befindet sich im BrowserPaintUpdater.
+    //  window_info.external_begin_frame_enabled = true;
 
-    CefRefPtr<BrowserClient> browserClient = new BrowserClient(log_level, *vproto);
+    CefRefPtr<BrowserClient> browserClient = new BrowserClient(log_level);
     browser = CefBrowserHost::CreateBrowserSync(window_info, browserClient.get(), initUrl ? initUrl->c_str() : "", browserSettings, nullptr, nullptr);
 
     browser->GetHost()->WasHidden(true);
@@ -353,10 +345,6 @@ int main(int argc, char *argv[]) {
 
     if (initUrl != nullptr) {
         delete initUrl;
-    }
-
-    if (vproto != nullptr) {
-        delete vproto;
     }
 
     browserClient->initJavascriptCallback();

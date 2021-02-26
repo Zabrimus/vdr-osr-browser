@@ -8,13 +8,11 @@
 #include <stack>
 #include "include/cef_app.h"
 #include "include/cef_client.h"
-#include "include/cef_render_handler.h"
-#include "include/cef_audio_handler.h"
 #include "include/cef_callback.h"
 #include "include/wrapper/cef_message_router.h"
-#include "transcodeffmpeg.h"
 #include "logger.h"
-#include "encoder.h"
+#include "osrhandler.h"
+#include "globaldefs.h"
 
 class BrowserClient;
 class BrowserControl;
@@ -26,40 +24,6 @@ const uint8_t CMD_PING = 5;
 
 const int HTML_MODE = 1;
 const int HBBTV_MODE = 2;
-
-class OSRHandler : public CefRenderHandler,
-                   public CefAudioHandler {
-private:
-    int renderWidth;
-    int renderHeight;
-
-    int shmid;
-    uint8_t *shmp;
-    std::mutex shm_mutex;
-
-    Encoder* encoder;
-
-    static BrowserClient *browserClient;
-
-public:
-    OSRHandler(BrowserClient *bc, int width, int height);
-    ~OSRHandler() override;
-
-    // video handler
-    void setRenderSize(int width, int height);
-    void GetViewRect(CefRefPtr<CefBrowser> browser, CefRect &rect) override;
-    void OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList &dirtyRects, const void *buffer, int width, int height) override;
-    void osdProcessed() { shm_mutex.unlock(); };
-
-    // audio handler
-    bool GetAudioParameters(CefRefPtr<CefBrowser> browser, CefAudioParameters &params) override;
-    void OnAudioStreamStarted(CefRefPtr<CefBrowser> browser, const CefAudioParameters &params, int channels) override;
-    void OnAudioStreamPacket(CefRefPtr<CefBrowser> browser, const float **data, int frames, int64 pts) override;
-    void OnAudioStreamStopped(CefRefPtr<CefBrowser> browser) override;
-    void OnAudioStreamError(CefRefPtr<CefBrowser> browser, const CefString &message) override;
-
-    IMPLEMENT_REFCOUNTING(OSRHandler);
-};
 
 class HbbtvCurl {
 public:
@@ -129,8 +93,6 @@ private:
 
     JavascriptHandler *handler;
 
-    TranscodeFFmpeg *transcoder;
-
     std::string responseContent;
     std::map<std::string, std::string> responseHeader;
     int responseCode;
@@ -151,9 +113,6 @@ private:
     // sockets
     int toVdrSocketId;
 
-    // video protocol
-    Protocol vproto;
-
     // heatbeat thread
     std::thread heartbeat_thread;
     bool heartbeat_running;
@@ -166,7 +125,7 @@ private:
     }
 
 public:
-    explicit BrowserClient(spdlog::level::level_enum log_level, std::string vproto);
+    explicit BrowserClient(spdlog::level::level_enum log_level);
     ~BrowserClient() override;
 
     void setBrowserControl(BrowserControl *ctl) { this->handler->SetBrowserControl(ctl); }
@@ -216,12 +175,9 @@ public:
     void osdProcessed() { if (osrHandler != nullptr) osrHandler->osdProcessed(); };
 
     // transcode functions
-    bool set_input_file(const char* time, const char* input);
-    void pause_video();
-    void resume_video(const char* position);
+    void start_video();
     void stop_video();
-    void seek_video(const char* ms);
-    void speed_video(const char* speed);
+    void setVideoStarted();
 
     //
     void SendToVdrString(uint8_t messageType, const char* message);
