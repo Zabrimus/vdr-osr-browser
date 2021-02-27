@@ -30,8 +30,8 @@ FFPROBE_EXECUTABLE = /usr/bin/ffprobe
 
 CC = g++
 
-#CFLAGS = -g -c -O3  -Wall -std=c++11
-CFLAGS = -c -O0 -g -Wall -std=c++11
+CFLAGS = -g -c -O3  -Wall -std=c++11
+#CFLAGS = -c -O0 -g -Wall -std=c++11
 LDFLAGS = -pthread -lrt
 
 SOURCES = main.cpp osrhandler.cpp browserclient.cpp browsercontrol.cpp browserpaintupdater.cpp schemehandler.cpp \
@@ -147,14 +147,14 @@ buildcef:
 ifneq (exists, $(shell test -e thirdparty/cef/build/libcef_dll_wrapper/libcef_dll_wrapper.a && echo exists))
 	mkdir -p thirdparty/cef/build && \
 	cd thirdparty/cef/build && \
-	cmake .. && \
+	cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release .. && \
 	$(MAKE)
 endif
 
 buildnng:
 ifneq (exists, $(shell test -e thirdparty/nng-$(NNGVERSION)/build/libnng.a && echo exists))
 	mkdir -p thirdparty/nng-$(NNGVERSION)/build && \
-	cd thirdparty/nng-$(NNGVERSION)/build && cmake .. && \
+	cd thirdparty/nng-$(NNGVERSION)/build && cmake -DCMAKE_BUILD_TYPE=Release .. && \
 	$(MAKE)
 endif
 
@@ -162,7 +162,7 @@ buildspdlog:
 ifneq (exists, $(shell test -e thirdparty/spdlog/buildbin/lib/libspdlog.a && echo exists))
 	mkdir -p thirdparty/spdlog/build && \
 	cd thirdparty/spdlog/build && \
-	cmake -DCMAKE_INSTALL_PREFIX=../buildbin .. && \
+	cmake -DCMAKE_INSTALL_PREFIX=../buildbin -DCMAKE_BUILD_TYPE=Release .. && \
 	$(MAKE) install
 	cd thirdparty/spdlog/buildbin/ && if [ -d lib64 ]; then ln -s lib64 lib; fi
 endif

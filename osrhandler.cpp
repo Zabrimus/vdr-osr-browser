@@ -93,11 +93,6 @@ void OSRHandler::enableEncoder() {
         disableEncoder();
     }
 
-    // send fully transparent OSD to VDR
-    shm_mutex.lock();
-    memset(shmp, 0, 1280 * 720 * 4);
-    browserClient->SendToVdrOsd("OSDU", 1280, 720);
-
     // start encoder
     // encoder = new Encoder(this, "movie/streaming", true);
     encoder = new Encoder(this, "movie/streaming");
@@ -125,7 +120,7 @@ void OSRHandler::GetViewRect(CefRefPtr<CefBrowser> browser, CefRect &rect) {
 }
 
 void OSRHandler::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList &dirtyRects, const void *buffer, int width, int height) {
-    // CONSOLE_TRACE("OnPaint called: width: {}, height: {}, dirtyRects: {}", width, height, dirtyRects.size());
+    // CONSOLE_TRACE("OnPaint called: width: {}, height: {}, dirtyRects: {}, encoderInit: {}, videoStarted: {}", width, height, dirtyRects.size(), isEncoderInitialized, isVideoStarted);
 
     if (isEncoderInitialized && isVideoStarted) {
         if (!startpts) {
