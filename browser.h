@@ -175,7 +175,7 @@ public:
     void osdProcessed() { if (osrHandler != nullptr) osrHandler->osdProcessed(); };
 
     // transcode functions
-    void start_video();
+    bool start_video();
     void stop_video();
     void setVideoStarted();
 

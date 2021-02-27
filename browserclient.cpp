@@ -340,22 +340,24 @@ bool JavascriptHandler::OnQuery(CefRefPtr<CefBrowser> browser,
          if (strncmp(request.ToString().c_str(), "PLAY_VIDEO", 10) == 0) {
             CONSOLE_DEBUG("Start video playing");
 
-            browserClient->start_video();
-            browserClient->SendToVdrString(CMD_STATUS, "PLAY_VIDEO:");
+            if (browserClient->start_video()) {
+                // if encoder is not already initialized
+                browserClient->SendToVdrString(CMD_STATUS, "PLAY_VIDEO:");
+            }
 
             return true;
         } else if (strncmp(request.ToString().c_str(), "END_VIDEO", 9) == 0) {
             CONSOLE_DEBUG("Video streaming ended");
 
-            browserClient->SendToVdrString(CMD_STATUS, "STOP_VIDEO");
             browserClient->stop_video();
+            browserClient->SendToVdrString(CMD_STATUS, "STOP_VIDEO");
 
             return true;
         } else if (strncmp(request.ToString().c_str(), "STOP_VIDEO", 10) == 0) {
             CONSOLE_DEBUG("Video streaming stopped");
 
-            browserClient->SendToVdrString(CMD_STATUS, "STOP_VIDEO");
             browserClient->stop_video();
+            browserClient->SendToVdrString(CMD_STATUS, "STOP_VIDEO");
 
             return true;
         } else if (strncmp(request.ToString().c_str(), "ERROR_VIDEO", 11) == 0) {
@@ -1043,22 +1045,16 @@ void BrowserClient::SendToVdrPing() {
     SendToVdrString(CMD_PING, "B");
 }
 
-void BrowserClient::start_video() {
+bool BrowserClient::start_video() {
     CONSOLE_DEBUG("Start video");
 
-    osrHandler->enableEncoder();
-
-    // TODO: Encoder initialisieren
-    // TODO: Verbindung zum VDR (tcp, udp oder ...)
+    return osrHandler->enableEncoder();
 }
 
 void BrowserClient::stop_video() {
     CONSOLE_DEBUG("Stop video");
 
     osrHandler->disableEncoder();
-
-    // TODO: encoder stoppen
-    // TODO: Verbindung zum VDR stoppen
 }
 
 void BrowserClient::setVideoStarted() {

@@ -30,6 +30,8 @@
 FILE *fp_output = nullptr;
 OSRHandler *osrHandler = nullptr;
 
+bool isVideoStopping;
+
 int write_buffer_to_file(void *opaque, uint8_t *buf, int buf_size) {
     if (!feof(fp_output)) {
         int true_size = fwrite(buf,1,buf_size, fp_output);
@@ -53,6 +55,7 @@ Encoder::Encoder(OSRHandler *osrHndl, const char* out, bool writeToFile) {
     encoder = (StreamingContext *) calloc(1, sizeof(StreamingContext));
 
     swsCtx = nullptr;
+    isVideoStopping = false;
 
     asprintf(&encoder->filename, "%s.ts", out);
 
@@ -64,6 +67,13 @@ Encoder::Encoder(OSRHandler *osrHndl, const char* out, bool writeToFile) {
 }
 
 Encoder::~Encoder() {
+    videoEncodeMutex.lock();
+    audioEncodeMutex.lock();
+    isVideoStopping = true;
+
+    av_write_trailer(encoder->avfc);
+    av_free(outbuffer);
+
     avformat_free_context(encoder->avfc);
 
     sws_freeContext(swsCtx);
@@ -323,8 +333,13 @@ int Encoder::startEncoder(int (*write_packet)(void *opaque, uint8_t *buf, int bu
 }
 
 int Encoder::stopEncoder() {
-    av_write_trailer(encoder->avfc);
-    av_free(outbuffer);
+    audioEncodeMutex.lock();
+    videoEncodeMutex.lock();
+
+    isVideoStopping = true;
+
+    audioEncodeMutex.unlock();
+    videoEncodeMutex.unlock();
 
     return 0;
 }
@@ -336,6 +351,12 @@ void Encoder::setAudioParameters(int channels, int sample_rate) {
 
 // add an bgra image
 int Encoder::addVideoFrame(int width, int height, uint8_t* image, uint64_t pts) {
+    videoEncodeMutex.lock();
+
+    if (isVideoStopping) {
+        return 0;
+    }
+
     AVFrame *videoFrame;
 
     // get sws context
@@ -360,6 +381,7 @@ int Encoder::addVideoFrame(int width, int height, uint8_t* image, uint64_t pts) 
 
     if (!videoFrame) {
         av_log(nullptr, AV_LOG_ERROR, "error creating video frame\n");
+        videoEncodeMutex.unlock();
         return -1;
     }
 
@@ -370,6 +392,7 @@ int Encoder::addVideoFrame(int width, int height, uint8_t* image, uint64_t pts) 
     int ret = av_image_alloc(videoFrame->data, videoFrame->linesize, videoFrame->width, videoFrame->height, AV_PIX_FMT_YUVA420P, 24);
     if (ret < 0) {
         av_log(nullptr, AV_LOG_ERROR, "Could not allocate raw picture buffer: %d, %s\n", ret, av_err2str(ret));
+        videoEncodeMutex.unlock();
         return -1;
     }
 
@@ -382,15 +405,25 @@ int Encoder::addVideoFrame(int width, int height, uint8_t* image, uint64_t pts) 
     encode_video(pts, videoFrame);
 
     av_frame_free(&videoFrame);
+
+    videoEncodeMutex.unlock();
     return 0;
 }
 
 int Encoder::addAudioFrame(const float **data, int frames, uint64_t pts) {
+    audioEncodeMutex.lock();
+
+    if (isVideoStopping) {
+        return 0;
+    }
+
     uint8_t **pcm = (uint8_t **)data;
     for (int i = 0; i < 2; i++)
         audioFrame->data[i] = pcm[i];
 
     encode_audio(pts, audioFrame);
+
+    audioEncodeMutex.unlock();
 
     return 0;
 }

@@ -51,6 +51,9 @@ private:
 
     unsigned char *outbuffer;
 
+    std::mutex audioEncodeMutex;
+    std::mutex videoEncodeMutex;
+
 private:
     // encode
     int prepare_video_encoder(int width, int height, AVRational input_framerate);

@@ -28,7 +28,7 @@ public:
     ~OSRHandler() override;
 
     // enable or disable the encoder
-    void enableEncoder();
+    bool enableEncoder();
     void disableEncoder();
     void setVideoStarted() { isVideoStarted = true; };
 

@@ -88,26 +88,29 @@ OSRHandler::~OSRHandler() {
     }
 }
 
-void OSRHandler::enableEncoder() {
+bool OSRHandler::enableEncoder() {
     if (encoder != nullptr) {
-        disableEncoder();
+        // disableEncoder();
+        return false;
     }
 
     // start encoder
     // encoder = new Encoder(this, "movie/streaming", true);
     encoder = new Encoder(this, "movie/streaming");
     isEncoderInitialized = false;
+
+    return true;
 }
 
 void OSRHandler::disableEncoder() {
+    isEncoderInitialized = false;
+    isVideoStarted = false;
+
     if (encoder != nullptr) {
         encoder->stopEncoder();
         delete encoder;
         encoder = nullptr;
     }
-
-    isEncoderInitialized = false;
-    isVideoStarted = false;
 }
 
 void OSRHandler::setRenderSize(int width, int height) {
@@ -138,10 +141,6 @@ void OSRHandler::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, c
         return;
     }
 
-    // hex = 0xAARRGGBB.
-    // rgb(254, 46, 154) = #fe2e9a
-    // fffe2e9a => 00fe2e9a
-
     if (shmp != nullptr) {
         int w = std::min(width, 1920);
         int h = std::min(height, 1080);
@@ -153,41 +152,9 @@ void OSRHandler::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, c
         // CONSOLE_TRACE("OnPaint: Got shm_mutex.lock");
 
         memcpy(shmp, buffer, w * h * 4);
-
-        // FIXME: Das sollte mittlerweile obsolete sein
-        // delete parts of the OSD where a video shall be visible
-        /*
-        uint32_t* buf = (uint32_t*)shmp;
-        for (uint32_t i = 0; i < (uint32_t)(width * height); ++i) {
-            if (buf[i] == 0xfffe2e9a) {
-                buf[i] = 0x00fe2e9a;
-            }
-        }
-        */
         browserClient->SendToVdrOsd("OSDU", w, h);
 
         // CONSOLE_TRACE("OnPaint: Send OSDU to VDR");
-
-        // TEST
-        /*
-        static int i = 0;
-        char *filename = nullptr;
-        asprintf(&filename, "image_%d.rgba", i);
-        FILE *f = fopen(filename, "wb");
-        fwrite(buffer, width * height * 4, 1, f);
-        fclose(f);
-
-        char *pngfile = nullptr;
-        asprintf(&pngfile, "gm convert -size 1280x720 -depth 8 %s %s.png", filename, filename);
-        system(pngfile);
-
-        free(filename);
-        free(pngfile);
-        pngfile = nullptr;
-        filename = nullptr;
-        ++i;
-        */
-        // TEST
     } else {
         CONSOLE_CRITICAL("Shared memory does not exists!");
     }
