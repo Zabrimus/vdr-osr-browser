@@ -137,8 +137,6 @@ void OSRHandler::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, c
 
         // CONSOLE_ERROR("VideoPts: {}", av_gettime() - startpts);
 
-        printf("OnPaint ");
-
         // copy buffer
         uint8_t* picbuffer = (uint8_t*)malloc(width * height * 4);
         if (picbuffer != nullptr) {
@@ -148,7 +146,6 @@ void OSRHandler::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, c
         }
 
         // dont't send OSD update to VDR
-        printf(" ---\n");
         return;
     }
 

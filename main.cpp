@@ -154,38 +154,6 @@ void checkInstallation() {
     }
     infile1.close();
 
-    std::ifstream infile2(exepath.substr(0, exepath.find_last_of("/")) + "/vdr-osr-ffmpeg.config");
-    if (infile2.is_open()) {
-        std::string line;
-        while (getline(infile2, line)) {
-            if (line[0] == '#' || line.empty()) {
-                continue;
-            }
-
-            auto delimiterPos = line.find("=");
-            auto key = line.substr(0, delimiterPos);
-            auto value = line.substr(delimiterPos + 1);
-            trim(key);
-            trim(value);
-
-            if (key == "ffmpeg_executable") {
-                if (!file_exists(value.c_str())) {
-                    fprintf(stderr, "Configured ffmpeg executable '%s' does not exists. Aborting...\n", value.c_str());
-                    exit(1);
-                }
-            } else if (key == "ffprobe_executable") {
-                if (!file_exists(value.c_str())) {
-                    fprintf(stderr, "Configured ffprobe executable '%s' does not exists. Aborting...\n", value.c_str());
-                    exit(1);
-                }
-            }
-        }
-    } else {
-        fprintf(stderr, "Unable to open configuration file 'vdr-osr-ffmpeg.config'. Aborting...");
-        exit(1);
-    }
-    infile2.close();
-
     // check if sockets can be opened
     int socketId;
 
