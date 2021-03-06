@@ -1,11 +1,3 @@
-#
-# Copyright 2019 Staysail Systems, Inc. <info@staysail.tech>
-#
-# This software is supplied under the terms of the MIT License, a
-# copy of which should be located in the distribution where this
-# file was obtained (LICENSE.txt).  A copy of the license may also be
-# found online at https://opensource.org/licenses/MIT.
-#
-
-nng_sources(options.c platform.c)
-nng_headers(nng/supplemental/util/options.h nng/supplemental/util/platform.h)
+version https://git-lfs.github.com/spec/v1
+oid sha256:240b54f7b9d36be407edf48e8e02728f708af68dd32c09831e11f0778daf3822
+size 436

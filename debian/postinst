@@ -1,11 +1,3 @@
-#!/bin/sh
-
-#DEBHELPER#
-
-set -e
-
-USER="vdr"
-
-if id -u $USER > /dev/null 2>&1; then
-    chown -R ${USER}:${USER} /opt/vdr-osr-browser
-fi
+version https://git-lfs.github.com/spec/v1
+oid sha256:975adf2c5a292290f8485765f024a0307f06b110d704ca70bba4118b141482e6
+size 135

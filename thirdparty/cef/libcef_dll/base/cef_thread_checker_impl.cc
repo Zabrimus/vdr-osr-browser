@@ -1,35 +1,3 @@
-// Copyright (c) 2011 The Chromium Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
-
-#include "include/base/internal/cef_thread_checker_impl.h"
-
-namespace base {
-namespace cef_internal {
-
-ThreadCheckerImpl::ThreadCheckerImpl() : valid_thread_id_() {
-  EnsureThreadIdAssigned();
-}
-
-ThreadCheckerImpl::~ThreadCheckerImpl() {}
-
-bool ThreadCheckerImpl::CalledOnValidThread() const {
-  EnsureThreadIdAssigned();
-  AutoLock auto_lock(lock_);
-  return valid_thread_id_ == PlatformThread::CurrentRef();
-}
-
-void ThreadCheckerImpl::DetachFromThread() {
-  AutoLock auto_lock(lock_);
-  valid_thread_id_ = PlatformThreadRef();
-}
-
-void ThreadCheckerImpl::EnsureThreadIdAssigned() const {
-  AutoLock auto_lock(lock_);
-  if (valid_thread_id_.is_null()) {
-    valid_thread_id_ = PlatformThread::CurrentRef();
-  }
-}
-
-}  // namespace cef_internal
-}  // namespace base
+version https://git-lfs.github.com/spec/v1
+oid sha256:cc9092be80e8d2f689037ffe0a5d98991da061ec05b404a37ed00aecd439269a
+size 934

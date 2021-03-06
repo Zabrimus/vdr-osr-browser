@@ -1,5 +1,3 @@
-exclude_paths:
- - tests/acutest.h
- - tests/convey.c
- - tests/convey.h
- - .circleci/**
+version https://git-lfs.github.com/spec/v1
+oid sha256:bd08e0f8d129b121735e974cdb3ffc23d5e79a6e48908ac19ff7aef864feddf3
+size 85

@@ -1,6 +1,3 @@
-ignore:
- - "tests"
- - "perf"
- - "**/*_test.c"
-coverage:
- range: 50..95
+version https://git-lfs.github.com/spec/v1
+oid sha256:15387b08ae17325794cc281caf32da142005b955a431fbab4934dbc5f42779a6
+size 71

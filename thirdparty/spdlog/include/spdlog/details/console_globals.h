@@ -1,32 +1,3 @@
-// Copyright(c) 2015-present, Gabi Melman & spdlog contributors.
-// Distributed under the MIT License (http://opensource.org/licenses/MIT)
-
-#pragma once
-
-#include <spdlog/details/null_mutex.h>
-#include <mutex>
-
-namespace spdlog {
-namespace details {
-
-struct console_mutex
-{
-    using mutex_t = std::mutex;
-    static mutex_t &mutex()
-    {
-        static mutex_t s_mutex;
-        return s_mutex;
-    }
-};
-
-struct console_nullmutex
-{
-    using mutex_t = null_mutex;
-    static mutex_t &mutex()
-    {
-        static mutex_t s_mutex;
-        return s_mutex;
-    }
-};
-} // namespace details
-} // namespace spdlog
+version https://git-lfs.github.com/spec/v1
+oid sha256:eced1eda8e8abe003fb70b29be5df42e7b706b60d5292c1f3e842f3c888a5d66
+size 609

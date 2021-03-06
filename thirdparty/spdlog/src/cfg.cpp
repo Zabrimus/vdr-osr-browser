@@ -1,8 +1,3 @@
-// Copyright(c) 2015-present, Gabi Melman & spdlog contributors.
-// Distributed under the MIT License (http://opensource.org/licenses/MIT)
-
-#ifndef SPDLOG_COMPILED_LIB
-#error Please define SPDLOG_COMPILED_LIB to compile this file.
-#endif
-
-#include <spdlog/cfg/helpers-inl.h>
+version https://git-lfs.github.com/spec/v1
+oid sha256:0b869c4030119ca44c7b7ea5d6d787c81f208648ad577c0c791b78b8585fa7d2
+size 274

@@ -1,22 +1,3 @@
-name: windows
-on: [push, pull_request]
-jobs:
-
-  build:
-    name: build
-    runs-on: [ windows-latest ]
-    steps:
-    - name: Check out code
-      uses: actions/checkout@v1
-
-    - name: Configure
-      run: cmake -B build
-
-    - name: Build
-      run: cmake --build build
-
-    - name: Test
-      run: |
-        cd build
-        ctest -C Debug --output-on-failure
-
+version https://git-lfs.github.com/spec/v1
+oid sha256:a1305db52592d3efb6378839d48c4bf4031a80aa3ec5dc40cededd9fe285cd2b
+size 364

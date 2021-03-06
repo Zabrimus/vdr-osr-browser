@@ -1,21 +1,3 @@
-var cssId = 'tfont';
-if (!document.getElementById(cssId)) {
-  var head  = document.getElementsByTagName('head')[0];
-  var link  = document.createElement('link');
-  link.id   = cssId;
-  link.rel  = 'stylesheet';
-  link.type = 'text/css';
-  link.href = 'client://css/TiresiasPCfont.css';
-  link.media = 'all';
-  head.appendChild(link);
-}
-
-if (document && document.body) {
-  if (window == window.top) {
-    document.body.style["font-family"] = "Tiresias";
-  }
-} else {
-  document.addEventListener("DOMContentLoaded", () => {
-    document.body.style["font-family"] = "Tiresias";
-  });
-}
+version https://git-lfs.github.com/spec/v1
+oid sha256:43c0aa10fbd0f2aa0015437343b78601c980b2c824bcb075a3bd6108b99bf2bd
+size 582

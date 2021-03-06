@@ -1,6 +1,3 @@
-Files in this directory have been copied from other locations in the Chromium
-source tree. They have been modified only to the extent necessary to work in
-the CEF Binary Distribution directory structure. Below is a listing of the
-original file locations.
-
-../net/base/net_error_list.h
+version https://git-lfs.github.com/spec/v1
+oid sha256:cde2a87031bc8a4536dbbeb33d72da5a6567bde430872d508e5728f06502efcf
+size 285

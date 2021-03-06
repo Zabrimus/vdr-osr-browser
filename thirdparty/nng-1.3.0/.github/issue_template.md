@@ -1,18 +1,3 @@
-
-Note that by filing an issue, you agree that you have read and agreed to
-our contribution guidelines.
-
-## NNG & Platform details.
-
-<include NNG version, and platform/operating system, and if you are using
-another programming language what language> 
-
-## Expected Behavior
-
-## Actual Behavior
-
-## Steps to Reproduce
-
-<If possible, if include a copy of, or link to, a minimal test program
-to demonstrate the behavior.  We prefer test cases written in C when
-possible.>
+version https://git-lfs.github.com/spec/v1
+oid sha256:44a8d637603204036d7723302dc0721c146efa1867936311bbfc6e7fcc787790
+size 468

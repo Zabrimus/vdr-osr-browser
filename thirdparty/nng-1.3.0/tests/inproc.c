@@ -1,21 +1,3 @@
-//
-// Copyright 2017 Garrett D'Amore <garrett@damore.org>
-// Copyright 2017 Capitar IT Group BV <info@capitar.com>
-//
-// This software is supplied under the terms of the MIT License, a
-// copy of which should be located in the distribution where this
-// file was obtained (LICENSE.txt).  A copy of the license may also be
-// found online at https://opensource.org/licenses/MIT.
-//
-
-#include "convey.h"
-#include "trantest.h"
-
-#include "core/nng_impl.h"
-
-// Inproc tests.
-
-TestMain("Inproc Transport", {
-	trantest_test_all("inproc://TEST_%u");
-	nng_fini();
-})
+version https://git-lfs.github.com/spec/v1
+oid sha256:07d56b39ae5a4127fa12fe8ce08a6b8a68b4278736fc944e160218cc8d7acaea
+size 558

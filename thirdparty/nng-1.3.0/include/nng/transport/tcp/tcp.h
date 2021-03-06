@@ -1,28 +1,3 @@
-//
-// Copyright 2019 Staysail Systems, Inc. <info@staysail.tech>
-// Copyright 2017 Capitar IT Group BV <info@capitar.com>
-//
-// This software is supplied under the terms of the MIT License, a
-// copy of which should be located in the distribution where this
-// file was obtained (LICENSE.txt).  A copy of the license may also be
-// found online at https://opensource.org/licenses/MIT.
-//
-
-#ifndef NNG_TRANSPORT_TCP_TCP_H
-#define NNG_TRANSPORT_TCP_TCP_H
-
-#include <nng/nng.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-// TCP transport.  This is used for communication over TCP/IP.
-
-NNG_DECL int nng_tcp_register(void);
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif // NNG_TRANSPORT_TCP_TCP_H
+version https://git-lfs.github.com/spec/v1
+oid sha256:f6b1de7c74ea8a8c90d9f4f7581d0819e218c0769c9e348e4bd5b1a5139d2a3d
+size 681

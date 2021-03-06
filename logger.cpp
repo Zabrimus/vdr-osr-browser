@@ -1,21 +1,3 @@
-#include "logger.h"
-#include "spdlog/cfg/env.h"
-
-Logger::Logger() {
-    spdlog::cfg::load_env_levels();
-    _logger =  spdlog::stdout_color_mt("vdrosrbrowser");
-    _logger->set_level(spdlog::level::trace);
-}
-
-Logger::~Logger() {
-}
-
-void Logger::switchToFileLogger(std::string filename) {
-    size_t max_size = 1048576 * 5;
-    size_t max_files = 3;
-    _logger = spdlog::rotating_logger_mt("browser", filename, max_size, max_files);
-    spdlog::flush_every(std::chrono::seconds(1));
-    _switchedToFile = true;
-}
-
-Logger logger = Logger();
+version https://git-lfs.github.com/spec/v1
+oid sha256:be2d51d1bb6c9f8deaa670693c33808c462262a2f33c3c2ce608d96b1567bdad
+size 540

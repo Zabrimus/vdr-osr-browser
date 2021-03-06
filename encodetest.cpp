@@ -1,35 +1,3 @@
-#include "encoder.h"
-
-Encoder encoder("output", true);
-
-int main(int argc, char* argv[]) {
-    char buffer[1280 * 720 * 4];
-    uint64_t pts = 0;
-    size_t readbytes;
-
-    encoder.startEncoder(nullptr);
-
-    for (int j = 0; j < 10; ++j) {
-        for (int i = 0; i < 60; ++i) {
-            char *filename = nullptr;
-            asprintf(&filename, "videotest/image_%d.rgba", i);
-
-            fprintf(stderr, "File: %s\n", filename);
-
-            FILE *f = fopen(filename, "rb");
-            readbytes = fread(buffer, 1, 1280 * 720 * 4, f);
-
-            fclose(f);
-            free(filename);
-
-            encoder.addVideoFrame(1280, 720, (uint8_t *) buffer, pts);
-
-            pts += 10000;
-        }
-    }
-
-    encoder.stopEncoder();
-
-}
-
-
+version https://git-lfs.github.com/spec/v1
+oid sha256:47437c8a536bfa8de6496d3c1fcb61587ac1050d07fcb89c7a3c26c9658d15b7
+size 741

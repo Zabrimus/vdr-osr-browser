@@ -1,36 +1,3 @@
-// Copyright(c) 2015-present, Gabi Melman & spdlog contributors.
-// Distributed under the MIT License (http://opensource.org/licenses/MIT)
-
-#pragma once
-
-#include <spdlog/common.h>
-#include <string>
-
-namespace spdlog {
-namespace details {
-struct SPDLOG_API log_msg
-{
-    log_msg() = default;
-    log_msg(log_clock::time_point log_time, source_loc loc, string_view_t logger_name, level::level_enum lvl, string_view_t msg);
-    log_msg(source_loc loc, string_view_t logger_name, level::level_enum lvl, string_view_t msg);
-    log_msg(string_view_t logger_name, level::level_enum lvl, string_view_t msg);
-    log_msg(const log_msg &other) = default;
-
-    string_view_t logger_name;
-    level::level_enum level{level::off};
-    log_clock::time_point time;
-    size_t thread_id{0};
-
-    // wrapping the formatted text with color (updated by pattern_formatter).
-    mutable size_t color_range_start{0};
-    mutable size_t color_range_end{0};
-
-    source_loc source;
-    string_view_t payload;
-};
-} // namespace details
-} // namespace spdlog
-
-#ifdef SPDLOG_HEADER_ONLY
-#include "log_msg-inl.h"
-#endif
+version https://git-lfs.github.com/spec/v1
+oid sha256:673cc1ce3e63225992e0bbf2ec09f35a60f5c28b77912de8a1c0eb490c9a7cb3
+size 1094

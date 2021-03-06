@@ -1,4 +1,3 @@
-#!/usr/bin/dh-exec
-
-Release/* /opt/vdr-osr-browser/
-
+version https://git-lfs.github.com/spec/v1
+oid sha256:9f9202eea9377b681575d3cd4c9a2c78b6850d1e5f3a51052cf91b50d2d64f79
+size 53

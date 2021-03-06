@@ -1,23 +1,3 @@
-// Copyright (c) 2015 The Chromium Embedded Framework Authors. All rights
-// reserved. Use of this source code is governed by a BSD-style license that
-// can be found in the LICENSE file.
-
-#include "libcef_dll/cpptoc/base_ref_counted_cpptoc.h"
-
-CefBaseRefCountedCppToC::CefBaseRefCountedCppToC() {}
-
-template <>
-CefRefPtr<CefBaseRefCounted> CefCppToCRefCounted<
-    CefBaseRefCountedCppToC,
-    CefBaseRefCounted,
-    cef_base_ref_counted_t>::UnwrapDerived(CefWrapperType type,
-                                           cef_base_ref_counted_t* s) {
-  NOTREACHED();
-  return nullptr;
-}
-
-template <>
-CefWrapperType CefCppToCRefCounted<CefBaseRefCountedCppToC,
-                                   CefBaseRefCounted,
-                                   cef_base_ref_counted_t>::kWrapperType =
-    WT_BASE_REF_COUNTED;
+version https://git-lfs.github.com/spec/v1
+oid sha256:6f1bdf4594b43c69b9b869b8ec3f85e0081552ec6073fbfbc661dd9133802911
+size 813

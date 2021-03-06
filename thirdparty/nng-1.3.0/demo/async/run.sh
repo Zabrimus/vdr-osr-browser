@@ -1,27 +1,3 @@
-#!/bin/bash
-
-ADDR=ipc:///tmp/async_demo
-COUNT=10
-
-./server $ADDR &
-SERVER_PID=$!
-trap "kill $SERVER_PID" 0
-typeset -a CLIENT_PID
-i=0
-sleep 1
-while (( i < COUNT ))
-do
-	i=$(( i + 1 ))
-	rnd=$(( RANDOM % 1000 + 500 ))
-	echo "Starting client $i: server replies after $rnd msec"
-	./client $ADDR $rnd &
-	eval CLIENT_PID[$i]=$!
-done
-
-i=0
-while (( i < COUNT ))
-do
-	i=$(( i + 1 ))
-	wait ${CLIENT_PID[$i]}
-done
-kill $SERVER_PID
+version https://git-lfs.github.com/spec/v1
+oid sha256:9ecf589630264259473bcc450d341dea41eac7ce1deae3bcc5bd9bf12c33a9ac
+size 417

@@ -1,5 +1,3 @@
-branch: true
-ignore-not-existing: true
-filter: covered
-output-type: lcov
-output-file: lcov.info
+version https://git-lfs.github.com/spec/v1
+oid sha256:06ee515567725be4d2dca837a4a2be581d27fde4d87177d532bfce84a2229da6
+size 95

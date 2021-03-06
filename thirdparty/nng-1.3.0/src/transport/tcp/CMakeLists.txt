@@ -1,17 +1,3 @@
-#
-# Copyright 2019 Staysail Systems, Inc. <info@staysail.tech>
-# Copyright 2018 Capitar IT Group BV <info@capitar.com>
-#
-# This software is supplied under the terms of the MIT License, a
-# copy of which should be located in the distribution where this
-# file was obtained (LICENSE.txt).  A copy of the license may also be
-# found online at https://opensource.org/licenses/MIT.
-#
-
-# TCP protocol
-option (NNG_TRANSPORT_TCP "Enable TCP transport." ON)
-mark_as_advanced(NNG_TRANSPORT_TCP)
-
-nng_sources_if(NNG_TRANSPORT_TCP tcp.c)
-nng_headers_if(NNG_TRANSPORT_TCP nng/transport/tcp/tcp.h)
-nng_defines_if(NNG_TRANSPORT_TCP NNG_TRANSPORT_TCP)
+version https://git-lfs.github.com/spec/v1
+oid sha256:852d025f364162944d32b3f1c4a3a10763e085a9d84b1a8c08096ca6fc23886f
+size 635

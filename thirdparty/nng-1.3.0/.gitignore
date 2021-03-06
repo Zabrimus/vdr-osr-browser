@@ -1,9 +1,3 @@
-build
-lxbuild
-winbuild
-wbuild
-.vs
-.vscode/.cmaketools.json
-.vscode
-.DS_Store
-etc/nng.sublime-workspace
+version https://git-lfs.github.com/spec/v1
+oid sha256:f4efc7c5e4fad50bd898b869ff4006ef11e407ed789cdd039b1f060736c4eb36
+size 103

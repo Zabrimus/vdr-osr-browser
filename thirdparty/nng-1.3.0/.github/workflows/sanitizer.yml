@@ -1,35 +1,3 @@
-name: sanitize
-on: [push, pull_request]
-jobs:
-  sanitize:
-    env:
-      CC: clang
-      CXX: clang++
-      CTEST_OUTPUT_ON_FAILURE: 1
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        sanitizer: [ address, undefined, thread ]
-        os: [ ubuntu-latest ]
-
-    steps:
-      - uses: actions/checkout@v1
-
-      - uses: mstksg/get-package@v1
-        with:
-            apt-get: ninja-build libmbedtls-dev
-            brew: ninja mbedtls
-
-      - name: Configure
-        run: |
-          mkdir build
-          cd build
-          cmake -G Ninja -DNNG_SANITIZER=${{ matrix.sanitizer }} -DCMAKE_BUILD_TYPE=Debug -DNNG_ENABLE_TLS=ON -DNNG_TOOLS=OFF ..
-      - name: Build
-        run: |
-          cd build
-          ninja
-      - name: Test
-        run: |
-          cd build
-          ninja test
+version https://git-lfs.github.com/spec/v1
+oid sha256:2b89e8ed278c3fe758e340cfafbcc1e64b4b3fa61ac5b4f6055b6850c5db3e9c
+size 803
