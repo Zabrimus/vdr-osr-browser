@@ -1,3 +1,6 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:e32968ea8b4b69c7d0a38b77ca0a07dd11792ab5bd5b68f5ec41585c750d66f7
-size 255
+This section documents core libary functions supporting Scalability
+Protocols.
+
+Most Scalability Protocols applications can be written using just
+the functions documented in this section, as this represents the
+primary API for building such applications.

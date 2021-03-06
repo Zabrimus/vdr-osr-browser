@@ -1,3 +1,5 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:b0ed18216078ce56b8ff5d849b7b9e13ff0860a0f91875389d90952ac2e6df01
-size 210
+= supplemental sources
+
+This is for code that is not intrinsic to nng, but which may be used
+by multiple other subsystems.  For example, common code for TLS support
+used by multiple transports is located here.

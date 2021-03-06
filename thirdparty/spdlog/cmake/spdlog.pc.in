@@ -1,3 +1,13 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:9c2c179f4e9bf1b094059e678bd847b879de6568a45d12bbf43489d07b79f531
-size 376
+prefix=@CMAKE_INSTALL_PREFIX@
+exec_prefix=${prefix}
+includedir=${prefix}/include
+libdir=${exec_prefix}/@CMAKE_INSTALL_LIBDIR@
+
+Name: lib@PROJECT_NAME@
+Description: Fast C++ logging library.
+URL: https://github.com/gabime/@PROJECT_NAME@
+Version: @SPDLOG_VERSION@
+CFlags: -I${includedir} @PKG_CONFIG_DEFINES@
+Libs: -L${libdir} -lspdlog -pthread
+Requires: @PKG_CONFIG_REQUIRES@
+

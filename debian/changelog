@@ -1,3 +1,98 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:9d2d7b0915c35c89bcb5d7ea020150a987217b630928d40b40788cec02c1c44a
-size 3256
+vdr-osr-browser (0.0.9-1-ppa1~focal) focal; urgency=medium
+
+  * Official release 0.0.9
+    - Bugfixes
+      fixed CORS
+      play site (blue button on some sites) is now visible
+         => But not yet usable!
+ -- Zabrimus <ppa@hannebauer.org>  Sun, 02 Aug 2020 12:15:00 +0000
+
+vdr-osr-browser (0.0.8-ppa1~focal) focal; urgency=medium
+
+  * Official release 0.0.8
+    - Bugfixes
+        another method to calculate video size (fixes n-tv video)
+        fixed a segfault while trying to show RTL II
+        fixed a segfault in CookieVisitor
+        fixed video playing Pro7Sat1 group
+        fixed ARD Alpha Panorama-Bilder
+        fixed Arte Blue Button
+
+    - New
+        TV screen in a OSD window is supported (at least for some channels)
+
+ -- Zabrimus <ppa@hannebauer.org>  Sun, 01 Aug 2020 13:45:00 +0000
+
+vdr-osr-browser (0.0.7-ppa1~focal) focal; urgency=medium
+
+  * Official release 0.0.7
+  - New
+  Implemented dash handler to play dash videos
+  navigation in ce-html apps (needs further improvements)
+
+ -- Zabrimus <ppa@hannebauer.org>  Sun, 25 Jul 2020 15:00:00 +0000
+
+vdr-osr-browser (0.0.6-ppa1~focal) focal; urgency=medium
+
+  * Official release 0.0.6
+  - Bugfixes
+    delete unix domain socket if video stopped
+
+ -- Zabrimus <ppa@hannebauer.org>  Sun, 12 Jul 2020 10:00:00 +0000
+
+vdr-osr-browser (0.0.5-ppa1~focal) focal; urgency=medium
+
+  * Official release 0.0.5
+  - Bugfixes
+    ServusTV and other channels (Parse error...)
+
+  - New
+    New ffmpeg configuration entries udp_packet_size and udp_buffer_size to be able to control UDP packet size and internal buffer size
+    Video streams can be send via UDP, TCP and Unix domain sockets
+
+ -- Zabrimus <ppa@hannebauer.org>  Sat, 11 Jul 2020 10:00:00 +0000
+
+vdr-osr-browser (0.0.4-ppa1~focal) focal; urgency=medium
+
+  * Official release 0.0.4
+  - Bugfixes
+    the browser caches the video length and subsequent videos had all the same (mostly wrong) length
+    Tatort now plays well including OSD
+    fixed reading config files
+
+  - New
+    changed video streaming to UDP (at least VDR HbbTV Plugin v0.0.4 is mandatory)
+    receive application and URLs from VDR
+    navigation via application change implemented
+    intercept XMLHTTPRequest and allow changing the request itself
+
+ -- Zabrimus <ppa@hannebauer.org>  Sun, 05 Jul 2020 20:00:00 +0000
+
+vdr-osr-browser (0.0.3-ppa1~focal) focal; urgency=medium
+
+  * Official release 0.0.3
+  - Bugfixes
+    new method to determine content-type
+    try to fix errors in some HTML pages
+    Video URLs containing a '&' failed to play
+
+  - New
+    removed dash.js. It's not usable in this environment
+    enable HbbTV 2.0(?)
+    set user_agent and cookies in ffmpeg
+    new config file block_url.config containing patterns for URLs which shall not be loaded (substring search)
+    new method to inject the javascript code (many more channels are now enabled)
+
+ -- Zabrimus <ppa@hannebauer.org>  Fri, 29 Jun 2020 12:00:00 +0000
+
+vdr-osr-browser (0.0.2-prerelease-ppa6~focal) focal; urgency=medium
+
+  * Official release 0.0.1 + some patches
+
+ -- Zabrimus <ppa@hannebauer.org>  Fri, 12 Jun 2020 11:06:58 +0000
+
+vdr-osr-browser (0.0.1-ppa1~buster) buster; urgency=medium
+
+  * Initial release
+
+ -- Zabrimus <ppa@hannebauer.org>  Fri, 25 Feb 2020 19:05:20 +0000

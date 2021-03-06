@@ -1,3 +1,5 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:6089b3e89611614801848cfeab60cf5e5b2242a5278acaebfb9bde24f50bc6bd
-size 241
+This section documents supplemental TCP functions that are available.
+
+These functions are made available to facilitate using raw TCP connections
+with the NNG asynchronous I/O API.
+Most applications should never need to use these functions.
