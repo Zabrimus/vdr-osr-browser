@@ -22,7 +22,7 @@ SANITIZER=0
 # Don't enable this!
 # use CEF DEBUG libs instead RELEASE
 # Needs a different CEF installation with different compile flags.
-USE_CEF_DEBUG=1
+USE_CEF_DEBUG=0
 
 CC = g++
 

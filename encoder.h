@@ -49,6 +49,8 @@ private:
 
     unsigned char *outbuffer;
 
+    uint8_t* decodedVideoFrame;
+
 private:
     // encode
     int prepare_video_encoder(int width, int height, AVRational input_framerate);
@@ -61,12 +63,16 @@ public:
     Encoder(OSRHandler *osrHandler, const char* output, bool writeToFile = false);
     ~Encoder();
 
+    void Start();
+
     int startEncoder(int (*write_packet)(void *opaque, uint8_t *buf, int buf_size));
-    int stopEncoder();
+    void stopEncoder();
 
     void setAudioParameters(int channels, int sample_rate);
 
-    int addVideoFrame(int width, int height, uint8_t* image, uint64_t pts);
+    void addVideoFrame(int width, int height, uint8_t* image, uint64_t pts);
+    void processVideoFrame();
+
     int addAudioFrame(const float **data, int frames, uint64_t pts);
 };
 

@@ -18,7 +18,10 @@ private:
     std::mutex shm_mutex;
 
     Encoder* encoder = nullptr;
+    std::thread* encoderThread;
+
     bool isVideoStarted = false;
+    bool encoderStopped = false;
 
     static BrowserClient *browserClient;
 

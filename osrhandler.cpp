@@ -12,8 +12,10 @@
 
 #include <cstdint>
 #include <thread>
+#include <csignal>
 #include <algorithm>
 #include <sys/shm.h>
+#include <unistd.h>
 #include <mutex>
 #include "browser.h"
 #include "encoder.h"
@@ -35,6 +37,10 @@ extern "C" {
 uint64_t startpts = 0;
 
 BrowserClient* OSRHandler::browserClient;
+
+void startEncoderThread(Encoder* encoder) {
+    encoder->Start();
+}
 
 OSRHandler::OSRHandler(BrowserClient *bc, int width, int height) {
     CONSOLE_TRACE("Create OSRHandler and open shared memory");
@@ -95,12 +101,14 @@ void OSRHandler::osdClearVideo(int x, int y, int width, int height) {
 
 bool OSRHandler::enableEncoder() {
     if (encoder != nullptr) {
-        // disableEncoder();
         return false;
     }
 
     // start encoder
     encoder = new Encoder(this, "movie/streaming");
+    encoderThread = new std::thread(startEncoderThread, encoder);
+    // encoderThread->detach();
+
     isVideoStarted = false;
 
     return true;
@@ -111,6 +119,8 @@ void OSRHandler::disableEncoder() {
 
     if (encoder != nullptr) {
         encoder->stopEncoder();
+        encoderThread->join();
+
         delete encoder;
         encoder = nullptr;
     }
@@ -137,13 +147,7 @@ void OSRHandler::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, c
 
         // CONSOLE_ERROR("VideoPts: {}", av_gettime() - startpts);
 
-        // copy buffer
-        uint8_t* picbuffer = (uint8_t*)malloc(width * height * 4);
-        if (picbuffer != nullptr) {
-            memcpy(picbuffer, buffer, width * height * 4);
-            encoder->addVideoFrame(width, height, picbuffer, av_gettime() - startpts);
-            free(picbuffer);
-        }
+        encoder->addVideoFrame(width, height, (uint8_t*)buffer, av_gettime() - startpts);
 
         // dont't send OSD update to VDR
         return;
