@@ -24,18 +24,6 @@ SANITIZER=0
 # Needs a different CEF installation with different compile flags.
 USE_CEF_DEBUG=1
 
-# Alternative ffmpeg installation.
-# FFMPEG_PKG_CONFIG_PATH=/usr/local/ffmpeg/lib/pkgconfig/
-
-# ffmpeg executable.
-# Will be written to the config file vdr-osr-browser.config
-# and can also be changed later.
-FFMPEG_EXECUTABLE = /usr/bin/ffmpeg
-#FFMPEG_EXECUTABLE = /usr/local/ffmpeg/bin/ffmpeg
-
-FFPROBE_EXECUTABLE = /usr/bin/ffprobe
-#FFPROBE_EXECUTABLE = /usr/local/ffmpeg/bin/ffprobe
-
 CC = g++
 
 # CFLAGS = -g -c -O3  -Wall -std=c++11
@@ -98,7 +86,6 @@ all:
 	$(MAKE) buildcef
 	$(MAKE) buildnng
 	$(MAKE) prepareexe
-	$(MAKE) emptyvideo
 	$(MAKE) browser
 
 browser: $(SOURCES) $(EXECUTABLE) $(EXECUTABLE5) $(EXECUTABLE4)
@@ -106,7 +93,7 @@ browser: $(SOURCES) $(EXECUTABLE) $(EXECUTABLE5) $(EXECUTABLE4)
 dist:
 	tar -cJf vdr-osr-browser-$(VERSION).tar.xz Release
 
-$(EXECUTABLE): $(OBJECTS) transcodeffmpeg.h globaldefs.h main.h browser.h nativejshandler.h schemehandler.h javascriptlogging.h
+$(EXECUTABLE): $(OBJECTS) globaldefs.h main.h browser.h nativejshandler.h schemehandler.h javascriptlogging.h
 	$(CC) $(OBJECTS) $(NNGCFLAGS) $(LOGCFLAGS) -o $@ $(ASANLDFLAGS) $(LDFLAGS) $(NNGLDFLAGS) $(LOGLDFLAGS)
 	mv $(EXECUTABLE) Release
 	cp -r js Release
@@ -138,9 +125,6 @@ prepareexe:
 	echo "frameworkpath  = ." >> Release/vdr-osr-browser.config
 	cp -a thirdparty/cef/Resources/* Release
 	cp -a thirdparty/cef/Release/* Release
-ifneq (exists, $(shell test -e Release/vdr-osr-ffmpeg.config && echo exists))
-	sed -e "s#FFMPEG_EXECUTABLE#$(FFMPEG_EXECUTABLE)#" -e "s#FFPROBE_EXECUTABLE#$(FFPROBE_EXECUTABLE)#" vdr-osr-ffmpeg.config.sample > Release/vdr-osr-ffmpeg.config
-endif
 ifneq (exists, $(shell test -e Release/block_url.config && echo exists))
 	cp block_url.config Release/block_url.config
 endif
@@ -190,14 +174,6 @@ cleanjs:
 	rm -Rf thirdparty/HybridTvViewer/build
 	rm -Rf thirdparty/HybridTvViewer/node_modules
 	rm thirdparty/HybridTvViewer/package-lock.json
-
-# create a 6 hours video containing... nothing
-emptyvideo:
-	mkdir -p Release/movie
-	cp -r movie/* Release/movie/
-ifneq (exists, $(shell test -e movie/transparent-full.webm && echo exists))
-	$(FFMPEG_EXECUTABLE) -y -loop 1 -i movie/transparent-16x16.png -t 21600 -r 1 -c:v libvpx -auto-alt-ref 0 movie/transparent-full.webm
-endif
 
 # test programs (will be removed at some time)
 encodetest: encodetest.o encoder.o
