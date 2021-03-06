@@ -1,3 +1,12 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:9f93ab64598c9295cf320ad174bec42beca5ade8005c99bb634ccf2ff3cd3621
-size 444
+#
+# Copyright 2019 Staysail Systems, Inc. <info@staysail.tech>
+# Copyright 2017 Capitar IT Group BV <info@capitar.com>
+#
+# This software is supplied under the terms of the MIT License, a
+# copy of which should be located in the distribution where this
+# file was obtained (LICENSE.txt).  A copy of the license may also be
+# found online at https://opensource.org/licenses/MIT.
+#
+
+nng_sources_if(NNG_SUPP_SHA1 sha1.c sha1.h)
+nng_test(sha1_test)

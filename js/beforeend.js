@@ -1,3 +1,18 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:8be7554120c337cea02f08b145fb574c858525688df43e398c1c94292f376f06
-size 642
+setTimeout(function() {
+    window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: The last script called....');
+
+    // hide all objects
+    var objects = document.getElementsByTagName('object');
+    for (var i = 0; i < objects.length; i++) {
+        objects[i].style.display = 'hidden';
+    }
+
+    var videoexists = document.getElementById('hbbtv-polyfill-video-player');
+    if (typeof videoexists === 'undefined' || videoexists === null) {
+        window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: The last script: Video does not exists....');
+        window.HBBTV_VIDEOHANDLER.initialize();
+    }
+
+    window.cefVideoSize();
+}, 1000);
+

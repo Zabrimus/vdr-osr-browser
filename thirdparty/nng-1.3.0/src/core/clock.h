@@ -1,3 +1,20 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:55e9c19aad19e264b50f75b9726c40ddb2586a255de3c1b8fb7b93cf86c8958b
-size 549
+//
+// Copyright 2017 Garrett D'Amore <garrett@damore.org>
+// Copyright 2017 Capitar IT Group BV <info@capitar.com>
+//
+// This software is supplied under the terms of the MIT License, a
+// copy of which should be located in the distribution where this
+// file was obtained (LICENSE.txt).  A copy of the license may also be
+// found online at https://opensource.org/licenses/MIT.
+//
+
+#ifndef CORE_CLOCK_H
+#define CORE_CLOCK_H
+
+#include "core/nng_impl.h"
+
+extern nni_time nni_clock(void);
+
+extern void nni_msleep(nni_duration);
+
+#endif // CORE_CLOCK_H

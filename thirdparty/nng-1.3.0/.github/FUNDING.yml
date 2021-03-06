@@ -1,3 +1,5 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:02f4cef86c53008a7b807a3d7aa44b22b65e80f66cfbe752346654ae06c101e9
-size 168
+# These are supported funding model platforms
+github: gdamore
+patreon: gedamore
+custom: [ "https://staysail.tech/support/" ]
+custom: [ "https://leanpub.com/nngref2e" ]

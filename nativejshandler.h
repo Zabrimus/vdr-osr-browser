@@ -1,3 +1,22 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:5648754615804b04ba1be708b30730f7ed3ab490760b6ba542f8b9de634f34b3
-size 571
+#ifndef VDR_OSR_BROWSER_NATIVEJSHANDLER_H
+#define VDR_OSR_BROWSER_NATIVEJSHANDLER_H
+
+#include <map>
+#include "include/cef_v8.h"
+
+class NativeJSHandler : public CefV8Handler {
+
+public:
+    NativeJSHandler();
+    ~NativeJSHandler();
+
+    bool Execute(const CefString& name,
+                    CefRefPtr<CefV8Value> object,
+                    const CefV8ValueList& arguments,
+                    CefRefPtr<CefV8Value>& retval,
+                    CefString& exception) override;
+
+    IMPLEMENT_REFCOUNTING(NativeJSHandler);
+};
+
+#endif // VDR_OSR_BROWSER_NATIVEJSHANDLER_H

@@ -1,3 +1,32 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:b33c8c39e760bdfe88bb97e8adb2e23016fd4f447e84e80322911e45fe005f50
-size 712
+#!/bin/bash
+
+#
+# Copyright 2018 Staysail Systems, Inc. <info@staysail.tech>
+# Copyright 2018 Capitar IT Group BV <info@capitar.com>
+#
+# This software is supplied under the terms of the MIT License, a
+# copy of which should be located in the distribution where this
+# file was obtained (LICENSE.txt).  A copy of the license may also be
+# found online at https://opensource.org/licenses/MIT.
+#
+
+NNGCAT=${NNGCAT:=$1}
+NNGCAT=${NNGCAT:-./nngcat}
+
+echo -n "Verify nngcat help: "
+if ${NNGCAT} --help >/dev/null 2>&1
+then
+	echo "Failed: help didn't return 1"
+	exit 1
+fi
+x=$(${NNGCAT} --help 2>&1)
+if [[ ${x} =~ "Usage:" ]]
+then
+	echo "pass"
+	exit 0
+fi
+
+echo "Failed: usage did not match"
+echo "Output:"
+echo "$x"
+exit 1

@@ -1,3 +1,31 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:d1d042fa124aeb37875c72203227c3c8fc469b3b89c7e0a64dded067e3381fe8
-size 924
+//
+// Copyright 2018 Staysail Systems, Inc. <info@staysail.tech>
+// Copyright 2018 Capitar IT Group BV <info@capitar.com>
+//
+// This software is supplied under the terms of the MIT License, a
+// copy of which should be located in the distribution where this
+// file was obtained (LICENSE.txt).  A copy of the license may also be
+// found online at https://opensource.org/licenses/MIT.
+//
+
+#ifndef NNG_COMPAT_INPROC_H
+#define NNG_COMPAT_INPROC_H
+
+// This header contains interfaces that are intended to offer compatibility
+// with nanomsg v1.0.  These are not the "preferred" interfaces for nng,
+// and consumers should only use these if they are porting software that
+// previously used nanomsg.  New programs should use the nng native APIs.
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+// inproc sockopt level.
+// There are no inproc tunables.
+#define NN_INPROC (-1)
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif // NNG_COMPAT_INPROC_H

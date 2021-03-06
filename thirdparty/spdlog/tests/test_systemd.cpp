@@ -1,3 +1,15 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:86bc23823fd04f0d65283c41e08b521030e279264fdc98a8c918ffb369a284b7
-size 588
+#include "includes.h"
+#include "spdlog/sinks/systemd_sink.h"
+
+TEST_CASE("systemd", "[all]")
+{
+    auto systemd_sink = std::make_shared<spdlog::sinks::systemd_sink_st>();
+    spdlog::logger logger("spdlog_systemd_test", systemd_sink);
+    logger.set_level(spdlog::level::trace);
+    logger.trace("test spdlog trace");
+    logger.debug("test spdlog debug");
+    SPDLOG_LOGGER_INFO((&logger), "test spdlog info");
+    SPDLOG_LOGGER_WARN((&logger), "test spdlog warn");
+    SPDLOG_LOGGER_ERROR((&logger), "test spdlog error");
+    SPDLOG_LOGGER_CRITICAL((&logger), "test spdlog critical");
+}

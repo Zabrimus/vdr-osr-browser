@@ -1,3 +1,22 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:3130841e9c9b155f55f97950ea02a2d448799ea2b6b2dbd6a8200312f7a89e7e
-size 473
+//
+// Copyright 2017 Garrett D'Amore <garrett@damore.org>
+//
+// This software is supplied under the terms of the MIT License, a
+// copy of which should be located in the distribution where this
+// file was obtained (LICENSE.txt).  A copy of the license may also be
+// found online at https://opensource.org/licenses/MIT.
+//
+
+#include "core/nng_impl.h"
+
+nni_time
+nni_clock(void)
+{
+	return (nni_plat_clock());
+}
+
+void
+nni_msleep(nni_duration msec)
+{
+	nni_plat_sleep(msec);
+}

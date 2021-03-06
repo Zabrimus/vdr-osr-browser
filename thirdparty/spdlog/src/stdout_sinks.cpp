@@ -1,3 +1,29 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:26dd60c6ac9a527aaf7b5a51207fb112d5c29569e49780fc871d17c2b1f5adb2
-size 1993
+// Copyright(c) 2015-present, Gabi Melman & spdlog contributors.
+// Distributed under the MIT License (http://opensource.org/licenses/MIT)
+
+#ifndef SPDLOG_COMPILED_LIB
+#error Please define SPDLOG_COMPILED_LIB to compile this file.
+#endif
+
+#include <mutex>
+
+#include <spdlog/details/null_mutex.h>
+#include <spdlog/async.h>
+#include <spdlog/sinks/stdout_sinks-inl.h>
+
+template class SPDLOG_API spdlog::sinks::stdout_sink_base<spdlog::details::console_mutex>;
+template class SPDLOG_API spdlog::sinks::stdout_sink_base<spdlog::details::console_nullmutex>;
+template class SPDLOG_API spdlog::sinks::stdout_sink<spdlog::details::console_mutex>;
+template class SPDLOG_API spdlog::sinks::stdout_sink<spdlog::details::console_nullmutex>;
+template class SPDLOG_API spdlog::sinks::stderr_sink<spdlog::details::console_mutex>;
+template class SPDLOG_API spdlog::sinks::stderr_sink<spdlog::details::console_nullmutex>;
+
+template SPDLOG_API std::shared_ptr<spdlog::logger> spdlog::stdout_logger_mt<spdlog::synchronous_factory>(const std::string &logger_name);
+template SPDLOG_API std::shared_ptr<spdlog::logger> spdlog::stdout_logger_st<spdlog::synchronous_factory>(const std::string &logger_name);
+template SPDLOG_API std::shared_ptr<spdlog::logger> spdlog::stderr_logger_mt<spdlog::synchronous_factory>(const std::string &logger_name);
+template SPDLOG_API std::shared_ptr<spdlog::logger> spdlog::stderr_logger_st<spdlog::synchronous_factory>(const std::string &logger_name);
+
+template SPDLOG_API std::shared_ptr<spdlog::logger> spdlog::stdout_logger_mt<spdlog::async_factory>(const std::string &logger_name);
+template SPDLOG_API std::shared_ptr<spdlog::logger> spdlog::stdout_logger_st<spdlog::async_factory>(const std::string &logger_name);
+template SPDLOG_API std::shared_ptr<spdlog::logger> spdlog::stderr_logger_mt<spdlog::async_factory>(const std::string &logger_name);
+template SPDLOG_API std::shared_ptr<spdlog::logger> spdlog::stderr_logger_st<spdlog::async_factory>(const std::string &logger_name);

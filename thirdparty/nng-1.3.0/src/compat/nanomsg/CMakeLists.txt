@@ -1,3 +1,15 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:97a4b869c5f578df3c1adc52ae3d634b87bf03c13f8d6ce2ae9b572f200760b4
-size 468
+#
+# Copyright 2020 Staysail Systems, Inc. <info@staysail.tech>
+#
+# This software is supplied under the terms of the MIT License, a
+# copy of which should be located in the distribution where this
+# file was obtained (LICENSE.txt).  A copy of the license may also be
+# found online at https://opensource.org/licenses/MIT.
+#
+
+#set(COMPAT_SOURCES compat/nanomsg/nn.c)
+nng_sources(nn.c)
+
+#set(NNG_SRCS ${NNG_SRCS} ${COMPAT_SOURCES} PARENT_SCOPE)
+
+nng_test(compat_tcp_test)

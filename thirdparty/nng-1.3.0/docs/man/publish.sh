@@ -1,3 +1,23 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:dae03ec7a4dfa19ca7940939f11c20f282d05d69053942369bcec692ab7a45d4
-size 633
+#!/bin/sh
+#
+# Copyright 2020 Staysail Systems, Inc. <info@staysail.tech>
+# This software is supplied under the terms of the MIT License, a
+# copy of which should be located in the distribution where this
+# file was obtained (LICENSE.txt).  A copy of the license may also be
+# found online at https://opensource.org/licenses/MIT.
+#
+#
+cat <<EOF
+*** DO NOT USE THIS SCRIPT ***
+
+We moved this to the gh-pages branch.
+
+To publish updates:
+
+  * git checkout the gh-pages branch
+  * run the _tools/pubrefman.sh script in gh-pages
+  * _tools/pubrefman.sh can take a tag (e.g. "v1.2.4") as an argument
+  * push the gh-pages branch
+
+EOF
+exit 1

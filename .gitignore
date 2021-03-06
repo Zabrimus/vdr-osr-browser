@@ -1,3 +1,12 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:fb2eebc626a75e6d579134814a8448458e5175c5c8f7e60dedc03073457c317f
-size 240
+*.o
+*.a
+.idea
+Release
+compile_commands.json
+thirdparty/HybridTvViewer/build
+thirdparty/HybridTvViewer/node_modules
+thirdparty/HybridTvViewer/package-lock.json
+/thirdparty/spdlog/build/
+/thirdparty/spdlog/buildbin/
+/thirdparty/cef/build/
+

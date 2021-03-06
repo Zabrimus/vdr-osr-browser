@@ -1,3 +1,20 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:43a6077d68397901bcba3a8611e7b27b1148a4e2f1a01d230a003d8fbe0b962b
-size 399
+//
+// Copyright(c) 2016 Gabi Melman.
+// Distributed under the MIT License (http://opensource.org/licenses/MIT)
+//
+
+#pragma once
+//
+// include bundled or external copy of fmtlib's ostream support
+//
+
+#if !defined(SPDLOG_FMT_EXTERNAL)
+#ifdef SPDLOG_HEADER_ONLY
+#ifndef FMT_HEADER_ONLY
+#define FMT_HEADER_ONLY
+#endif
+#endif
+#include <spdlog/fmt/bundled/ostream.h>
+#else
+#include <fmt/ostream.h>
+#endif

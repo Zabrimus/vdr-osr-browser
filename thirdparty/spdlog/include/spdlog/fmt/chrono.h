@@ -1,3 +1,20 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:1d5d7815a22b7524ab16c79607ad4d80dae707e39d5c0d72c7e7f3d4ac0a45d1
-size 396
+//
+// Copyright(c) 2016 Gabi Melman.
+// Distributed under the MIT License (http://opensource.org/licenses/MIT)
+//
+
+#pragma once
+//
+// include bundled or external copy of fmtlib's chrono support
+//
+
+#if !defined(SPDLOG_FMT_EXTERNAL)
+#ifdef SPDLOG_HEADER_ONLY
+#ifndef FMT_HEADER_ONLY
+#define FMT_HEADER_ONLY
+#endif
+#endif
+#include <spdlog/fmt/bundled/chrono.h>
+#else
+#include <fmt/chrono.h>
+#endif

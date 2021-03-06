@@ -1,3 +1,10 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:a9c8ea4c5f6be5394a2f9c860f496d606567adb08b6db9a859bb292ba3fc0d11
-size 330
+// Copyright(c) 2015-present, Gabi Melman & spdlog contributors.
+// Distributed under the MIT License (http://opensource.org/licenses/MIT)
+
+#pragma once
+
+#define SPDLOG_VER_MAJOR 1
+#define SPDLOG_VER_MINOR 8
+#define SPDLOG_VER_PATCH 2
+
+#define SPDLOG_VERSION (SPDLOG_VER_MAJOR * 10000 + SPDLOG_VER_MINOR * 100 + SPDLOG_VER_PATCH)

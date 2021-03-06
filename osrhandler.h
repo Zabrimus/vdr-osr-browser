@@ -1,3 +1,57 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:70b3694a3b3b29d8ffb69e83c9d46c500cb4f548b2651b5be6c8af365b56f948
-size 1849
+#ifndef VDR_OSR_BROWSER_OSRHANDLER_H
+#define VDR_OSR_BROWSER_OSRHANDLER_H
+
+#include "include/cef_render_handler.h"
+#include "include/cef_audio_handler.h"
+
+class BrowserClient;
+class Encoder;
+
+class OSRHandler : public CefRenderHandler,
+                   public CefAudioHandler {
+private:
+    int renderWidth;
+    int renderHeight;
+
+    int shmid;
+    uint8_t *shmp;
+    std::mutex shm_mutex;
+
+    Encoder* encoder = nullptr;
+    bool isVideoStarted = false;
+
+    static BrowserClient *browserClient;
+
+    int clearX, clearY, clearWidth, clearHeight;
+
+public:
+    OSRHandler(BrowserClient *bc, int width, int height);
+    ~OSRHandler() override;
+
+    // enable or disable the encoder
+    bool enableEncoder();
+    void disableEncoder();
+
+    // clear parts of the OSD
+    void osdClearVideo(int x, int y, int width, int height);
+
+    // video handler
+    void setRenderSize(int width, int height);
+    void GetViewRect(CefRefPtr<CefBrowser> browser, CefRect &rect) override;
+    void OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList &dirtyRects, const void *buffer, int width, int height) override;
+    void osdProcessed() { shm_mutex.unlock(); };
+
+    // audio handler
+    bool GetAudioParameters(CefRefPtr<CefBrowser> browser, CefAudioParameters &params) override;
+    void OnAudioStreamStarted(CefRefPtr<CefBrowser> browser, const CefAudioParameters &params, int channels) override;
+    void OnAudioStreamPacket(CefRefPtr<CefBrowser> browser, const float **data, int frames, int64 pts) override;
+    void OnAudioStreamStopped(CefRefPtr<CefBrowser> browser) override;
+    void OnAudioStreamError(CefRefPtr<CefBrowser> browser, const CefString &message) override;
+
+    // video to VDR
+    int writeVideoToShm(uint8_t *buf, int buf_size);
+
+    IMPLEMENT_REFCOUNTING(OSRHandler);
+};
+
+#endif //VDR_OSR_BROWSER_OSRHANDLER_H

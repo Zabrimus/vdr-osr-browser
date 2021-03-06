@@ -1,3 +1,15 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:807b0ef7555367ef6014e6c5d9276c006968d7488c4628506f7eb775cea81240
-size 359
+{
+  "name": "hybridtv-dev-environment",
+  "version": "0.0.1",
+  "description": "Polyfill to add basic HbbTV functionality to a browser.",
+  "scripts": {
+    "build": "./node_modules/.bin/webpack --config webpack.config.js"
+  },
+  "devDependencies": {
+    "webpack": "^4.39.2",
+    "webpack-cli": "^3.3.6"
+  },
+  "dependencies": {
+    "dashjs": "^3.2.1"
+  }
+}

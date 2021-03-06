@@ -1,3 +1,106 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:27410aa8ddf19cf98007b56373ad0792ff55b36d1080091a9a1ee1213354f2c7
-size 5764
+Generelle Probleme/Wünsche
+    Zurück-Taste auf der Fernbedienung um eine Seite zurückzuspringen.
+
+    Startseite (Red Button) bei Kanalwechsel automatisch anzeigen lassen.
+        => Kollision mit VDR Funktionalität. Sowohl OSD, als auch Fernbedienung.
+
+    Manche Kanäle (z.B. Alpha, Das Erste, ORF, ...) brauchen die aktuellen Programminformationen,
+    damit diese dargestellt werden können. Diese müssen vom VDR zum Browser gesendet werden.
+    Siehe video-broadcast-embedded-object.js:
+           oipfPluginObject.programmes = [];
+           oipfPluginObject.programmes.push({ name: 'Event 1, umlaut \u00e4', channelId: 'ccid:dvbt.0', duration: 600, startTime: Date.now() / 1000, description: 'EIT present event is under construction' });
+           oipfPluginObject.programmes.push({ name: 'Event 2, umlaut \u00f6', channelId: 'ccid:dvbt.0', duration: 300, startTime: Date.now() / 1000 + 600, description: 'EIT following event is under construction' });
+
+    Videos im Fenster überdecken evt. Popups. Das wurde jetzt geändert, aber z.B. Sonnenklar-TV hat noch Probleme.
+
+    Ich fürchte, es könnte notwendig sein, die Video-Funktionen zu überarbeiten:
+        https://developers.google.com/web/updates/2017/06/play-request-was-interrupted
+        Schon gesehen: DOMException: The play() request was interrupted
+
+    Die Bookmark-Konfiguration gehört gewaltig überarbeitet. Lesbarer und die Channelinformation gehören auch da rein.
+    Vielleicht wäre ein Shortcut, um Bookmarks zu speichern auch schön. Immer zum Sender zu wechseln und dann über Red-Button zu gehen ist schon lästig.
+
+    Manchmal reagiert der Browser nicht mehr. Es scheint, also ob irgendein Mutex die weitere Verarbeitung blockiert.
+       Mein Verdacht fällt auf OSDU und dessen Mutex. Aber sicher bin ich nicht.
+       Es hilft nur ein Neustart des Browsers über das OSD-Menu.
+       => Testen und herausfinden, ob es reproduzierbar ist.
+
+    Konfiguration eines Proxys für bestimmte Seiten/URLs/Kanäle. Stichwort Geo-Lokation.
+
+Sender-Probleme:
+    n-tv:
+        Navigation funktioniert. Aber bei der Auswahl passiert häufig nichts.
+
+    Tagesschau:
+        Keine Navigation möglich. Es scheint als müsste der CE-HTML Code gepatcht werden.
+        Hinweise auf eine bestehende Lösung hat 900H dazu geliefert. Siehe Github-Ticket.
+
+    Anixe:
+        Prüfen, ob der Browser noch crasht und die Seite funktioniert
+
+    SAT1 Spiele:
+    RTL Spiele:
+    Und andere mit Blue-Button-Spiele:
+        hbbtv-polyfill: createApplication: dvb://current.ait/21.74?pid=rtl&country=de -> http://mg-rtl.spielecenter.tv/spielecenter/index.php?pid=rtl&country=de
+        Resource interpreted as Document but transferred with MIME type application/vnd.hbbtv.xhtml+xml: "http://mg-rtl.spielecenter.tv/spielecenter/cookie_fs.php?GCID=xxx".
+        Resource interpreted as Document but transferred with MIME type application/vnd.hbbtv.xhtml+xml: "http://pro7.gofresh.tv/pro7/cookie_fs.php?GCID=xxx&prod=pro7&pid=s1&redirect=1".
+
+    ORF1:
+    SRF1:
+        Beide Seiten scheinen Probleme zu haben, aber zur Untersuchung muss ich erst an die Channelinformation und URLs kommen.
+        "Failed to execute 'observe' on 'MutationObserver': parameter 1 is not of type 'Node'."
+
+    Sonnenklar TV:
+        Uncaught SyntaxError: Failed to set the 'innerHTML' property on 'Element': The provided markup is invalid XML, and therefore cannot be inserted into an XML document.
+
+    1-2-3:
+        Die Seite hat schon ein paar Fehler und die Daten, die nachgeladen werden.... Ob es eine Möglichkeit gibt, das zu fixen?
+        Entweder geht oder geht nicht. Das scheint von den Angeboten abzuhängen o.O
+
+    Juwelo:
+        TV wird nicht im Video angezeigt. Es scheint, als ob der Videocontainer später erst in die Seite eingebunden wird: Zu spät für die Quirks.
+
+    Sport1:
+        Es gibt ja Sachen. Videos gibt es sowohl auf der Seite, als auch in einem IFrame. Das Problem ist, das Video im IFrame wird nicht skaliert, bzw.
+        das OSD überdeckt einen großen Teil. Wohl, weil ich es gar nicht vorgesehen habe. IFrame-Skalierung...
+
+    TODO
+        Tagesschau
+        SAT1
+        Pro7
+        Servus TV: gurad prevented to enter Mediathek ???
+        Sonnenklar     263 (Video liegt über dem Menu)
+        n-tv           383
+
+Make:
+    https://www.vdr-portal.de/forum/index.php?thread/133615-announce-hbbtv-plugin-offscreen-browser-v0-0-6/&postID=1327497#post1327497
+    Testen, ob ein paralles Make (make -j x) funktioniert.
+
+
+Ajax:
+    Noch suche ich einen Ajax-Proxy, der mir erlaubt, den Request und den Response zu verändern (sowohl Header, als auch Body).
+    (Siehe xmlhttprequest_quirks.js, index.js, browserclient.cpp)
+    Gefunden habe ich bisher 2 (eigentlich interessante) Projekte, die aber beide jeweils ihre eigenen Schwierigkeiten machen:
+
+    https://github.com/wendux/Ajax-hook
+    Damit funktioniert der Red-Button von ARD nicht. Das OSD wird kurz sichtbar, aber verschwindet dann direkt wieder
+
+    https://github.com/jpillora/xhook
+    Damit funktioniert z.B. ARD Text nicht mehr. Die Seite wird nicht dargestellt, obwohl sie gelesen wird.
+
+
+
+Zukunftsmusik:
+    Es gibt verschiedene HbbTV-Frameworks, mit denen man Seiten und Applikationen angeblich einfach erstellen kann. Wie z.B.
+    MPAT: https://github.com/MPAT-eu
+    bbc/tal: https://github.com/bbc/tal
+
+Sonstige interessante Links:
+    http://hbbtv-testing.virt.ch.bbc.co.uk/open-source/
+    https://www.coyotebrowser.com/hbbtv/applistastra/
+    https://trifinite.org/hbbtv/trifinite_hbbtv_channel_list.html
+    http://urju.de/hbbtv/
+
+DRM:
+    https://pypi.org/project/python-ffmpeg-video-streaming/#encryptiondrm
+    https://shaka-player-demo.appspot.com/docs/api/tutorial-drm-config.html

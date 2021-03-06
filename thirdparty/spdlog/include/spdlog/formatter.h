@@ -1,3 +1,18 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:48524fd1570012c2199c23a5cbd952d514e80ae76ec7075fee6a78cebb9f928e
-size 462
+// Copyright(c) 2015-present, Gabi Melman & spdlog contributors.
+// Distributed under the MIT License (http://opensource.org/licenses/MIT)
+
+#pragma once
+
+#include <spdlog/fmt/fmt.h>
+#include <spdlog/details/log_msg.h>
+
+namespace spdlog {
+
+class formatter
+{
+public:
+    virtual ~formatter() = default;
+    virtual void format(const details::log_msg &msg, memory_buf_t &dest) = 0;
+    virtual std::unique_ptr<formatter> clone() const = 0;
+};
+} // namespace spdlog
