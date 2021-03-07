@@ -67,7 +67,7 @@ AVLDFLAGS += $(shell pkg-config --libs libavformat libavcodec libavfilter libavd
 # ffnvcodec?
 
 CFLAGS += $(AVCFLAGS)
-LDFLAGS += $(AVLDFLAGS) -lmp3lame
+LDFLAGS += $(AVLDFLAGS)
 
 # CEF
 CFLAGS += -Ithirdparty/cef/include -Ithirdparty/cef

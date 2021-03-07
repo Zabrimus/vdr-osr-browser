@@ -117,17 +117,19 @@ Encoder::Encoder(OSRHandler *osrHndl, const char* out, bool writeToFile) {
 Encoder::~Encoder() {
     isVideoStopping = true;
 
+    av_write_trailer(encoder->avfc);
+    av_free(outbuffer);
+
+    avcodec_free_context(&encoder->video_avcc);
+    avcodec_free_context(&encoder->audio_avcc);
+    avformat_free_context(encoder->avfc);
+
     free(decodedPicture.image);
 
     for (int i = 0; i < 8; ++i) {
         free(decodedAudio.pcm[i]);
     }
     free(decodedAudio.pcm);
-
-    av_write_trailer(encoder->avfc);
-    av_free(outbuffer);
-
-    avformat_free_context(encoder->avfc);
 
     sws_freeContext(swsCtx);
     swsCtx = nullptr;
