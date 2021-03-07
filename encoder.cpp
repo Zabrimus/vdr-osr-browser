@@ -14,8 +14,10 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include <thread>
+#include <fstream>
 #include "logger.h"
 #include "encoder.h"
+#include "globaldefs.h"
 
 #define DEBUG_WRITE_TS_TO_FILE 0
 
@@ -77,6 +79,12 @@ int write_buffer_to_shm(void *opaque, uint8_t *buf, int buf_size) {
 
     // discard buffer
     return buf_size;
+}
+
+std::string getbrowserexepath() {
+    char result[ PATH_MAX ];
+    ssize_t count = readlink( "/proc/self/exe", result, PATH_MAX );
+    return std::string(result, static_cast<unsigned long>((count > 0) ? count : 0));
 }
 
 Encoder::Encoder(OSRHandler *osrHndl, const char* out, bool writeToFile) {
@@ -146,6 +154,44 @@ Encoder::~Encoder() {
     }
 }
 
+void Encoder::loadConfiguration(void *avcc_priv_data) {
+    CONSOLE_DEBUG("Load x264 configuration");
+
+    std::string exepath = getbrowserexepath();
+
+    std::ifstream infile(exepath.substr(0, exepath.find_last_of("/")) + "/x264_encoding.settings");
+    if (infile.is_open()) {
+        std::string line;
+        while (getline(infile, line)) {
+            if (line[0] == '#' || line.empty()) {
+                continue;
+            }
+
+            auto delimiterPos = line.find("=");
+            auto key = line.substr(0, delimiterPos);
+            auto value = line.substr(delimiterPos + 1);
+            trim(key);
+            trim(value);
+
+            av_opt_set(avcc_priv_data, key.c_str(), value.c_str(), 0);
+
+            CONSOLE_DEBUG("   {} = {}", key, value);
+        }
+    } else {
+        // fallback
+        av_opt_set(avcc_priv_data, "preset", "superfast", 0);
+        av_opt_set(avcc_priv_data, "tune", "zerolatency", 0);
+        av_opt_set(avcc_priv_data, "keyint", "10", 0);
+        av_opt_set(avcc_priv_data, "min-keyint", "10", 0);
+        av_opt_set(avcc_priv_data, "scenecut", "0", 0);
+        av_opt_set(avcc_priv_data, "force-cfr", "1", 0);
+        av_opt_set(avcc_priv_data, "cfr", "28", 0);
+
+        CONSOLE_DEBUG("   use default values");
+    }
+}
+
+
 int Encoder::prepare_video_encoder(int width, int height, AVRational input_framerate) {
     encoder->video_avs = avformat_new_stream(encoder->avfc, nullptr);
     encoder->video_avc = avcodec_find_encoder_by_name("libx264");
@@ -161,65 +207,10 @@ int Encoder::prepare_video_encoder(int width, int height, AVRational input_frame
         return -1;
     }
 
-    // Einstellungen 1: Die Latency ist noch viel zu hoch für meinen Geschmack
-    // av_opt_set(encoder->video_avcc->priv_data, "preset", "ultrafast", 0);
-    // av_opt_set(encoder->video_avcc->priv_data, "tune", "zerolatency", 0);
-    // av_opt_set(encoder->video_avcc->priv_data, "x264-params", "keyint=10:min-keyint=10:scenecut=0:force-cfr=1:crf=28", 0);
-
-    // Einstellungen 2: https://obsproject.com/forum/resources/low-latency-high-performance-x264-options-for-for-most-streaming-services-youtube-facebook.726/
-    // common: profile=main:keyint=2:nal-hrd=cbr:vbv-bufsize=2000:bf=2:b-adapt=0:partitions=none:scenecut=0:no-weightb:weightp=0:sliced-threads
-    av_opt_set(encoder->video_avcc->priv_data, "preset", "superfast", 0);
-    av_opt_set(encoder->video_avcc->priv_data, "profile", "main", 0);
-    av_opt_set(encoder->video_avcc->priv_data, "bf", "2", 0);
-    av_opt_set(encoder->video_avcc->priv_data, "keyint", "2", 0);
-    // av_opt_set(encoder->video_avcc->priv_data, "nal-hrd", "cbr", 0);
-    // av_opt_set(encoder->video_avcc->priv_data, "vbv-bufsize", "2000", 0);
-    // av_opt_set(encoder->video_avcc->priv_data, "vbv-maxrate", "768", 0);
-    av_opt_set(encoder->video_avcc->priv_data, "b-adapt", "0", 0);
-    av_opt_set(encoder->video_avcc->priv_data, "partitions", "none", 0);
-    av_opt_set(encoder->video_avcc->priv_data, "scenecut", "0", 0);
-    // av_opt_set(encoder->video_avcc->priv_data, "no-weightb", "1", 0);
-    // av_opt_set(encoder->video_avcc->priv_data, "weightp", "0", 0);
-    av_opt_set(encoder->video_avcc->priv_data, "sliced-threads", "1", 0);
-    av_opt_set(encoder->video_avcc->priv_data, "threads", "4", 0);
-
-
-    // Set #1: Low Latency, High Performance
-    // Set #1.1:  film/animation/grain/stillimage: aq-mode=0 subme=0 no-deblock
-    /* */
-    av_opt_set(encoder->video_avcc->priv_data, "aq-mode", "0", 0);
-    av_opt_set(encoder->video_avcc->priv_data, "subme", "0", 0);
-    av_opt_set(encoder->video_avcc->priv_data, "no-deblock", "1", 0);
-    /* */
-
-    // Set #1.2:  zerolatency: aq-mode=0 subme=0 no-deblock sync-lookahead=3
-    /*
-    av_opt_set(encoder->video_avcc->priv_data, "aq-mode", "0", 0);
-    av_opt_set(encoder->video_avcc->priv_data, "subme", "0", 0);
-    av_opt_set(encoder->video_avcc->priv_data, "no-deblock", "1", 0);
-    av_opt_set(encoder->video_avcc->priv_data, "sync-lookahead", "3", 0);
-    */
-
-    // Set #2: Low Latency
-    // Set #2.1: film/animation/grain/stillimage/zerolatency: force-cfr aq-mode=0 subme=0 no-deblock
-
-    // Set #3: Balanced
-    // Set #3.1: film: aq-mode=0 subme=0
-    // Set #3.2: animation/grain/stillimage: subme=0
-    // Set #3.3: zerolatency: aq-mode=0 subme=0 no-deblock sync-lookahead=3
-
-    // Set #4: Quality (maintains the settings of each tune)
-    // Set #4.1: film: aq-mode=0 subme=0 trellis=1
-    // Set #4.2: animation: subme=6
-    // Set #4.3: grain: subme=0 trellis=1
-    // Set #4.4: stillimage: subme=6 trellis=1
-    // Set #4.5: zerolatency: force-cfr aq-mode=0 subme=0 no-deblock
-
-
+    loadConfiguration(encoder->video_avcc->priv_data);
 
     encoder->video_avcc->height = height;
     encoder->video_avcc->width = width;
-    // encoder->video_avcc->sample_aspect_ratio = decoder_ctx->sample_aspect_ratio;
 
     if (encoder->video_avc->pix_fmts) {
         encoder->video_avcc->pix_fmt = encoder->video_avc->pix_fmts[0];
@@ -229,10 +220,6 @@ int Encoder::prepare_video_encoder(int width, int height, AVRational input_frame
 
     encoder->video_avcc->time_base = input_framerate;
     encoder->video_avs->time_base = AVRational {1, 1000000};
-
-    // encoder->video_avcc->time_base = AVRational {1, 1000000};
-    // encoder->video_avcc->sample_rate = 1000;
-    // encoder->video_avs->time_base = input_framerate;
 
     if (avcodec_open2(encoder->video_avcc, encoder->video_avc, nullptr) < 0) {
         CONSOLE_ERROR("could not open the video codec");
@@ -266,7 +253,6 @@ int Encoder::prepare_audio_encoder(int channels, int sample_rate, AVRational inp
 
     encoder->audio_avcc->strict_std_compliance = FF_COMPLIANCE_EXPERIMENTAL;
 
-    // encoder->audio_avs->time_base = input_framerate;
     encoder->video_avs->time_base = AVRational {1, 1000000};
 
     if (avcodec_open2(encoder->audio_avcc, encoder->audio_avc, nullptr) < 0) {
@@ -305,10 +291,7 @@ int Encoder::encode_video(uint64_t pts, AVFrame *input_frame) {
         output_packet->pts = av_rescale_q(output_packet->pts, (AVRational){1, 1000000}, encoder->video_avs->time_base);
         output_packet->dts = av_rescale_q(output_packet->dts, (AVRational){1, 1000000}, encoder->video_avs->time_base);
 
-        // av_packet_rescale_ts(output_packet, encoder->video_avcc->time_base, encoder->video_avs->time_base);
         av_packet_rescale_ts(output_packet, (AVRational){1, 90000}, encoder->video_avs->time_base);
-
-        // log_packet(encoder->avfc, output_packet);
 
         // sanity test
         if (output_packet->dts != AV_NOPTS_VALUE || output_packet->pts != AV_NOPTS_VALUE) {
@@ -350,16 +333,7 @@ int Encoder::encode_audio(uint64_t pts, AVFrame *input_frame) {
         output_packet->pts = av_rescale_q(output_packet->pts, (AVRational){1, 1000000}, encoder->audio_avs->time_base);
         output_packet->dts = av_rescale_q(output_packet->dts, (AVRational){1, 1000000}, encoder->audio_avs->time_base);
 
-        // av_packet_rescale_ts(output_packet, encoder->video_avcc->time_base, encoder->video_avs->time_base);
         av_packet_rescale_ts(output_packet, (AVRational){1, 90000}, encoder->audio_avs->time_base);
-
-
-        // output_packet->pts = av_rescale_q(pts, (AVRational){1, 1000000}, encoder->video_avs->time_base);
-        // output_packet->dts = AV_NOPTS_VALUE;
-        // output_packet->dts = output_packet->pts;
-
-        // av_packet_rescale_ts(output_packet, encoder->audio_avcc->time_base, encoder->audio_avs->time_base);
-        // av_packet_rescale_ts(output_packet, (AVRational){1, 1000000}, encoder->audio_avs->time_base);
 
         // sanity test
         if (output_packet->dts != AV_NOPTS_VALUE || output_packet->pts != AV_NOPTS_VALUE) {

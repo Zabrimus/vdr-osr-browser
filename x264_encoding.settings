@@ -1,0 +1,100 @@
+# Settings 1 (my first test)
+# preset = ultrafast
+# tune = zerolatency
+# keyint = 10
+# min-keyint = 10
+# scenecut = 0
+# force-cfr = 1
+# crf=28
+
+# Settings 2 (played with the settings below)
+keyint = 2
+preset = superfast
+profile = main
+bf = 2
+b-adapt = 0
+partitions = none
+scenecut = 0
+weightp = 0
+sliced-threads = 1
+aq-mode = 0
+subme = 0
+trellis = 1
+
+
+
+# Settings from https://obsproject.com/forum/resources/low-latency-high-performance-x264-options-for-for-most-streaming-services-youtube-facebook.726/
+# Untested and here for documentation of possible settings. Choose the desired one.
+
+# Common
+#nal-hrd = cbr
+#keyint = 2
+#preset = superfast
+#profile = main
+#bf = 2
+#b-adapt = 0
+#partitions = none
+#scenecut = 0
+#weightp = 0
+#sliced-threads = 1
+
+# Set #1: Low Latency, High Performance
+
+# Set #1.1 film/animation/grain/stillimage
+#aq-mode = 0
+#subme = 0
+#no-deblock = 1
+
+# Set #1.2 zerolatency
+#aq-mode = 0
+#subme = 0
+#no-deblock = 1
+#sync-lookahead = 3
+
+# Set #2: Low Latency
+
+# Set #2.1 film/animation/grain/stillimage/zerolatency
+#force-cfr = 1
+#aq-mode = 0
+#subme = 0
+#no-deblock = 1
+
+# Set #3: Balanced
+
+# Set #3.1 film:
+#aq-mode = 0
+#subme = 0
+
+# Set #3.2 animation/grain/stillimage
+#subme = 0
+
+# Set #3.2 zerolatency
+#aq-mode = 0
+#subme = 0
+#no-deblock = 1
+#sync-lookahead = 3
+
+# Set #4: Quality (maintains the settings of each tune)
+
+# Set #4.1 film:
+#aq-mode = 0
+#subme = 0
+#trellis = 1
+
+# Set #4.2 animation
+#subme = 6
+
+# Set #4.3 grain
+#subme = 0
+#trellis = 1
+
+# Set #4.4 stillimage
+#subme = 6
+#trellis = 1
+
+# Set #4.5 zerolatency
+#force-cfr = 1
+#aq-mode = 0
+#subme = 0
+#no-deblock = 1
+

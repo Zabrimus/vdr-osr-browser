@@ -128,6 +128,9 @@ prepareexe:
 ifneq (exists, $(shell test -e Release/block_url.config && echo exists))
 	cp block_url.config Release/block_url.config
 endif
+ifneq (exists, $(shell test -e Release/x264_encoding.settings && echo exists))
+	cp x264_encoding.settings Release/x264_encoding.settings
+endif
 
 buildcef:
 ifneq (exists, $(shell test -e thirdparty/cef/build/libcef_dll_wrapper/libcef_dll_wrapper.a && echo exists))

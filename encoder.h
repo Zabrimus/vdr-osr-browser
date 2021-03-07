@@ -52,6 +52,9 @@ private:
     uint8_t* decodedVideoFrame;
 
 private:
+    // load x264 configuration
+    void loadConfiguration(void *avcc_priv_data);
+
     // encode
     int prepare_video_encoder(int width, int height, AVRational input_framerate);
     int prepare_audio_encoder(int channels, int sample_rate, AVRational input_framerate);
