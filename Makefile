@@ -75,7 +75,7 @@ LDFLAGS += -Lthirdparty/cef/build/libcef_dll_wrapper -Lthirdparty/cef/Release -W
 
 # Sanitizer ASAN
 ifeq ($(SANITIZER), 1)
-# CC=clang++-12
+CC=clang++-12
 ASANCFLAGS = -ggdb -fsanitize=address  -fno-omit-frame-pointer
 ASANLDFLAGS = -ggdb -fsanitize=address  -fno-omit-frame-pointer /usr/lib/llvm-12/lib/libc++abi.a extlib/libclang_rt.asan_cxx-x86_64.a
 endif

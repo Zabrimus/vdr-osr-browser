@@ -45,7 +45,17 @@ typedef struct RawVideoPicture {
     uint64_t pts;
 } RawVideoPicture;
 
+typedef struct RawPCMAudio {
+    int status;
+
+    int audioBufferSize;
+    uint64_t pts;
+    uint8_t **pcm;
+} RawPCMAudio;
+
+
 RawVideoPicture decodedPicture;
+RawPCMAudio decodedAudio;
 
 int write_buffer_to_file(void *opaque, uint8_t *buf, int buf_size) {
     if (!feof(fp_output)) {
@@ -87,17 +97,32 @@ Encoder::Encoder(OSRHandler *osrHndl, const char* out, bool writeToFile) {
     // TODO: The image size is predefined as 1280 x 720.
     //  If images with another size shall be supported, then
     //  these values must be adjusted.
-    decodedPicture.image = (uint8_t *) malloc(1280 * 720 * 4);;
+    decodedPicture.image = (uint8_t *) calloc(1, 1280 * 720 * 4);
     decodedPicture.width = 0;
     decodedPicture.height = 0;
     decodedPicture.pts = 0;
     decodedPicture.status = 0;
+
+    // TODO: Currently max. 8 channels are supported. If more are
+    //  necessary, then this needs to be adapted
+    decodedAudio.status = 0;
+    decodedAudio.pts = 0;
+    decodedAudio.pcm = (uint8_t **) calloc(1, 8 * sizeof(uint8_t*));
+    decodedAudio.audioBufferSize = av_samples_get_buffer_size(NULL, 1,1024, AV_SAMPLE_FMT_FLTP, 0);
+    for (int i = 0; i < 8; ++i) {
+        decodedAudio.pcm[i] = (uint8_t*) calloc(1, decodedAudio.audioBufferSize);
+    }
 }
 
 Encoder::~Encoder() {
     isVideoStopping = true;
 
     free(decodedPicture.image);
+
+    for (int i = 0; i < 8; ++i) {
+        free(decodedAudio.pcm[i]);
+    }
+    free(decodedAudio.pcm);
 
     av_write_trailer(encoder->avfc);
     av_free(outbuffer);
@@ -354,8 +379,13 @@ void Encoder::Start() {
     // main wait loop
     while (!isVideoStopping) {
         std::this_thread::sleep_for(std::chrono::microseconds(500));
+
         if (decodedPicture.status == 1) {
             processVideoFrame();
+        }
+
+        if (decodedAudio.status == 1) {
+            processAudioFrame();
         }
     }
 
@@ -454,7 +484,6 @@ void Encoder::processVideoFrame() {
     }
 
     decodedPicture.status = 2;
-
     isVideoFinished = false;
 
     AVFrame *videoFrame;
@@ -513,18 +542,34 @@ void Encoder::processVideoFrame() {
     av_frame_free(&videoFrame);
 
     isVideoFinished = true;
-
     decodedPicture.status = 0;
-
-    return;
 }
 
-int Encoder::addAudioFrame(const float **data, int frames, uint64_t pts) {
+void Encoder::addAudioFrame(const float **data, int frames, uint64_t pts) {
+     while (decodedAudio.status != 0 && !isVideoStopping) {
+         std::this_thread::sleep_for(std::chrono::microseconds(100));
+     }
+
+     uint8_t **pcm = (uint8_t **)data;
+     for (int i = 0; i < std::min(8, channelCount); i++) {
+        memcpy(decodedAudio.pcm[i], pcm[i], decodedAudio.audioBufferSize);
+     }
+
+     decodedAudio.pts = pts;
+     decodedAudio.status = 1;
+}
+
+void Encoder::processAudioFrame() {
     if (isVideoStopping) {
         isAudioFinished = true;
-        return 0;
+        return;
     }
 
+    if (decodedAudio.status == 0) {
+        return;
+    }
+
+    decodedAudio.status = 2;
     isAudioFinished = false;
 
     AVFrame *audioFrame;
@@ -534,22 +579,21 @@ int Encoder::addAudioFrame(const float **data, int frames, uint64_t pts) {
     if (!audioFrame) {
         av_log(nullptr, AV_LOG_ERROR, "error creating audio frame\n");
         isAudioFinished = true;
-        return -1;
+        decodedAudio.status = 0;
+        return;
     }
 
     audioFrame->nb_samples     = encoder->audio_avcc->frame_size;
     audioFrame->format         = AV_SAMPLE_FMT_FLTP;
     audioFrame->channel_layout = AV_CH_LAYOUT_STEREO;
 
-    uint8_t **pcm = (uint8_t **)data;
     for (int i = 0; i < 2; i++)
-        audioFrame->data[i] = pcm[i];
+        audioFrame->data[i] = decodedAudio.pcm[i];
 
-    encode_audio(pts, audioFrame);
+    encode_audio(decodedAudio.pts, audioFrame);
 
     av_frame_free(&audioFrame);
 
     isAudioFinished = true;
-
-    return 0;
+    decodedAudio.status = 0;
 }

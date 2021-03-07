@@ -73,7 +73,8 @@ public:
     void addVideoFrame(int width, int height, uint8_t* image, uint64_t pts);
     void processVideoFrame();
 
-    int addAudioFrame(const float **data, int frames, uint64_t pts);
+    void addAudioFrame(const float **data, int frames, uint64_t pts);
+    void processAudioFrame();
 };
 
 #endif //VDR_OSR_BROWSER_ENCODER_H

@@ -88,7 +88,9 @@ OSRHandler::~OSRHandler() {
 
     if (encoder != nullptr) {
         encoder->stopEncoder();
+        encoderThread->join();
         delete encoder;
+        encoder = nullptr;
     }
 }
 
@@ -107,7 +109,6 @@ bool OSRHandler::enableEncoder() {
     // start encoder
     encoder = new Encoder(this, "movie/streaming");
     encoderThread = new std::thread(startEncoderThread, encoder);
-    // encoderThread->detach();
 
     isVideoStarted = false;
 
