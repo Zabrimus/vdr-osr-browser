@@ -116,7 +116,7 @@ function init() {
     // intercept XMLHttpRequest
     /* Enable/Disable if ajax module shall be used */
     // FIXME: Disabled at all to test some channels
-    if (false && location.href.search("hbbtv.swisstxt.ch") === -1) {
+    if (true && location.href.search("hbbtv.swisstxt.ch") === -1) {
         let cefOldXHROpen = window.XMLHttpRequest.prototype.open;
         window.XMLHttpRequest.prototype.open = function (method, url, async, user, password) {
             // do something with the method, url and etc.
@@ -149,7 +149,8 @@ function init() {
             });
             */
 
-            return cefOldXHROpen.call(this, method, url, async, user, password);
+            // return cefOldXHROpen.call(this, method, url, async, user, password);
+            return cefOldXHROpen.call(this, method, url, true, user, password);
         };
     }
     /* Enable/Disable if ajax module shall be used */

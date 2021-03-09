@@ -28,8 +28,69 @@ function scanChildrenForPlayer(items) {
     });
 }
 
-export class OipfAVControlMapper {
+// dash.js event handler.
+// Used as a replacement for registerVideoPlayerEvents for dash.js.
+// In this case use the dash.js events natively.
+function handleDashjsEvents(event) {
+    switch (event.type) {
+        case 'playbackPlaying':
+            window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill-dashjs: PLAYBACK_PLAYING');
 
+            signalCef("PLAY_VIDEO");
+            window.cefVideoSize();
+            break;
+
+        case 'playbackPaused':
+            window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill-dashjs: PLAYBACK_PAUSED');
+            break;
+
+        case 'playbackEnded':
+            window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill-dashjs: PLAYBACK_ENDED');
+
+            signalCef("END_VIDEO");
+            break;
+
+        case 'playbackError':
+            window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill-dashjs: PLAYBACK_ENDED');
+
+            signalCef("ERROR_VIDEO");
+            break;
+
+        case 'periodSwitchCompleted':
+            window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill-dashjs: PERIOD_SWITCH_COMPLETED');
+
+            break;
+
+        case 'playbackTimeUpdated':
+            // window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill-dashjs: PLAYBACK_TIME_UPDATED');
+
+            /*
+            if (videoElement.currentTime > 0) {
+                signalCef("TIMEUPDATE: " + videoElement.currentTime * 1000 * 1000);
+            }
+            */
+
+            break;
+
+        case 'playbackRateChanged':
+            window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill-dashjs: PLAYBACK_RATE_CHANGED');
+            break;
+
+        case 'playbackSeeked':
+            window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill-dashjs: PLAYBACK_SEEKED');
+            break;
+
+        case 'manifestLoaded':
+            window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill-dashjs: MANIFEST_LOADED');
+            break;
+
+        case 'playbackStarted':
+            window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill-dashjs: PLAYBACK_STARTED');
+            break;
+    }
+}
+
+export class OipfAVControlMapper {
     /**
      * object tag with media type
      * @param {*} node 
@@ -59,13 +120,68 @@ export class OipfAVControlMapper {
         if (this.isDashVideo) {
             this.dashPlayer = MediaPlayer().create();
             this.dashPlayer.initialize(this.videoElement, originalDataAttribute, true);
+
+            this.dashPlayer.updateSettings({'debug': {'logLevel': dashjs.Debug.LOG_LEVEL_DEBUG}});
+            /*
+            if (window._HBBTV_DEBUG_) {
+                this.dashPlayer.updateSettings({'debug': {'logLevel': dashjs.Debug.LOG_LEVEL_DEBUG}});
+            } else {
+                this.dashPlayer.updateSettings({'debug': {'logLevel': dashjs.Debug.LOG_LEVEL_WARNING}});
+            }
+            */
+
+            /* dash.js events:
+                BUFFER_EMPTY
+                BUFFER_LOADED
+                CAN_PLAY
+                DYNAMIC_TO_STATIC
+                ERROR
+                LOG
+                MANIFEST_LOADED
+                METRIC_ADDED
+                METRIC_CHANGED
+                METRIC_UPDATED
+                METRICS_CHANGED
+                PERIOD_SWITCH_COMPLETED
+                PERIOD_SWITCH_STARTED
+                PLAYBACK_ENDED
+                PLAYBACK_ERROR
+                PLAYBACK_METADATA_LOADED
+                PLAYBACK_PAUSED
+                PLAYBACK_PLAYING
+                PLAYBACK_PROGRESS
+                PLAYBACK_RATE_CHANGED
+                PLAYBACK_SEEKED
+                PLAYBACK_SEEKING
+                PLAYBACK_STARTED
+                PLAYBACK_TIME_UPDATED
+                PLAYBACK_WAITING
+                STREAM_UPDATED
+                STREAM_INITIALIZED
+                TEXT_TRACK_ADDED
+                TEXT_TRACKS_ADDED
+            */
+            this.dashPlayer.on(dashjs.MediaPlayer.events['PLAYBACK_PLAYING'], handleDashjsEvents);
+            this.dashPlayer.on(dashjs.MediaPlayer.events['PLAYBACK_PAUSED'], handleDashjsEvents);
+            this.dashPlayer.on(dashjs.MediaPlayer.events['PLAYBACK_ENDED'], handleDashjsEvents);
+            this.dashPlayer.on(dashjs.MediaPlayer.events['PLAYBACK_ERROR'], handleDashjsEvents);
+            this.dashPlayer.on(dashjs.MediaPlayer.events['PERIOD_SWITCH_COMPLETED'], handleDashjsEvents);
+            this.dashPlayer.on(dashjs.MediaPlayer.events['PLAYBACK_TIME_UPDATED'], handleDashjsEvents);
+            this.dashPlayer.on(dashjs.MediaPlayer.events['PLAYBACK_RATE_CHANGED'], handleDashjsEvents);
+            this.dashPlayer.on(dashjs.MediaPlayer.events['PLAYBACK_SEEKED'], handleDashjsEvents);
+            this.dashPlayer.on(dashjs.MediaPlayer.events['MANIFEST_LOADED'], handleDashjsEvents);
+            this.dashPlayer.on(dashjs.MediaPlayer.events['PLAYBACK_STARTED'], handleDashjsEvents);
+
+            this.watchAvControlObjectMutations(this.avControlObject);
+
         } else {
             this.videoElement.src = originalDataAttribute;
-        }
 
-        this.mapAvControlToHtml5Video();
-        this.watchAvControlObjectMutations(this.avControlObject);
-        this.registerEmbeddedVideoPlayerEvents(this.avControlObject, this.videoElement);
+            // use these for non-dashjs videos
+            this.mapAvControlToHtml5Video();
+            this.watchAvControlObjectMutations(this.avControlObject);
+            this.registerEmbeddedVideoPlayerEvents(this.avControlObject, this.videoElement);
+        }
 
         // this does not work as desired: <object...><video.../></object>
         // it has to be <object/></video>

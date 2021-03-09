@@ -118,7 +118,8 @@ Encoder::Encoder(OSRHandler *osrHndl, const char* out, bool writeToFile) {
     decodedAudio.pcm = (uint8_t **) calloc(1, 8 * sizeof(uint8_t*));
     decodedAudio.audioBufferSize = av_samples_get_buffer_size(NULL, 1,1024, AV_SAMPLE_FMT_FLTP, 0);
     for (int i = 0; i < 8; ++i) {
-        decodedAudio.pcm[i] = (uint8_t*) calloc(1, decodedAudio.audioBufferSize);
+        decodedAudio.pcm[i] = (uint8_t*) malloc(decodedAudio.audioBufferSize);
+        memset(decodedAudio.pcm[i], 0xff, decodedAudio.audioBufferSize);
     }
 }
 
@@ -563,8 +564,9 @@ void Encoder::processAudioFrame() {
     audioFrame->format         = AV_SAMPLE_FMT_FLTP;
     audioFrame->channel_layout = AV_CH_LAYOUT_STEREO;
 
-    for (int i = 0; i < 2; i++)
+    for (int i = 0; i < channelCount; i++) {
         audioFrame->data[i] = decodedAudio.pcm[i];
+    }
 
     encode_audio(decodedAudio.pts, audioFrame);
 
