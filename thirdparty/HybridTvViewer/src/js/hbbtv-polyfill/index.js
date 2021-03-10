@@ -26,12 +26,20 @@ function init() {
     window.cefVideoSize = function() {
         var video = document.getElementById("video");
         var videocontainer = document.getElementById("videocontainer");
-        var videoplayer = document.getElementById("hbbtv-polyfill-video-player");
+        var videoplayer = document.getElementById("hbbtv-polyfill-broadcast-player");
         var playerobject = document.getElementById("playerObject");
 
         var target = null;
         var position;
         var maxwidth = 0, maxheight = 0;
+
+        // calculate size only if a broadcast player exists, otherwise set video to fullscreen
+        if (!videoplayer) {
+            // fullscreen
+            console.log("=====> VIDEO SIZE MAX");
+            signalCef("VIDEO_SIZE: 1280,720,0,0");
+            return;
+        }
 
         // --------------------------------------------------
         // quirks:
@@ -115,8 +123,7 @@ function init() {
 
     // intercept XMLHttpRequest
     /* Enable/Disable if ajax module shall be used */
-    // FIXME: Disabled at all to test some channels
-    if (true && location.href.search("hbbtv.swisstxt.ch") === -1) {
+    if (location.href.search("hbbtv.swisstxt.ch") === -1) {
         let cefOldXHROpen = window.XMLHttpRequest.prototype.open;
         window.XMLHttpRequest.prototype.open = function (method, url, async, user, password) {
             // do something with the method, url and etc.

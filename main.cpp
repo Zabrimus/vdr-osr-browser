@@ -182,6 +182,7 @@ void checkInstallation() {
 
 std::string *initUrl = nullptr;
 std::string *logFile = nullptr;
+std::string *dashplayer = nullptr;
 
 // Entry point function for all processes.
 int main(int argc, char *argv[]) {
@@ -206,6 +207,8 @@ int main(int argc, char *argv[]) {
             log_level = spdlog::level::critical;
         } else if (strncmp(argv[i], "--logfile=", 10) == 0) {
             logFile = new std::string(argv[i] + 10);
+        } else if (strncmp(argv[i], "--dashplayer=", 13) == 0) {
+            dashplayer = new std::string(argv[i] + 13);
         }
     }
 
@@ -308,7 +311,7 @@ int main(int argc, char *argv[]) {
     //  Der Thread, der regelmäßig SendExternalBeginFrame aufrufen soll, befindet sich im BrowserPaintUpdater.
     //  window_info.external_begin_frame_enabled = true;
 
-    CefRefPtr<BrowserClient> browserClient = new BrowserClient(log_level);
+    CefRefPtr<BrowserClient> browserClient = new BrowserClient(log_level, dashplayer);
     browser = CefBrowserHost::CreateBrowserSync(window_info, browserClient.get(), initUrl ? initUrl->c_str() : "", browserSettings, nullptr, nullptr);
 
     browser->GetHost()->WasHidden(true);
@@ -316,6 +319,10 @@ int main(int argc, char *argv[]) {
 
     if (initUrl != nullptr) {
         delete initUrl;
+    }
+
+    if (dashplayer != nullptr) {
+        delete dashplayer;
     }
 
     browserClient->initJavascriptCallback();

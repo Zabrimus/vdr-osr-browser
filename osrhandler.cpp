@@ -167,7 +167,7 @@ void OSRHandler::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, c
         memcpy(shmp, buffer, w * h * 4);
 
         if (clearX != 0 && clearY != 0 && clearHeight != width && clearHeight != height) {
-            CONSOLE_DEBUG("clearX: {}, clearY: {}, clearWidth: {}, clearHeight: {}, width: {}, heigth: {}", clearX, clearY, clearWidth, clearHeight, width, height);
+            // CONSOLE_DEBUG("clearX: {}, clearY: {}, clearWidth: {}, clearHeight: {}, width: {}, heigth: {}", clearX, clearY, clearWidth, clearHeight, width, height);
 
             // clear part of the OSD
             uint32_t* buf = (uint32_t*)shmp;

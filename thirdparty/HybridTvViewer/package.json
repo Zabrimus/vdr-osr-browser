@@ -10,6 +10,7 @@
     "webpack-cli": "^3.3.6"
   },
   "dependencies": {
-    "dashjs": "^3.2.1"
+    "dashjs": "^3.2.1",
+    "shaka-player": "2.5.20"
   }
 }

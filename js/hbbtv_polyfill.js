@@ -30669,6 +30669,7 @@ __webpack_require__.r(__webpack_exports__);
 
 // import dashjs file --> we want it sync so don't pull from cdn ->  downside is we need a copy in repo TODO: fetch latest in build process
 
+// import shaka from "shaka-player";
 
 const PLAY_STATES = {
     stopped: 0,
@@ -30768,11 +30769,11 @@ class OipfAVControlMapper {
         this.videoElement = document.createElement('video'); // setup artificial video tag
         this.videoElement.setAttribute('id', 'hbbtv-polyfill-video-player');
         this.videoElement.setAttribute('autoplay', ''); // setting src will start the video and send an event
-        this.videoElement.setAttribute('style', 'position:absolute');
+        // this.videoElement.setAttribute('style', 'position:absolute');
+        this.videoElement.setAttribute('style', 'height:100%; width:100%');
 
         // TEST
         // this.videoElement.setAttribute('data', originalDataAttribute);
-
 
         // interval to simulate rewind functionality
         this.rewindInterval;
@@ -30780,62 +30781,84 @@ class OipfAVControlMapper {
         this.dashPlayer;
         // user dash.js to init player
         if (this.isDashVideo) {
-            this.dashPlayer = Object(dashjs__WEBPACK_IMPORTED_MODULE_0__["MediaPlayer"])().create();
-            this.dashPlayer.initialize(this.videoElement, originalDataAttribute, true);
+            if (window._HBBTV_DASH_PLAYER_ === 'dashjs') {
+                /*****************
+                 dash-js
+                 *****************/
+                 this.dashPlayer = Object(dashjs__WEBPACK_IMPORTED_MODULE_0__["MediaPlayer"])().create();
+                 this.dashPlayer.initialize(this.videoElement, originalDataAttribute, true);
+                 this.dashPlayer.updateSettings({'debug': {'logLevel': dashjs.Debug.LOG_LEVEL_DEBUG}});
 
-            this.dashPlayer.updateSettings({'debug': {'logLevel': dashjs.Debug.LOG_LEVEL_DEBUG}});
-            /*
-            if (window._HBBTV_DEBUG_) {
-                this.dashPlayer.updateSettings({'debug': {'logLevel': dashjs.Debug.LOG_LEVEL_DEBUG}});
-            } else {
-                this.dashPlayer.updateSettings({'debug': {'logLevel': dashjs.Debug.LOG_LEVEL_WARNING}});
+                 if (window._HBBTV_DEBUG_) {
+                     this.dashPlayer.updateSettings({'debug': {'logLevel': dashjs.Debug.LOG_LEVEL_DEBUG}});
+                 } else {
+                    this.dashPlayer.updateSettings({'debug': {'logLevel': dashjs.Debug.LOG_LEVEL_WARNING}});
+                 }
+
+                 // dash.js events:
+                 //    BUFFER_EMPTY
+                 //    BUFFER_LOADED
+                 //    CAN_PLAY
+                 //    DYNAMIC_TO_STATIC
+                 //    ERROR
+                 //    LOG
+                 //    MANIFEST_LOADED
+                 //    METRIC_ADDED
+                 //    METRIC_CHANGED
+                 //    METRIC_UPDATED
+                 //    METRICS_CHANGED
+                 //    PERIOD_SWITCH_COMPLETED
+                 //    PERIOD_SWITCH_STARTED
+                 //    PLAYBACK_ENDED
+                 //    PLAYBACK_ERROR
+                 //    PLAYBACK_METADATA_LOADED
+                 //    PLAYBACK_PAUSED
+                 //    PLAYBACK_PLAYING
+                 //    PLAYBACK_PROGRESS
+                 //    PLAYBACK_RATE_CHANGED
+                 //    PLAYBACK_SEEKED
+                 //    PLAYBACK_SEEKING
+                 //    PLAYBACK_STARTED
+                 //    PLAYBACK_TIME_UPDATED
+                 //    PLAYBACK_WAITING
+                 //    STREAM_UPDATED
+                 //    STREAM_INITIALIZED
+                 //    TEXT_TRACK_ADDED
+                 //    TEXT_TRACKS_ADDED
+
+                 this.dashPlayer.on(dashjs.MediaPlayer.events['PLAYBACK_PLAYING'], handleDashjsEvents);
+                 this.dashPlayer.on(dashjs.MediaPlayer.events['PLAYBACK_PAUSED'], handleDashjsEvents);
+                 this.dashPlayer.on(dashjs.MediaPlayer.events['PLAYBACK_ENDED'], handleDashjsEvents);
+                 this.dashPlayer.on(dashjs.MediaPlayer.events['PLAYBACK_ERROR'], handleDashjsEvents);
+                 this.dashPlayer.on(dashjs.MediaPlayer.events['PERIOD_SWITCH_COMPLETED'], handleDashjsEvents);
+                 this.dashPlayer.on(dashjs.MediaPlayer.events['PLAYBACK_TIME_UPDATED'], handleDashjsEvents);
+                 this.dashPlayer.on(dashjs.MediaPlayer.events['PLAYBACK_RATE_CHANGED'], handleDashjsEvents);
+                 this.dashPlayer.on(dashjs.MediaPlayer.events['PLAYBACK_SEEKED'], handleDashjsEvents);
+                 this.dashPlayer.on(dashjs.MediaPlayer.events['MANIFEST_LOADED'], handleDashjsEvents);
+                 this.dashPlayer.on(dashjs.MediaPlayer.events['PLAYBACK_STARTED'], handleDashjsEvents);
+
+                this.watchAvControlObjectMutations(this.avControlObject);
+            } /*else if (window._HBBTV_DASH_PLAYER_ === 'shaka') {
+                shaka.polyfill.installAll();
+
+                // Install built-in polyfills to patch browser incompatibilities.
+                const player = new shaka.Player(this.videoElement);
+                window.player = player;
+
+                // player.addEventListener('error', onErrorEvent);
+
+                try {
+                    player.load(originalDataAttribute);
+                    console.log('The video has now been loaded!');
+                } catch (error) {
+                    // onError is executed if the asynchronous load fails.
+                    console.error('Error code', error.code, 'object', error);
+                }
             }
             */
 
-            /* dash.js events:
-                BUFFER_EMPTY
-                BUFFER_LOADED
-                CAN_PLAY
-                DYNAMIC_TO_STATIC
-                ERROR
-                LOG
-                MANIFEST_LOADED
-                METRIC_ADDED
-                METRIC_CHANGED
-                METRIC_UPDATED
-                METRICS_CHANGED
-                PERIOD_SWITCH_COMPLETED
-                PERIOD_SWITCH_STARTED
-                PLAYBACK_ENDED
-                PLAYBACK_ERROR
-                PLAYBACK_METADATA_LOADED
-                PLAYBACK_PAUSED
-                PLAYBACK_PLAYING
-                PLAYBACK_PROGRESS
-                PLAYBACK_RATE_CHANGED
-                PLAYBACK_SEEKED
-                PLAYBACK_SEEKING
-                PLAYBACK_STARTED
-                PLAYBACK_TIME_UPDATED
-                PLAYBACK_WAITING
-                STREAM_UPDATED
-                STREAM_INITIALIZED
-                TEXT_TRACK_ADDED
-                TEXT_TRACKS_ADDED
-            */
-            this.dashPlayer.on(dashjs.MediaPlayer.events['PLAYBACK_PLAYING'], handleDashjsEvents);
-            this.dashPlayer.on(dashjs.MediaPlayer.events['PLAYBACK_PAUSED'], handleDashjsEvents);
-            this.dashPlayer.on(dashjs.MediaPlayer.events['PLAYBACK_ENDED'], handleDashjsEvents);
-            this.dashPlayer.on(dashjs.MediaPlayer.events['PLAYBACK_ERROR'], handleDashjsEvents);
-            this.dashPlayer.on(dashjs.MediaPlayer.events['PERIOD_SWITCH_COMPLETED'], handleDashjsEvents);
-            this.dashPlayer.on(dashjs.MediaPlayer.events['PLAYBACK_TIME_UPDATED'], handleDashjsEvents);
-            this.dashPlayer.on(dashjs.MediaPlayer.events['PLAYBACK_RATE_CHANGED'], handleDashjsEvents);
-            this.dashPlayer.on(dashjs.MediaPlayer.events['PLAYBACK_SEEKED'], handleDashjsEvents);
-            this.dashPlayer.on(dashjs.MediaPlayer.events['MANIFEST_LOADED'], handleDashjsEvents);
-            this.dashPlayer.on(dashjs.MediaPlayer.events['PLAYBACK_STARTED'], handleDashjsEvents);
-
             this.watchAvControlObjectMutations(this.avControlObject);
-
+            this.registerEmbeddedVideoPlayerEvents(this.avControlObject, this.videoElement);
         } else {
             this.videoElement.src = originalDataAttribute;
 
@@ -30848,7 +30871,7 @@ class OipfAVControlMapper {
         // this does not work as desired: <object...><video.../></object>
         // it has to be <object/></video>
         if (isDashVideo) {
-            this.avControlObject.appendChild(this.videoElement);
+           this.avControlObject.appendChild(this.videoElement);
         } else {
             // this.avControlObject.appendChild(this.videoElement);
             this.avControlObject.parentNode.insertBefore(this.videoElement, this.avControlObject.nextSibling);
@@ -30944,12 +30967,12 @@ class OipfAVControlMapper {
                     this.avControlObject.data = "client://movie/fail";
                     this.videoElement.load();
                 }
-            } else if ((event.attributeName === 'width') || (event.attributeName === 'height')) {
-                this.videoElement.style.width = this.avControlObject.style.width;
-                this.videoElement.style.height = this.avControlObject.style.height;
-                this.videoElement.style.left = this.avControlObject.style.left;
-                this.videoElement.style.top = this.avControlObject.style.top;
-            }
+            } /*else if ((event.attributeName === 'width') || (event.attributeName === 'height')) {
+                    this.videoElement.style.width = this.avControlObject.style.width;
+                    this.videoElement.style.height = this.avControlObject.style.height;
+                    this.videoElement.style.left = this.avControlObject.style.left;
+                    this.videoElement.style.top = this.avControlObject.style.top;
+            }*/
         };
         const handleMutation = (mutationList, mutationObserver) => {
             mutationList.forEach((mutation) => {
@@ -31689,12 +31712,20 @@ function init() {
     window.cefVideoSize = function() {
         var video = document.getElementById("video");
         var videocontainer = document.getElementById("videocontainer");
-        var videoplayer = document.getElementById("hbbtv-polyfill-video-player");
+        var videoplayer = document.getElementById("hbbtv-polyfill-broadcast-player");
         var playerobject = document.getElementById("playerObject");
 
         var target = null;
         var position;
         var maxwidth = 0, maxheight = 0;
+
+        // calculate size only if a broadcast player exists, otherwise set video to fullscreen
+        if (!videoplayer) {
+            // fullscreen
+            console.log("=====> VIDEO SIZE MAX");
+            signalCef("VIDEO_SIZE: 1280,720,0,0");
+            return;
+        }
 
         // --------------------------------------------------
         // quirks:
@@ -31778,8 +31809,7 @@ function init() {
 
     // intercept XMLHttpRequest
     /* Enable/Disable if ajax module shall be used */
-    // FIXME: Disabled at all to test some channels
-    if ( true && location.href.search("hbbtv.swisstxt.ch") === -1) {
+    if (location.href.search("hbbtv.swisstxt.ch") === -1) {
         let cefOldXHROpen = window.XMLHttpRequest.prototype.open;
         window.XMLHttpRequest.prototype.open = function (method, url, async, user, password) {
             // do something with the method, url and etc.
@@ -32146,7 +32176,7 @@ class OipfVideoBroadcastMapper {
         var isVideoPlayerAlreadyAdded = oipfPluginObject.children.length > 0;
         if (!isVideoPlayerAlreadyAdded) {
             this.videoTag = document.createElement('video');
-            this.videoTag.setAttribute('id', 'hbbtv-polyfill-video-player');
+            this.videoTag.setAttribute('id', 'hbbtv-polyfill-broadcast-player');
             this.videoTag.setAttribute('autoplay', ''); // note: call to bindToCurrentChannel() or play() is doing it
             this.videoTag.setAttribute('loop', '');
             this.videoTag.setAttribute('style', 'top:0px; left:0px; width:100%; height:100%;');
@@ -32173,7 +32203,7 @@ class OipfVideoBroadcastMapper {
         };
         oipfPluginObject.bindToCurrentChannel = function () {
             window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: BroadcastVideo bindToCurrentChannel() ...');
-            var player = document.getElementById('hbbtv-polyfill-video-player');
+            var player = document.getElementById('hbbtv-polyfill-broadcast-player');
             if (player) {
                 player.onerror = function (e) {
                     window._HBBTV_DEBUG_ && console.log("hbbtv-polyfill:", e);
@@ -32201,7 +32231,7 @@ class OipfVideoBroadcastMapper {
         };
         oipfPluginObject.release = function () {
             window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: BroadcastVideo release() ...2');
-            var player = document.getElementById('hbbtv-polyfill-video-player');
+            var player = document.getElementById('hbbtv-polyfill-broadcast-player');
             if (player) {
                 player.pause();
                 player.parentNode.removeChild(player);

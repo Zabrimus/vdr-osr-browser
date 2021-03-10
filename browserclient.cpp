@@ -409,7 +409,7 @@ void JavascriptHandler::OnQueryCanceled(CefRefPtr<CefBrowser> browser, CefRefPtr
     // TODO: cancel our async query task...
 }
 
-BrowserClient::BrowserClient(spdlog::level::level_enum log_level) {
+BrowserClient::BrowserClient(spdlog::level::level_enum log_level, std::string *dashplayer) {
     logger.set_level(log_level);
 
     // bind socket
@@ -422,6 +422,12 @@ BrowserClient::BrowserClient(spdlog::level::level_enum log_level) {
     }
 
     browserClient = this;
+
+    if (dashplayer != nullptr) {
+        this->dashplayer = strdup(dashplayer->c_str());
+    } else {
+        this->dashplayer = strdup("dashjs");
+    }
 
     // start heartbeat_thread
     heartbeat_running = true;
@@ -478,6 +484,10 @@ BrowserClient::~BrowserClient() {
         delete osrHandler;
         osrHandler = NULL;
         videoRenderHandler = NULL;
+    }
+
+    if (dashplayer != nullptr) {
+        free(dashplayer);
     }
 
     browser_side_router->RemoveHandler(handler);
@@ -735,6 +745,14 @@ bool BrowserClient::ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr<CefC
                      (logger.isTraceEnabled() || logger.isDebugEnabled()) ? "true" : "false");
             replaceAll(responseContent, head, inject);
             free(inject);
+
+            // Set dashplayer
+            asprintf(&inject, "%s\n<script type=\"text/javascript\">window._HBBTV_DASH_PLAYER_ = '%s';</script>\n",
+                     head.c_str(),
+                     dashplayer);
+            replaceAll(responseContent, head, inject);
+            free(inject);
+
 
             // create global map for application ids/urls
             asprintf(&inject, "%s\n<script type=\"text/javascript\">window._HBBTV_APPURL_ = new Map();</script>\n",

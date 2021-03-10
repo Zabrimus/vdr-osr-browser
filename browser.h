@@ -92,6 +92,7 @@ private:
     bool injectJavascript;
 
     JavascriptHandler *handler;
+    char* dashplayer;
 
     std::string responseContent;
     std::map<std::string, std::string> responseHeader;
@@ -125,7 +126,7 @@ private:
     }
 
 public:
-    explicit BrowserClient(spdlog::level::level_enum log_level);
+    explicit BrowserClient(spdlog::level::level_enum log_level, std::string *dashplayer);
     ~BrowserClient() override;
 
     void setBrowserControl(BrowserControl *ctl) { this->handler->SetBrowserControl(ctl); }
