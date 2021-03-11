@@ -566,6 +566,7 @@ CefRefPtr<CefResourceHandler> BrowserClient::GetResourceHandler(CefRefPtr<CefBro
                       endsWith(url, ".mpg") ||
                       endsWith(url, ".mp3") ||
                       endsWith(url, ".mp4") ||
+                      endsWith(url, ".m4s") ||
                       endsWith(url, ".mov") ||
                       endsWith(url, ".avi") ||
                       endsWith(url, ".pdf") ||

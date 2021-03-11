@@ -23,23 +23,48 @@ function init() {
         signalCef('CHANGE_URL: ' + uri);
     }
 
+    window.cefStopVideo = function() {
+        var videoplayer = document.getElementById("hbbtv-polyfill-video-player");
+        if (typeof videoplayer !== 'undefined' && videoplayer !== null) {
+            videoplayer.stop();
+        }
+    }
+
     window.cefVideoSize = function() {
         var video = document.getElementById("video");
-        var videocontainer = document.getElementById("videocontainer");
-        var videoplayer = document.getElementById("hbbtv-polyfill-broadcast-player");
+        var videoplayer = document.getElementById("hbbtv-polyfill-video-player");
         var playerobject = document.getElementById("playerObject");
+        var videocontainer = document.getElementById("videocontainer");
+
+        // calculate size only if a broadcast player exists, otherwise set video to fullscreen
+        var isBroadcast = false;
+        if (videocontainer !== null && typeof videocontainer !== 'undefined') {
+            var containerChilds = videocontainer.childNodes;
+            for (var i = 0; i < containerChilds.length; i++) {
+                if (containerChilds[i].tagName === 'object' && containerChilds[i].getAttribute('type') === 'video/broadcast') {
+                    isBroadcast = true;
+                }
+            }
+        }
+
+        if (video !== null && typeof video !== 'undefined' && videoplayer !== null && typeof videoplayer !== 'undefined') {
+            // copy size attributes from videocontainer to video
+            videoplayer.style.width = video.style.width;
+            videoplayer.style.height = video.style.height;
+            videoplayer.style.left = video.style.left;
+            videoplayer.style.top = video.style.top;
+            videoplayer.style.position = video.style.position;
+        }
+
+        if (!isBroadcast) {
+            // no video/broadcast => size is always fullscreen
+            signalCef("VIDEO_SIZE: 1280,720,0,0");
+            return;
+        }
 
         var target = null;
         var position;
         var maxwidth = 0, maxheight = 0;
-
-        // calculate size only if a broadcast player exists, otherwise set video to fullscreen
-        if (!videoplayer) {
-            // fullscreen
-            console.log("=====> VIDEO SIZE MAX");
-            signalCef("VIDEO_SIZE: 1280,720,0,0");
-            return;
-        }
 
         // --------------------------------------------------
         // quirks:
@@ -59,7 +84,7 @@ function init() {
                 maxheight = position.height;
             }
 
-            window._HBBTV_DEBUG_ && console.log("===> VIDEO: "+ position.width + "," + position.height + "," + position.x + "," + position.y);
+            // window._HBBTV_DEBUG_ && console.log("===> VIDEO: "+ position.width + "," + position.height + "," + position.x + "," + position.y);
         }
 
         if (typeof videocontainer !== 'undefined' && videocontainer !== null) {
@@ -71,7 +96,7 @@ function init() {
                 maxheight = position.height;
             }
 
-            window._HBBTV_DEBUG_ && console.log("===> VIDEOCONTAINER: "+ position.width + "," + position.height + "," + position.x + "," + position.y);
+            // window._HBBTV_DEBUG_ && console.log("===> VIDEOCONTAINER: "+ position.width + "," + position.height + "," + position.x + "," + position.y);
         }
 
         if (typeof videoplayer !== 'undefined' && videoplayer !== null) {
@@ -89,7 +114,7 @@ function init() {
                 maxheight = position.height;
             }
 
-            window._HBBTV_DEBUG_ && console.log("===> VIDEOPLAYER: "+ position.width + "," + position.height + "," + position.x + "," + position.y);
+            // window._HBBTV_DEBUG_ && console.log("===> VIDEOPLAYER: "+ position.width + "," + position.height + "," + position.x + "," + position.y);
         }
 
         if (typeof playerobject !== 'undefined' && playerobject !== null) {
@@ -99,7 +124,7 @@ function init() {
                 target = playerobject;
             }
 
-            window._HBBTV_DEBUG_ && console.log("===> PLAYEROBJECT: "+ position.width + "," + position.height + "," + position.x + "," + position.y);
+            // window._HBBTV_DEBUG_ && console.log("===> PLAYEROBJECT: "+ position.width + "," + position.height + "," + position.x + "," + position.y);
         }
 
         if (target) {
@@ -109,14 +134,13 @@ function init() {
             var width = parseInt(position.width, 10);
             var height = parseInt(position.height, 10);
 
-            window._HBBTV_DEBUG_ && console.log("===> TARGET: "+ position.width + "," + position.height + "," + position.x + "," + position.y);
+            // window._HBBTV_DEBUG_ && console.log("===> TARGET: "+ position.width + "," + position.height + "," + position.x + "," + position.y);
 
             // window.process_video_quirk(position, target);
 
             signalCef("VIDEO_SIZE: " + width + "," + height + "," + x + "," + y);
         } else {
             // no video tag found -> fullscreen
-            console.log("=====> VIDEO SIZE MAX");
             signalCef("VIDEO_SIZE: 1280,720,0,0");
         }
     }

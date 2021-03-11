@@ -111,27 +111,32 @@ Encoder::Encoder(OSRHandler *osrHndl, const char* out, bool writeToFile) {
     decodedPicture.pts = 0;
     decodedPicture.status = 0;
 
-    // TODO: Currently max. 8 channels are supported. If more are
+    // TODO: Currently max. 2 channels are supported. If more are
     //  necessary, then this needs to be adapted
     decodedAudio.status = 0;
     decodedAudio.pts = 0;
     decodedAudio.pcm = (uint8_t **) calloc(1, 8 * sizeof(uint8_t*));
     decodedAudio.audioBufferSize = av_samples_get_buffer_size(NULL, 1,1024, AV_SAMPLE_FMT_FLTP, 0);
-    for (int i = 0; i < 8; ++i) {
-        decodedAudio.pcm[i] = (uint8_t*) malloc(decodedAudio.audioBufferSize);
-        memset(decodedAudio.pcm[i], 0xff, decodedAudio.audioBufferSize);
+    for (int i = 0; i < 2; ++i) {
+        decodedAudio.pcm[i] = (uint8_t*) calloc(1, decodedAudio.audioBufferSize);
     }
+
+    // TODO: use hardcoded values. More than 2 needs some justifications
+    channelCount = 2;
+    sampleRate = 48000;
 }
 
 Encoder::~Encoder() {
     isVideoStopping = true;
 
-    av_write_trailer(encoder->avfc);
-    av_free(outbuffer);
+    if (encoder->avfc != nullptr) {
+        av_write_trailer(encoder->avfc);
+        av_free(outbuffer);
 
-    avcodec_free_context(&encoder->video_avcc);
-    avcodec_free_context(&encoder->audio_avcc);
-    avformat_free_context(encoder->avfc);
+        avcodec_free_context(&encoder->video_avcc);
+        avcodec_free_context(&encoder->audio_avcc);
+        avformat_free_context(encoder->avfc);
+    }
 
     free(decodedPicture.image);
 
@@ -140,7 +145,9 @@ Encoder::~Encoder() {
     }
     free(decodedAudio.pcm);
 
-    sws_freeContext(swsCtx);
+    if (swsCtx != nullptr) {
+        sws_freeContext(swsCtx);
+    }
     swsCtx = nullptr;
 
     if (encoder->filename) {
@@ -432,8 +439,14 @@ void Encoder::stopEncoder() {
 }
 
 void Encoder::setAudioParameters(int channels, int sample_rate) {
-    channelCount = channels;
-    sampleRate = sample_rate;
+    // TODO: at this moment, ignore the channels and sample_rate parameter
+    //  and use instead hardcoded values
+
+    // channelCount = channels;
+    // sampleRate = sample_rate;
+
+    channelCount = 2;
+    sampleRate = 48000;
 }
 
 // add an bgra image

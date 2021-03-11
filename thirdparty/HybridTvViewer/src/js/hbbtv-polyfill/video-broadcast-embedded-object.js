@@ -22,11 +22,10 @@ export class OipfVideoBroadcastMapper {
         var isVideoPlayerAlreadyAdded = oipfPluginObject.children.length > 0;
         if (!isVideoPlayerAlreadyAdded) {
             this.videoTag = document.createElement('video');
-            this.videoTag.setAttribute('id', 'hbbtv-polyfill-broadcast-player');
+            this.videoTag.setAttribute('id', 'hbbtv-polyfill-video-player');
             this.videoTag.setAttribute('autoplay', ''); // note: call to bindToCurrentChannel() or play() is doing it
             this.videoTag.setAttribute('loop', '');
             this.videoTag.setAttribute('style', 'top:0px; left:0px; width:100%; height:100%;');
-            // this.videoTag.src = "client://movie/transparent-full.webm";
 
             // this does not work as desired: <object...><video.../></object>
             // it has to be <object/></video>
@@ -49,7 +48,7 @@ export class OipfVideoBroadcastMapper {
         };
         oipfPluginObject.bindToCurrentChannel = function () {
             window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: BroadcastVideo bindToCurrentChannel() ...');
-            var player = document.getElementById('hbbtv-polyfill-broadcast-player');
+            var player = document.getElementById('hbbtv-polyfill-video-player');
             if (player) {
                 player.onerror = function (e) {
                     window._HBBTV_DEBUG_ && console.log("hbbtv-polyfill:", e);
@@ -77,7 +76,7 @@ export class OipfVideoBroadcastMapper {
         };
         oipfPluginObject.release = function () {
             window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: BroadcastVideo release() ...2');
-            var player = document.getElementById('hbbtv-polyfill-broadcast-player');
+            var player = document.getElementById('hbbtv-polyfill-video-player');
             if (player) {
                 player.pause();
                 player.parentNode.removeChild(player);

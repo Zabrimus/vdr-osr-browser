@@ -304,12 +304,12 @@ export class OipfAVControlMapper {
                     this.avControlObject.data = "client://movie/fail";
                     this.videoElement.load();
                 }
-            } /*else if ((event.attributeName === 'width') || (event.attributeName === 'height')) {
+            } /* else if ((event.attributeName === 'width') || (event.attributeName === 'height')) {
                     this.videoElement.style.width = this.avControlObject.style.width;
                     this.videoElement.style.height = this.avControlObject.style.height;
                     this.videoElement.style.left = this.avControlObject.style.left;
                     this.videoElement.style.top = this.avControlObject.style.top;
-            }*/
+            } */
         };
         const handleMutation = (mutationList, mutationObserver) => {
             mutationList.forEach((mutation) => {
@@ -508,7 +508,6 @@ export class OipfAVControlMapper {
         videoElement && videoElement.addEventListener && videoElement.addEventListener('durationchange', function () {
             window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: durationchange');
             objectElement.playTime = videoElement.duration * 1000;
-            window._HBBTV_DEBUG_ && console.log('========> durationchange ' + videoElement.duration * 1000);
         }, false);
 
         // FIXME: TEST

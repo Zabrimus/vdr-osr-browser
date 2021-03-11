@@ -86,7 +86,7 @@ void BrowserControl::Start() {
         }
 
         if (bytes > 0) {
-            if (strncmp("OSDU", buf, 4) != 0) {
+            if (strncmp("OSDU", buf, 4) != 0 && strncmp("APPURL", buf, 6) != 0) {
                 CONSOLE_TRACE("Received command from VDR: {}", buf);
             }
 
@@ -154,6 +154,10 @@ void BrowserControl::Start() {
                 }
             } else if (strncmp("PLAYER_DETACHED", buf, 15) == 0) {
                 browserClient->stop_video();
+
+                CefString call = "window.cefStopVideo();";
+                auto frame = browser->GetMainFrame();
+                frame->ExecuteJavaScript(call, frame->GetURL(), 0);
             } else if (strncmp("CHANNEL ", buf, 8) == 0) {
                 browserClient->SetCurrentChannel(std::string(buf + 8));
                 browserClient->ClearAppUrl();

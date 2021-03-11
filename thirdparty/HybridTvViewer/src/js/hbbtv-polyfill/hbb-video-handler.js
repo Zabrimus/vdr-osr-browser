@@ -14,14 +14,14 @@ export class VideoHandler {
     }
 
     initialize() {
-        /*
+        /* */
         // check at first, if the video object is already injected
         var videoexists = document.getElementById('hbbtv-polyfill-video-player');
         if (typeof videoexists !== 'undefined' && videoexists != null) {
             window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: VideoHandler already initialized');
             return;
         }
-        */
+        /* */
         window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: Init VideoHandler');
 
         // go through all existing nodes and check if we need to inject the video player emulation
@@ -39,9 +39,9 @@ export class VideoHandler {
         } 
         mimeType = mimeType.toLowerCase(); // ensure lower case string comparison
 
-        window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: mimeType is ' + mimeType);
+        // window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: mimeType is ' + mimeType);
 
-        if (node.getElementsByTagName('video').length > 0) {
+        if (document.getElementsByTagName('video').length > 0) {
             // video already injected.
             window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: checkNodeTypeAndInjectVideoMethods, video already injected ...');
             return;
@@ -62,7 +62,7 @@ export class VideoHandler {
             mimeType.lastIndexOf('audio/mp4', 0) === 0 ||  // aac audio
             mimeType.lastIndexOf('audio/mpeg', 0) === 0) { // mp3 audio
             window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: BROADBAND VIDEO PLAYER ...');
-            new OipfAVControlMapper(node);
+            new OipfAVControlMapper(node, false);
         }
         // setup mpeg dash player
         if(mimeType.lastIndexOf('application/dash+xml', 0) === 0){

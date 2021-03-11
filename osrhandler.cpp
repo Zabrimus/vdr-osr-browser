@@ -73,6 +73,7 @@ OSRHandler::OSRHandler(BrowserClient *bc, int width, int height) {
     }
 
     isVideoStarted = false;
+    shm_mutex.unlock();
 }
 
 OSRHandler::~OSRHandler() {
@@ -112,11 +113,22 @@ bool OSRHandler::enableEncoder() {
 
     isVideoStarted = false;
 
+    // create encoder as early as possible
+    if (encoder->startEncoder(nullptr) != 0) {
+        CONSOLE_CRITICAL("Starting the encoder failed.");
+        isVideoStarted = false;
+        shm_mutex.unlock();
+    } else {
+        isVideoStarted = true;
+        *(uint8_t*)shmp = 0;
+    }
+
     return true;
 }
 
 void OSRHandler::disableEncoder() {
     isVideoStarted = false;
+    shm_mutex.unlock();
 
     if (encoder != nullptr) {
         encoder->stopEncoder();
@@ -158,11 +170,11 @@ void OSRHandler::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, c
         int w = std::min(width, 1920);
         int h = std::min(height, 1080);
 
-        // CONSOLE_TRACE("OnPaint: Try to get shm_mutex.lock");
+        CONSOLE_TRACE("OnPaint: Try to get shm_mutex.lock");
 
         shm_mutex.lock();
 
-        // CONSOLE_TRACE("OnPaint: Got shm_mutex.lock");
+        CONSOLE_TRACE("OnPaint: Got shm_mutex.lock");
 
         memcpy(shmp, buffer, w * h * 4);
 
@@ -199,12 +211,6 @@ void OSRHandler::OnAudioStreamStarted(CefRefPtr<CefBrowser> browser, const CefAu
     CONSOLE_TRACE("OSRVideoHandler::OnAudioStreamStarted: Sample rate: {}, Channel layout: {}, Frames per buffer: {}, Channels: {} ", params.sample_rate, params.channel_layout, params.frames_per_buffer, channels);
 
     encoder->setAudioParameters(channels, params.sample_rate);
-    if (encoder->startEncoder(nullptr) != 0) {
-        CONSOLE_CRITICAL("Starting the encoder failed.");
-        isVideoStarted = false;
-    } else {
-        isVideoStarted = true;
-    }
 }
 
 void OSRHandler::OnAudioStreamPacket(CefRefPtr<CefBrowser> browser, const float **data, int frames, int64 pts) {
