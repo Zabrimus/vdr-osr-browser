@@ -170,11 +170,11 @@ void OSRHandler::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, c
         int w = std::min(width, 1920);
         int h = std::min(height, 1080);
 
-        CONSOLE_TRACE("OnPaint: Try to get shm_mutex.lock");
+        // CONSOLE_TRACE("OnPaint: Try to get shm_mutex.lock");
 
         shm_mutex.lock();
 
-        CONSOLE_TRACE("OnPaint: Got shm_mutex.lock");
+        // CONSOLE_TRACE("OnPaint: Got shm_mutex.lock");
 
         memcpy(shmp, buffer, w * h * 4);
 
