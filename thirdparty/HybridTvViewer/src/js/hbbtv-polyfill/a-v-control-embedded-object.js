@@ -1,13 +1,13 @@
 /**
- * OIPF 
+ * OIPF
  * Release 1 Specification
- * Volume 5 - Declarative Application Environment 
+ * Volume 5 - Declarative Application Environment
  * 7.14.1 The CEA 2014 A/V Control embedded object
  */
 
 // import dashjs file --> we want it sync so don't pull from cdn ->  downside is we need a copy in repo TODO: fetch latest in build process
-import { MediaPlayer } from "dashjs";
-import shaka from "shaka-player";
+// import { MediaPlayer } from "dashjs";
+// import shaka from "shaka-player";
 
 const PLAY_STATES = {
     stopped: 0,
@@ -123,12 +123,11 @@ export class OipfAVControlMapper {
                 /*****************
                  dash-js
                  *****************/
-                 this.dashPlayer = MediaPlayer().create();
+                 this.dashPlayer = dashjs.MediaPlayer().create();
                  this.dashPlayer.initialize(this.videoElement, originalDataAttribute, true);
-                 this.dashPlayer.updateSettings({'debug': {'logLevel': dashjs.Debug.LOG_LEVEL_DEBUG}});
 
                  if (window._HBBTV_DEBUG_) {
-                     this.dashPlayer.updateSettings({'debug': {'logLevel': dashjs.Debug.LOG_LEVEL_DEBUG}});
+                    this.dashPlayer.updateSettings({'debug': {'logLevel': dashjs.Debug.LOG_LEVEL_DEBUG}});
                  } else {
                     this.dashPlayer.updateSettings({'debug': {'logLevel': dashjs.Debug.LOG_LEVEL_WARNING}});
                  }
@@ -163,7 +162,6 @@ export class OipfAVControlMapper {
                  //    STREAM_INITIALIZED
                  //    TEXT_TRACK_ADDED
                  //    TEXT_TRACKS_ADDED
-
                  this.dashPlayer.on(dashjs.MediaPlayer.events['PLAYBACK_PLAYING'], handleDashjsEvents);
                  this.dashPlayer.on(dashjs.MediaPlayer.events['PLAYBACK_PAUSED'], handleDashjsEvents);
                  this.dashPlayer.on(dashjs.MediaPlayer.events['PLAYBACK_ENDED'], handleDashjsEvents);
@@ -178,6 +176,8 @@ export class OipfAVControlMapper {
                 this.watchAvControlObjectMutations(this.avControlObject);
             } else if (window._HBBTV_DASH_PLAYER_ === 'shaka') {
                 shaka.polyfill.installAll();
+                // shaka.log.setLevel(shaka.log.Level.DEBUG);
+                shaka.log.setLevel(shaka.log.Level.V2);
 
                 // Install built-in polyfills to patch browser incompatibilities.
                 const player = new shaka.Player(this.videoElement);
@@ -208,7 +208,8 @@ export class OipfAVControlMapper {
         // this does not work as desired: <object...><video.../></object>
         // it has to be <object/></video>
         if (isDashVideo) {
-           this.avControlObject.appendChild(this.videoElement);
+            this.avControlObject.parentNode.insertBefore(this.videoElement, this.avControlObject.nextSibling);
+            // this.avControlObject.appendChild(this.videoElement);
         } else {
             // this.avControlObject.appendChild(this.videoElement);
             this.avControlObject.parentNode.insertBefore(this.videoElement, this.avControlObject.nextSibling);

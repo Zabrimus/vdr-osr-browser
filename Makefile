@@ -97,6 +97,12 @@ $(EXECUTABLE): $(OBJECTS) globaldefs.h main.h browser.h nativejshandler.h scheme
 	$(CC) $(OBJECTS) $(NNGCFLAGS) $(LOGCFLAGS) -o $@ $(ASANLDFLAGS) $(LDFLAGS) $(NNGLDFLAGS) $(LOGLDFLAGS)
 	mv $(EXECUTABLE) Release
 	cp -r js Release
+	cp thirdparty/dashjs/dash.all.debug.js Release/js
+	cp thirdparty/shaka-player/shaka-player.compiled.min.js Release/js
+	cp thirdparty/shaka-player/shaka-player.compiled.debug.js Release/js
+	cp thirdparty/mux.js/mux.min.js Release/js
+	mkdir -p Release/licenses
+	cp thirdparty/License.* Release/licenses
 
 $(EXECUTABLE5): $(OBJECTS5)
 	$(CC) -O3 $(OBJECTS5) $(LOGCFLAGS) $(CEFCFLAGS) -o $@ -pthread $(ASANLDFLAGS) $(LDFLAGS) $(LOGLDFLAGS) $(CEFLDFLAGS)

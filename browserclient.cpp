@@ -769,7 +769,6 @@ bool BrowserClient::ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr<CefC
             replaceAll(responseContent, head, inject);
             free(inject);
 
-
             // inject xmlhttprequest_quirks.js
             asprintf(&inject,
                      "%s\n<script id=\"xmlhttprequestquirk\" type=\"text/javascript\" src=\"client://js/xmlhttprequest_quirks.js\"></script>\n",
@@ -804,6 +803,28 @@ bool BrowserClient::ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr<CefC
             // inject focus.js
             asprintf(&inject,
                      "%s\n<script id=\"hbbtvfocus\" type=\"text/javascript\" src=\"client://js/focus.js\"></script>\n",
+                     head.c_str());
+            replaceAll(responseContent, head, inject);
+            free(inject);
+
+            // inject dash player, either dash.h or shaka-player
+            if (strncmp(dashplayer, "dashjs", 6) == 0) {
+                asprintf(&inject,
+                         "%s\n<script id=\"hbbtvdashjs\" type=\"text/javascript\" src=\"client://js/dash.all.debug.js\"></script>\n",
+                         head.c_str());
+                replaceAll(responseContent, head, inject);
+                free(inject);
+            } else if (strncmp(dashplayer, "shaka", 5) == 0) {
+                asprintf(&inject,
+                         "%s\n<script id=\"hbbtvshakaplayer\" defer=\"defer\" type=\"text/javascript\" src=\"client://js/shaka-player.compiled.debug.js\"></script>\n",
+                         head.c_str());
+                replaceAll(responseContent, head, inject);
+                free(inject);
+            }
+
+            // inject mux.js
+            asprintf(&inject,
+                     "%s\n<script id=\"hbbtvmuxjs\" type=\"text/javascript\" src=\"client://js/mux.min.js\"></script>\n",
                      head.c_str());
             replaceAll(responseContent, head, inject);
             free(inject);
