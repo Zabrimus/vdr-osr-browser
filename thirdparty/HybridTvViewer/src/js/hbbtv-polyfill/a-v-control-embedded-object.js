@@ -172,8 +172,6 @@ export class OipfAVControlMapper {
                  this.dashPlayer.on(dashjs.MediaPlayer.events['PLAYBACK_SEEKED'], handleDashjsEvents);
                  this.dashPlayer.on(dashjs.MediaPlayer.events['MANIFEST_LOADED'], handleDashjsEvents);
                  this.dashPlayer.on(dashjs.MediaPlayer.events['PLAYBACK_STARTED'], handleDashjsEvents);
-
-                this.watchAvControlObjectMutations(this.avControlObject);
             } else if (window._HBBTV_DASH_PLAYER_ === 'shaka') {
                 shaka.polyfill.installAll();
                 // shaka.log.setLevel(shaka.log.Level.DEBUG);
@@ -193,17 +191,14 @@ export class OipfAVControlMapper {
                     console.error('Error code', error.code, 'object', error);
                 }
             }
-
-            this.watchAvControlObjectMutations(this.avControlObject);
-            this.registerEmbeddedVideoPlayerEvents(this.avControlObject, this.videoElement);
         } else {
             this.videoElement.src = originalDataAttribute;
-
-            // use these for non-dashjs videos
-            this.mapAvControlToHtml5Video();
-            this.watchAvControlObjectMutations(this.avControlObject);
-            this.registerEmbeddedVideoPlayerEvents(this.avControlObject, this.videoElement);
         }
+
+        this.mapAvControlToHtml5Video();
+        this.watchAvControlObjectMutations(this.avControlObject);
+        this.registerEmbeddedVideoPlayerEvents(this.avControlObject, this.videoElement);
+
 
         // this does not work as desired: <object...><video.../></object>
         // it has to be <object/></video>
@@ -211,8 +206,8 @@ export class OipfAVControlMapper {
             this.avControlObject.parentNode.insertBefore(this.videoElement, this.avControlObject.nextSibling);
             // this.avControlObject.appendChild(this.videoElement);
         } else {
-            // this.avControlObject.appendChild(this.videoElement);
             this.avControlObject.parentNode.insertBefore(this.videoElement, this.avControlObject.nextSibling);
+            // this.avControlObject.appendChild(this.videoElement);
         }
 
         this.avControlObject.playTime = this.videoElement.duration * 1000;

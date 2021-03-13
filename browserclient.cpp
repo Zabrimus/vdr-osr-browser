@@ -180,7 +180,25 @@ std::string HbbtvCurl::ReadContentType(std::string url, CefRequest::HeaderMap he
     CONSOLE_DEBUG("ReadContentType {}, Cookies {}", url, c);
 
     // load the whole page
-    LoadUrl(url, headers, 1L);
+    LoadUrl(url, headers, 1L, false);
+
+    std::string contentType = response_header["Content-Type"];
+
+    // if a well known content type has been found then return
+    if ((contentType.find("inage/") != std::string::npos) ||
+        (contentType.find("audio/") != std::string::npos) ||
+        (contentType.find("video//") != std::string::npos) ||
+        (contentType.find("application/vnd.hbbtv.xhtml+xml") != std::string::npos) ||
+        (contentType.find("application/javascript") != std::string::npos) ||
+        (contentType.find("text/javascript") != std::string::npos) ||
+        (contentType.find("text/css") != std::string::npos))
+    {
+        return contentType;
+    }
+
+    CONSOLE_DEBUG("Header Content-Type '{}' found. Are further checks really necessary?", contentType);
+
+    LoadUrl(url, headers, 1L, true);
 
     redirect_url = "";
 
@@ -203,7 +221,7 @@ std::string HbbtvCurl::ReadContentType(std::string url, CefRequest::HeaderMap he
     }
 }
 
-void HbbtvCurl::LoadUrl(std::string url, CefRequest::HeaderMap headers, long followLocation) {
+void HbbtvCurl::LoadUrl(std::string url, CefRequest::HeaderMap headers, long followLocation, bool withBody) {
     cookieMutex.lock();
     std::string c = singleLineCookies;
     cookieMutex.unlock();
@@ -244,6 +262,10 @@ void HbbtvCurl::LoadUrl(std::string url, CefRequest::HeaderMap headers, long fol
 
     if (followLocation) {
         curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, followLocation);
+    }
+
+    if (!withBody) {
+        curl_easy_setopt(curl_handle, CURLOPT_NOBODY, 1);
     }
 
     curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, WriteContentCallback);

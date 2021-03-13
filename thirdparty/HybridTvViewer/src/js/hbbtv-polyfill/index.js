@@ -24,36 +24,77 @@ function init() {
     }
 
     window.cefStopVideo = function() {
-        var videoplayer = document.getElementById("hbbtv-polyfill-video-player");
-        if (typeof videoplayer !== 'undefined' && videoplayer !== null) {
-            videoplayer.stop();
+        const videoPlayer = document.getElementById("hbbtv-polyfill-video-player");
+        if (typeof videoPlayer !== 'undefined' && videoPlayer !== null) {
+            if (!videoPlayer.ended) {
+                if (typeof videoPlayer.stop !== 'undefined') {
+                    videoPlayer.stop();
+                } else {
+                    videoPlayer.seek(videoPlayer.duration);
+                }
+            }
         }
     }
 
     window.cefVideoSize = function() {
-        var video = document.getElementById("video");
-        var videoplayer = document.getElementById("hbbtv-polyfill-video-player");
-        var playerobject = document.getElementById("playerObject");
-        var videocontainer = document.getElementById("videocontainer");
+        let broadcastObject;
+
+        // find the existing video container
+        let videoContainer_1 = document.getElementById("vidcontainer");
+        let videoContainer_2 = document.getElementById("videocontainer");
+        let videoContainer_3 = document.getElementsByClassName("video-container");
+
+        let videoContainer = videoContainer_1;
+        if (videoContainer === null || typeof videoContainer === 'undefined') {
+            videoContainer = videoContainer_2;
+        }
+
+        if (videoContainer === null || typeof videoContainer === 'undefined') {
+            if (videoContainer_3.length > 0) {
+                videoContainer = videoContainer_3[0];
+            }
+        }
 
         // calculate size only if a broadcast player exists, otherwise set video to fullscreen
-        var isBroadcast = false;
-        if (videocontainer !== null && typeof videocontainer !== 'undefined') {
-            var containerChilds = videocontainer.childNodes;
-            for (var i = 0; i < containerChilds.length; i++) {
-                if (containerChilds[i].tagName === 'object' && containerChilds[i].getAttribute('type') === 'video/broadcast') {
+        let isBroadcast = false;
+        if (videoContainer !== null && typeof videoContainer !== 'undefined') {
+            let containerChild = videoContainer.childNodes;
+            for (let i = 0; i < containerChild.length; i++) {
+                if (containerChild[i].tagName === 'object' && containerChild[i].getAttribute('type') === 'video/broadcast') {
                     isBroadcast = true;
+                    broadcastObject = containerChild[i];
                 }
             }
         }
 
-        if (video !== null && typeof video !== 'undefined' && videoplayer !== null && typeof videoplayer !== 'undefined') {
+        // try to find the video element
+        let video = document.getElementById("video");
+
+        if (video === null || typeof video === 'undefined') {
+            let videos = document.getElementsByTagName('video');
+            if (videos.length > 0) {
+                video = videos[0];
+            }
+        }
+
+        let videoPlayer = document.getElementById("hbbtv-polyfill-video-player");
+
+        if (video !== null && typeof video !== 'undefined' && videoPlayer !== null && typeof videoPlayer !== 'undefined') {
             // copy size attributes from videocontainer to video
-            videoplayer.style.width = video.style.width;
-            videoplayer.style.height = video.style.height;
-            videoplayer.style.left = video.style.left;
-            videoplayer.style.top = video.style.top;
-            videoplayer.style.position = video.style.position;
+            videoPlayer.style.width = video.style.width;
+            videoPlayer.style.height = video.style.height;
+            videoPlayer.style.left = video.style.left;
+            videoPlayer.style.top = video.style.top;
+            videoPlayer.style.position = video.style.position;
+        }
+
+        let position;
+
+        // use either the video element or the broadcast object
+        if (video !== null && typeof video !== 'undefined') {
+            position = video.getClientRects()[0];
+        } else if (broadcastObject !== null && typeof broadcastObject !== 'undefined') {
+            position = broadcastObject.getClientRects()[0];
         }
 
         if (!isBroadcast) {
@@ -62,86 +103,8 @@ function init() {
             return;
         }
 
-        var target = null;
-        var position;
-        var maxwidth = 0, maxheight = 0;
-
-        // --------------------------------------------------
-        // quirks:
-        // ignore videocontainer on hbbtv.daserste.de
-        // --------------------------------------------------
-        /*
-        if (document.location.href.search('hbbtv.daserste.de') > 0) {
-            videocontainer = null;
-        }
-        */
-
-        if (typeof video !== 'undefined' && video !== null) {
-            position = video.getBoundingClientRect();
-            if (position.width > 0 && position.height > 0) {
-                target = video;
-                maxwidth = position.width;
-                maxheight = position.height;
-            }
-
-            // window._HBBTV_DEBUG_ && console.log("===> VIDEO: "+ position.width + "," + position.height + "," + position.x + "," + position.y);
-        }
-
-        if (typeof videocontainer !== 'undefined' && videocontainer !== null) {
-            position = videocontainer.getBoundingClientRect();
-
-            if (position.width > 0 && position.height > 0 && position.width >= maxwidth && position.height >= maxheight) {
-                target = videocontainer;
-                maxwidth = position.width;
-                maxheight = position.height;
-            }
-
-            // window._HBBTV_DEBUG_ && console.log("===> VIDEOCONTAINER: "+ position.width + "," + position.height + "," + position.x + "," + position.y);
-        }
-
-        if (typeof videoplayer !== 'undefined' && videoplayer !== null) {
-            position = videoplayer.getBoundingClientRect();
-
-            if (position.width === 0 && position.height === 0) {
-                // use parent element
-                videoplayer = videoplayer.parentElement;
-                position = videoplayer.getBoundingClientRect();
-            }
-
-            if (position.width > 0 && position.height > 0 && position.width >= maxwidth && position.height >= maxheight) {
-                target = videoplayer;
-                maxwidth = position.width;
-                maxheight = position.height;
-            }
-
-            // window._HBBTV_DEBUG_ && console.log("===> VIDEOPLAYER: "+ position.width + "," + position.height + "," + position.x + "," + position.y);
-        }
-
-        if (typeof playerobject !== 'undefined' && playerobject !== null) {
-            position = playerobject.getBoundingClientRect();
-
-            if (position.width > 0 && position.height > 0 && position.width >= maxwidth && position.height >= maxheight) {
-                target = playerobject;
-            }
-
-            // window._HBBTV_DEBUG_ && console.log("===> PLAYEROBJECT: "+ position.width + "," + position.height + "," + position.x + "," + position.y);
-        }
-
-        if (target) {
-            var position = target.getBoundingClientRect();
-            var x = parseInt(position.x, 10);
-            var y = parseInt(position.y, 10);
-            var width = parseInt(position.width, 10);
-            var height = parseInt(position.height, 10);
-
-            // window._HBBTV_DEBUG_ && console.log("===> TARGET: "+ position.width + "," + position.height + "," + position.x + "," + position.y);
-
-            // window.process_video_quirk(position, target);
-
-            signalCef("VIDEO_SIZE: " + width + "," + height + "," + x + "," + y);
-        } else {
-            // no video tag found -> fullscreen
-            signalCef("VIDEO_SIZE: 1280,720,0,0");
+        if (position !== null) {
+            signalCef("VIDEO_SIZE: " + Math.ceil(position.width) + "," + Math.ceil(position.height) + "," + Math.ceil(position.x) + "," + Math.ceil(position.y));
         }
     }
 

@@ -210,6 +210,13 @@ bool OSRHandler::GetAudioParameters(CefRefPtr<CefBrowser> browser, CefAudioParam
 void OSRHandler::OnAudioStreamStarted(CefRefPtr<CefBrowser> browser, const CefAudioParameters &params, int channels) {
     CONSOLE_TRACE("OSRVideoHandler::OnAudioStreamStarted: Sample rate: {}, Channel layout: {}, Frames per buffer: {}, Channels: {} ", params.sample_rate, params.channel_layout, params.frames_per_buffer, channels);
 
+    // sanity check:
+    //   This method can be called before the encoder is ready.
+    //   In this case, create the encoder
+    if (encoder == nullptr) {
+        enableEncoder();
+    }
+
     encoder->setAudioParameters(channels, params.sample_rate);
 }
 

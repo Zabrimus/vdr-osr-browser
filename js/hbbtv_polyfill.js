@@ -270,8 +270,6 @@ class OipfAVControlMapper {
                  this.dashPlayer.on(dashjs.MediaPlayer.events['PLAYBACK_SEEKED'], handleDashjsEvents);
                  this.dashPlayer.on(dashjs.MediaPlayer.events['MANIFEST_LOADED'], handleDashjsEvents);
                  this.dashPlayer.on(dashjs.MediaPlayer.events['PLAYBACK_STARTED'], handleDashjsEvents);
-
-                this.watchAvControlObjectMutations(this.avControlObject);
             } else if (window._HBBTV_DASH_PLAYER_ === 'shaka') {
                 shaka.polyfill.installAll();
                 // shaka.log.setLevel(shaka.log.Level.DEBUG);
@@ -291,17 +289,14 @@ class OipfAVControlMapper {
                     console.error('Error code', error.code, 'object', error);
                 }
             }
-
-            this.watchAvControlObjectMutations(this.avControlObject);
-            this.registerEmbeddedVideoPlayerEvents(this.avControlObject, this.videoElement);
         } else {
             this.videoElement.src = originalDataAttribute;
-
-            // use these for non-dashjs videos
-            this.mapAvControlToHtml5Video();
-            this.watchAvControlObjectMutations(this.avControlObject);
-            this.registerEmbeddedVideoPlayerEvents(this.avControlObject, this.videoElement);
         }
+
+        this.mapAvControlToHtml5Video();
+        this.watchAvControlObjectMutations(this.avControlObject);
+        this.registerEmbeddedVideoPlayerEvents(this.avControlObject, this.videoElement);
+
 
         // this does not work as desired: <object...><video.../></object>
         // it has to be <object/></video>
@@ -309,8 +304,8 @@ class OipfAVControlMapper {
             this.avControlObject.parentNode.insertBefore(this.videoElement, this.avControlObject.nextSibling);
             // this.avControlObject.appendChild(this.videoElement);
         } else {
-            // this.avControlObject.appendChild(this.videoElement);
             this.avControlObject.parentNode.insertBefore(this.videoElement, this.avControlObject.nextSibling);
+            // this.avControlObject.appendChild(this.videoElement);
         }
 
         this.avControlObject.playTime = this.videoElement.duration * 1000;
@@ -648,6 +643,11 @@ class VideoHandler {
         this.videoObj = undefined;
         this.mutationObserver = undefined;
         this.videoBroadcastEmbeddedObject = undefined;
+
+        this.leftBeforeFullScreen = undefined;
+        this.topBeforeFullScreen = undefined;
+        this.widthBeforeFullScreen = undefined;
+        this.heightBeforeFullScreen = undefined;
     }
 
     initialize() {
@@ -671,7 +671,7 @@ class VideoHandler {
 
     checkNodeTypeAndInjectVideoMethods(node) {
         let mimeType = node.type;
-        if (!node.type){
+        if (!node.type) {
             return;  
         } 
         mimeType = mimeType.toLowerCase(); // ensure lower case string comparison
@@ -684,9 +684,13 @@ class VideoHandler {
             return;
         }
 
+        let observeNewVideoElement = false;
+
         if (mimeType.lastIndexOf('video/broadcast', 0) === 0) {
             window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: BROADCAST VIDEO PLAYER ...');
             this.videoBroadcastEmbeddedObject = new _video_broadcast_embedded_object__WEBPACK_IMPORTED_MODULE_0__["OipfVideoBroadcastMapper"](node);
+
+            observeNewVideoElement = true;
 
             // hide all objects
             var objects = document.getElementsByTagName('object');
@@ -700,13 +704,68 @@ class VideoHandler {
             mimeType.lastIndexOf('audio/mpeg', 0) === 0) { // mp3 audio
             window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: BROADBAND VIDEO PLAYER ...');
             new _a_v_control_embedded_object__WEBPACK_IMPORTED_MODULE_1__["OipfAVControlMapper"](node, false);
+
+            observeNewVideoElement = true;
         }
         // setup mpeg dash player
         if (mimeType.lastIndexOf('application/dash+xml', 0) === 0 || // mpeg-dash
             mimeType.lastIndexOf('video/mpeg', 0) === 0) { // mpeg-ts
             window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: DASH VIDEO PLAYER ...');
             new _a_v_control_embedded_object__WEBPACK_IMPORTED_MODULE_1__["OipfAVControlMapper"](node, true);
+
+            observeNewVideoElement = true;
         }
+
+        if (observeNewVideoElement) {
+            this.watchAndHandleVideoAttributesMutations();
+
+            // add functions
+            node.setFullScreen = function(full) {
+                if (full) {
+                    this.leftBeforeFullScreen = node.style.left;
+                    this.topBeforeFullScreen = node.style.top;
+                    this.widthBeforeFullScreen = node.style.width;
+                    this.heightBeforeFullScreen = node.style.height;
+
+                    node.style.width ='100%';
+                    node.style.height ='100%';
+                    node.style.top = '0';
+                    node.style.left = '0';
+                } else {
+                    node.style.width = this.widthBeforeFullScreen;
+                    node.style.height = this.heightBeforeFullScreen;
+                    node.style.top = this.topBeforeFullScreen;
+                    node.style.left = this.leftBeforeFullScreen;
+                }
+
+                console.error("====> SetFullscreen in proto to " + full);
+            };
+
+            node.bindToCurrentChannel = function() {
+            }
+        }
+    }
+
+    watchAndHandleVideoAttributesMutations() {
+        const video = document.getElementById("video");
+
+        if (video === null || typeof video === 'undefined') {
+            // no video element, no size
+            return;
+        }
+
+        const handleVideoAttribute = (mutationList) => {
+            mutationList.forEach((mutation) => {
+                if (mutation.attributeName === 'style') {
+                    window.cefVideoSize();
+                }
+            });
+        };
+
+        this.videoAttributeObserver = new MutationObserver(handleVideoAttribute);
+        this.videoAttributeObserver.observe(video, {
+            'attributes': true
+        });
     }
 
     watchAndHandleVideoObjectMutations() {
@@ -748,7 +807,7 @@ class VideoHandler {
             'attributes': true,
             'characterData': true,
             'attributeFilter': ["type"]
-        });
+            });
     }
 }
 
@@ -1146,36 +1205,75 @@ function init() {
     }
 
     window.cefStopVideo = function() {
-        var videoplayer = document.getElementById("hbbtv-polyfill-video-player");
-        if (typeof videoplayer !== 'undefined' && videoplayer !== null) {
-            videoplayer.stop();
+        const videoPlayer = document.getElementById("hbbtv-polyfill-video-player");
+        if (typeof videoPlayer !== 'undefined' && videoPlayer !== null) {
+            if (typeof videoPlayer.stop !== 'undefined') {
+                videoPlayer.stop();
+            } else {
+                videoPlayer.seek(videoPlayer.duration);
+            }
         }
     }
 
     window.cefVideoSize = function() {
-        var video = document.getElementById("video");
-        var videoplayer = document.getElementById("hbbtv-polyfill-video-player");
-        var playerobject = document.getElementById("playerObject");
-        var videocontainer = document.getElementById("videocontainer");
+        let broadcastObject;
+
+        // find the existing video container
+        let videoContainer_1 = document.getElementById("vidcontainer");
+        let videoContainer_2 = document.getElementById("videocontainer");
+        let videoContainer_3 = document.getElementsByClassName("video-container");
+
+        let videoContainer = videoContainer_1;
+        if (videoContainer === null || typeof videoContainer === 'undefined') {
+            videoContainer = videoContainer_2;
+        }
+
+        if (videoContainer === null || typeof videoContainer === 'undefined') {
+            if (videoContainer_3.length > 0) {
+                videoContainer = videoContainer_3[0];
+            }
+        }
 
         // calculate size only if a broadcast player exists, otherwise set video to fullscreen
-        var isBroadcast = false;
-        if (videocontainer !== null && typeof videocontainer !== 'undefined') {
-            var containerChilds = videocontainer.childNodes;
-            for (var i = 0; i < containerChilds.length; i++) {
-                if (containerChilds[i].tagName === 'object' && containerChilds[i].getAttribute('type') === 'video/broadcast') {
+        let isBroadcast = false;
+        if (videoContainer !== null && typeof videoContainer !== 'undefined') {
+            let containerChild = videoContainer.childNodes;
+            for (let i = 0; i < containerChild.length; i++) {
+                if (containerChild[i].tagName === 'object' && containerChild[i].getAttribute('type') === 'video/broadcast') {
                     isBroadcast = true;
+                    broadcastObject = containerChild[i];
                 }
             }
         }
 
-        if (video !== null && typeof video !== 'undefined' && videoplayer !== null && typeof videoplayer !== 'undefined') {
+        // try to find the video element
+        let video = document.getElementById("video");
+
+        if (video === null || typeof video === 'undefined') {
+            let videos = document.getElementsByTagName('video');
+            if (videos.length > 0) {
+                video = videos[0];
+            }
+        }
+
+        let videoPlayer = document.getElementById("hbbtv-polyfill-video-player");
+
+        if (video !== null && typeof video !== 'undefined' && videoPlayer !== null && typeof videoPlayer !== 'undefined') {
             // copy size attributes from videocontainer to video
-            videoplayer.style.width = video.style.width;
-            videoplayer.style.height = video.style.height;
-            videoplayer.style.left = video.style.left;
-            videoplayer.style.top = video.style.top;
-            videoplayer.style.position = video.style.position;
+            videoPlayer.style.width = video.style.width;
+            videoPlayer.style.height = video.style.height;
+            videoPlayer.style.left = video.style.left;
+            videoPlayer.style.top = video.style.top;
+            videoPlayer.style.position = video.style.position;
+        }
+
+        let position;
+
+        // use either the video element or the broadcast object
+        if (video !== null && typeof video !== 'undefined') {
+            position = video.getClientRects()[0];
+        } else if (broadcastObject !== null && typeof broadcastObject !== 'undefined') {
+            position = broadcastObject.getClientRects()[0];
         }
 
         if (!isBroadcast) {
@@ -1184,86 +1282,8 @@ function init() {
             return;
         }
 
-        var target = null;
-        var position;
-        var maxwidth = 0, maxheight = 0;
-
-        // --------------------------------------------------
-        // quirks:
-        // ignore videocontainer on hbbtv.daserste.de
-        // --------------------------------------------------
-        /*
-        if (document.location.href.search('hbbtv.daserste.de') > 0) {
-            videocontainer = null;
-        }
-        */
-
-        if (typeof video !== 'undefined' && video !== null) {
-            position = video.getBoundingClientRect();
-            if (position.width > 0 && position.height > 0) {
-                target = video;
-                maxwidth = position.width;
-                maxheight = position.height;
-            }
-
-            // window._HBBTV_DEBUG_ && console.log("===> VIDEO: "+ position.width + "," + position.height + "," + position.x + "," + position.y);
-        }
-
-        if (typeof videocontainer !== 'undefined' && videocontainer !== null) {
-            position = videocontainer.getBoundingClientRect();
-
-            if (position.width > 0 && position.height > 0 && position.width >= maxwidth && position.height >= maxheight) {
-                target = videocontainer;
-                maxwidth = position.width;
-                maxheight = position.height;
-            }
-
-            // window._HBBTV_DEBUG_ && console.log("===> VIDEOCONTAINER: "+ position.width + "," + position.height + "," + position.x + "," + position.y);
-        }
-
-        if (typeof videoplayer !== 'undefined' && videoplayer !== null) {
-            position = videoplayer.getBoundingClientRect();
-
-            if (position.width === 0 && position.height === 0) {
-                // use parent element
-                videoplayer = videoplayer.parentElement;
-                position = videoplayer.getBoundingClientRect();
-            }
-
-            if (position.width > 0 && position.height > 0 && position.width >= maxwidth && position.height >= maxheight) {
-                target = videoplayer;
-                maxwidth = position.width;
-                maxheight = position.height;
-            }
-
-            // window._HBBTV_DEBUG_ && console.log("===> VIDEOPLAYER: "+ position.width + "," + position.height + "," + position.x + "," + position.y);
-        }
-
-        if (typeof playerobject !== 'undefined' && playerobject !== null) {
-            position = playerobject.getBoundingClientRect();
-
-            if (position.width > 0 && position.height > 0 && position.width >= maxwidth && position.height >= maxheight) {
-                target = playerobject;
-            }
-
-            // window._HBBTV_DEBUG_ && console.log("===> PLAYEROBJECT: "+ position.width + "," + position.height + "," + position.x + "," + position.y);
-        }
-
-        if (target) {
-            var position = target.getBoundingClientRect();
-            var x = parseInt(position.x, 10);
-            var y = parseInt(position.y, 10);
-            var width = parseInt(position.width, 10);
-            var height = parseInt(position.height, 10);
-
-            // window._HBBTV_DEBUG_ && console.log("===> TARGET: "+ position.width + "," + position.height + "," + position.x + "," + position.y);
-
-            // window.process_video_quirk(position, target);
-
-            signalCef("VIDEO_SIZE: " + width + "," + height + "," + x + "," + y);
-        } else {
-            // no video tag found -> fullscreen
-            signalCef("VIDEO_SIZE: 1280,720,0,0");
+        if (position !== null) {
+            signalCef("VIDEO_SIZE: " + Math.ceil(position.width) + "," + Math.ceil(position.height) + "," + Math.ceil(position.x) + "," + Math.ceil(position.y));
         }
     }
 
@@ -1627,6 +1647,7 @@ class OipfVideoBroadcastMapper {
         this.videoTag = undefined;
         this.injectBroadcastVideoMethods(this.oipfPluginObject);
     }
+
     injectBroadcastVideoMethods(oipfPluginObject) {
         window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: injectBroadcastVideoMethods, length ' + oipfPluginObject.children.length);
 
@@ -1652,6 +1673,8 @@ class OipfVideoBroadcastMapper {
             window._HBBTV_DEBUG_ &&  console.info('hbbtv-polyfill: BROADCAST VIDEO PLAYER ... ADDED');
         }
 
+        window.cefVideoSize();
+
         // inject OIPF methods ...
 
         //injectBroadcastVideoMethods(oipfPluginObject);
@@ -1660,6 +1683,7 @@ class OipfVideoBroadcastMapper {
         oipfPluginObject.createChannelObject = function () {
             window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: BroadcastVideo createChannelObject() ...');
         };
+
         oipfPluginObject.bindToCurrentChannel = function () {
             window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: BroadcastVideo bindToCurrentChannel() ...');
             var player = document.getElementById('hbbtv-polyfill-video-player');
@@ -1680,14 +1704,17 @@ class OipfVideoBroadcastMapper {
         oipfPluginObject.setChannel = function () {
             window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: BroadcastVideo setChannel() ...');
         };
+
         oipfPluginObject.prevChannel = function () {
             window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: BroadcastVideo prevChannel() ...');
             return currentChannel;
         };
+
         oipfPluginObject.nextChannel = function () {
             window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: BroadcastVideo nextChannel() ...');
             return currentChannel;
         };
+
         oipfPluginObject.release = function () {
             window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: BroadcastVideo release() ...2');
             var player = document.getElementById('hbbtv-polyfill-video-player');
@@ -1696,11 +1723,14 @@ class OipfVideoBroadcastMapper {
                 player.parentNode.removeChild(player);
             }
         };
+
         function ChannelConfig() {
         }
+
         ChannelConfig.prototype.channelList = {};
         ChannelConfig.prototype.channelList._list = [];
         ChannelConfig.prototype.channelList._list.push(currentChannel);
+
         Object.defineProperties(ChannelConfig.prototype.channelList, {
             'length': {
                 enumerable: true,
@@ -1709,9 +1739,11 @@ class OipfVideoBroadcastMapper {
                 }
             }
         });
+
         ChannelConfig.prototype.channelList.item = function (index) {
             return window.oipf.ChannelConfig.channelList._list[index];
         };
+
         ChannelConfig.prototype.channelList.getChannel = function (ccid) {
             var channels = window.oipf.ChannelConfig.channelList._list;
             for (var channelIdx in channels) {
@@ -1724,6 +1756,7 @@ class OipfVideoBroadcastMapper {
             }
             return null;
         };
+
         ChannelConfig.prototype.channelList.getChannelByTriplet = function (onid, tsid, sid, nid) {
             var channels = window.oipf.ChannelConfig.channelList._list;
             for (var channelIdx in channels) {
@@ -1739,8 +1772,10 @@ class OipfVideoBroadcastMapper {
             }
             return null;
         };
+
         window.oipf.ChannelConfig = new ChannelConfig();
         oipfPluginObject.getChannelConfig = {}; // OIPF 7.13.9 getChannelConfig
+
         Object.defineProperties(oipfPluginObject, {
             'getChannelConfig': {
                 value: function () {
@@ -1750,12 +1785,14 @@ class OipfVideoBroadcastMapper {
                 writable: false
             }
         });
+
         oipfPluginObject.programmes = [];
         oipfPluginObject.programmes.push({ name: 'Event 1, umlaut \u00e4', channelId: 'ccid:dvbt.0', duration: 600, startTime: Date.now() / 1000, description: 'EIT present event is under construction' });
         oipfPluginObject.programmes.push({ name: 'Event 2, umlaut \u00f6', channelId: 'ccid:dvbt.0', duration: 300, startTime: Date.now() / 1000 + 600, description: 'EIT following event is under construction' });
         Object.defineProperty(oipfPluginObject, 'COMPONENT_TYPE_VIDEO', { value: 0, enumerable: true });
         Object.defineProperty(oipfPluginObject, 'COMPONENT_TYPE_AUDIO', { value: 1, enumerable: true });
         Object.defineProperty(oipfPluginObject, 'COMPONENT_TYPE_SUBTITLE', { value: 2, enumerable: true });
+
         class AVComponent {
             constructor() {
                 this.COMPONENT_TYPE_VIDEO = 0;
@@ -1768,6 +1805,7 @@ class OipfVideoBroadcastMapper {
                 this.encrypted = false;
             }
         }
+
         class AVVideoComponent extends AVComponent {
             constructor() {
                 super();
@@ -1775,6 +1813,7 @@ class OipfVideoBroadcastMapper {
                 this.aspectRatio = 1.78;
             }
         }
+
         class AVAudioComponent extends AVComponent {
             constructor() {
                 super();
@@ -1784,6 +1823,7 @@ class OipfVideoBroadcastMapper {
                 this.audioChannels = 2;
             }
         }
+
         class AVSubtitleComponent extends AVComponent {
             constructor() {
                 super();
@@ -1792,6 +1832,7 @@ class OipfVideoBroadcastMapper {
                 this.hearingImpaired = false;
             }
         }
+
         class AVComponentCollection extends Array {
             constructor(num) {
                 super(num);
@@ -1800,6 +1841,7 @@ class OipfVideoBroadcastMapper {
                 return idx < this.length ? this[idx] : [];
             }
         }
+
         oipfPluginObject.getComponents = (function (type) {
             return [
                 type === this.COMPONENT_TYPE_VIDEO ? new AVVideoComponent() :
@@ -1807,10 +1849,20 @@ class OipfVideoBroadcastMapper {
                         type === this.COMPONENT_TYPE_SUBTITLE ? new AVSubtitleComponent() : null
             ];
         }).bind(oipfPluginObject);
+
         // TODO: read those values from a message to the extension (+ using a dedicated worker to retrieve those values from the TS file inside broadcast_url form field)
-        oipfPluginObject.getCurrentActiveComponents = (function () { return [new AVVideoComponent(), new AVAudioComponent(), new AVSubtitleComponent()]; }).bind(oipfPluginObject);
-        oipfPluginObject.selectComponent = (function (cpt) { return true; }).bind(oipfPluginObject);
-        oipfPluginObject.unselectComponent = (function (cpt) { return true; }).bind(oipfPluginObject);
+        oipfPluginObject.getCurrentActiveComponents = (function () {
+            return [new AVVideoComponent(), new AVAudioComponent(), new AVSubtitleComponent()];
+        }).bind(oipfPluginObject);
+
+        oipfPluginObject.selectComponent = (function (cpt) {
+            return true;
+        }).bind(oipfPluginObject);
+
+        oipfPluginObject.unselectComponent = (function (cpt) {
+            return true;
+        }).bind(oipfPluginObject);
+
         oipfPluginObject.setFullScreen = (function (state) {
             this.onFullScreenChange(state);
             var player = this.children.length > 0 ? this.children[0] : undefined;
@@ -1818,26 +1870,29 @@ class OipfVideoBroadcastMapper {
                 player.style.width = '100%'; player.style.height = '100%';
             }
         }).bind(oipfPluginObject);
+
         oipfPluginObject.onFullScreenChange = function () {
         };
+
         oipfPluginObject.onChannelChangeError = function (channel, error) {
         };
+
         oipfPluginObject.onChannelChangeSucceeded = function (channel) {
         };
+
         // use custom namespace to track and trigger registered streamevents
         oipfPluginObject.addStreamEventListener = function (url, eventName, listener) {
             window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: register listener -', eventName);
             window.HBBTV_POLYFILL_NS.streamEventListeners.push({ url, eventName, listener });
         };
+
         oipfPluginObject.removeStreamEventListener = function (url, eventName, listener) {
             var idx = window.HBBTV_POLYFILL_NS.streamEventListeners.findIndex((e) => {
                 return e.listener === listener && e.eventName === eventName && e.url === url;
             });
             window.HBBTV_POLYFILL_NS.streamEventListeners.splice(idx, 1);
         };
-
     }
-
 }
 
 /***/ }),

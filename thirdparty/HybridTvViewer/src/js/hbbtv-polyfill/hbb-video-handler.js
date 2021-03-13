@@ -11,6 +11,11 @@ export class VideoHandler {
         this.videoObj = undefined;
         this.mutationObserver = undefined;
         this.videoBroadcastEmbeddedObject = undefined;
+
+        this.leftBeforeFullScreen = undefined;
+        this.topBeforeFullScreen = undefined;
+        this.widthBeforeFullScreen = undefined;
+        this.heightBeforeFullScreen = undefined;
     }
 
     initialize() {
@@ -34,7 +39,7 @@ export class VideoHandler {
 
     checkNodeTypeAndInjectVideoMethods(node) {
         let mimeType = node.type;
-        if (!node.type){
+        if (!node.type) {
             return;  
         } 
         mimeType = mimeType.toLowerCase(); // ensure lower case string comparison
@@ -47,9 +52,13 @@ export class VideoHandler {
             return;
         }
 
+        let observeNewVideoElement = false;
+
         if (mimeType.lastIndexOf('video/broadcast', 0) === 0) {
             window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: BROADCAST VIDEO PLAYER ...');
             this.videoBroadcastEmbeddedObject = new OipfVideoBroadcastMapper(node);
+
+            observeNewVideoElement = true;
 
             // hide all objects
             var objects = document.getElementsByTagName('object');
@@ -63,13 +72,68 @@ export class VideoHandler {
             mimeType.lastIndexOf('audio/mpeg', 0) === 0) { // mp3 audio
             window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: BROADBAND VIDEO PLAYER ...');
             new OipfAVControlMapper(node, false);
+
+            observeNewVideoElement = true;
         }
         // setup mpeg dash player
         if (mimeType.lastIndexOf('application/dash+xml', 0) === 0 || // mpeg-dash
             mimeType.lastIndexOf('video/mpeg', 0) === 0) { // mpeg-ts
             window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: DASH VIDEO PLAYER ...');
             new OipfAVControlMapper(node, true);
+
+            observeNewVideoElement = true;
         }
+
+        if (observeNewVideoElement) {
+            this.watchAndHandleVideoAttributesMutations();
+
+            // add functions
+            node.setFullScreen = function(full) {
+                if (full) {
+                    this.leftBeforeFullScreen = node.style.left;
+                    this.topBeforeFullScreen = node.style.top;
+                    this.widthBeforeFullScreen = node.style.width;
+                    this.heightBeforeFullScreen = node.style.height;
+
+                    node.style.width ='100%';
+                    node.style.height ='100%';
+                    node.style.top = '0';
+                    node.style.left = '0';
+                } else {
+                    node.style.width = this.widthBeforeFullScreen;
+                    node.style.height = this.heightBeforeFullScreen;
+                    node.style.top = this.topBeforeFullScreen;
+                    node.style.left = this.leftBeforeFullScreen;
+                }
+
+                console.error("====> SetFullscreen in proto to " + full);
+            };
+
+            node.bindToCurrentChannel = function() {
+            }
+        }
+    }
+
+    watchAndHandleVideoAttributesMutations() {
+        const video = document.getElementById("video");
+
+        if (video === null || typeof video === 'undefined') {
+            // no video element, no size
+            return;
+        }
+
+        const handleVideoAttribute = (mutationList) => {
+            mutationList.forEach((mutation) => {
+                if (mutation.attributeName === 'style') {
+                    window.cefVideoSize();
+                }
+            });
+        };
+
+        this.videoAttributeObserver = new MutationObserver(handleVideoAttribute);
+        this.videoAttributeObserver.observe(video, {
+            'attributes': true
+        });
     }
 
     watchAndHandleVideoObjectMutations() {
@@ -111,6 +175,6 @@ export class VideoHandler {
             'attributes': true,
             'characterData': true,
             'attributeFilter': ["type"]
-        });
+            });
     }
 }
