@@ -32,12 +32,13 @@ BrowserPaintUpdater::~BrowserPaintUpdater() {
 void BrowserPaintUpdater::Start() {
     isRunning = true;
 
+    /*
     // 25 fps
     uint64_t timeWindow = 1000 * 1000 / 25;
 
     // 50 fps
     // uint64_t timeWindow = 1000 * 1000 / 50;
-/*
+
     while (isRunning) {
         int64_t start = av_gettime();
 

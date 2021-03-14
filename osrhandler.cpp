@@ -19,6 +19,7 @@
 #include <mutex>
 #include "browser.h"
 #include "encoder.h"
+#include "sharedmemory.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -51,42 +52,10 @@ OSRHandler::OSRHandler(BrowserClient *bc, int width, int height) {
     renderWidth = width;
     renderHeight = height;
 
-    // init shared memory
-    shmid = -1;
-    shmp = nullptr;
-
-    shmid = shmget(OSD_KEY, OSD_BUF_SIZE, 0666 | IPC_CREAT | IPC_EXCL) ;
-
-    if (errno == EEXIST) {
-        shmid = shmget(OSD_KEY, OSD_BUF_SIZE, 0666);
-    }
-
-    if (shmid == -1) {
-        perror("Unable to get shared memory");
-        return;
-    }
-
-    shmp = (uint8_t *) shmat(shmid, NULL, 0);
-    if (shmp == (void *) -1) {
-        perror("Unable to attach to shared memory");
-        return;
-    }
-
     isVideoStarted = false;
-    shm_mutex.unlock();
 }
 
 OSRHandler::~OSRHandler() {
-    if (shmdt(shmp) == -1) {
-        perror("Unable to detach from shared memory");
-        return;
-    }
-
-    if (shmctl(shmid, IPC_RMID, 0) == -1) {
-        perror("Fehler in After IPC_RMID");
-        // Either this process or VDR removes the shared memory
-    }
-
     if (encoder != nullptr) {
         encoder->stopEncoder();
         encoderThread->join();
@@ -117,10 +86,8 @@ bool OSRHandler::enableEncoder() {
     if (encoder->startEncoder(nullptr) != 0) {
         CONSOLE_CRITICAL("Starting the encoder failed.");
         isVideoStarted = false;
-        shm_mutex.unlock();
     } else {
         isVideoStarted = true;
-        *(uint8_t*)shmp = 0;
     }
 
     return true;
@@ -128,7 +95,6 @@ bool OSRHandler::enableEncoder() {
 
 void OSRHandler::disableEncoder() {
     isVideoStarted = false;
-    shm_mutex.unlock();
 
     if (encoder != nullptr) {
         encoder->stopEncoder();
@@ -154,11 +120,7 @@ void OSRHandler::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, c
     if (isVideoStarted) {
         if (!startpts) {
             startpts = av_gettime();
-
-            // CONSOLE_ERROR("StartPts in Video: {}", startpts);
         }
-
-        // CONSOLE_ERROR("VideoPts: {}", av_gettime() - startpts);
 
         encoder->addVideoFrame(width, height, (uint8_t*)buffer, av_gettime() - startpts);
 
@@ -166,23 +128,13 @@ void OSRHandler::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, c
         return;
     }
 
-    if (shmp != nullptr) {
-        int w = std::min(width, 1920);
-        int h = std::min(height, 1080);
+    int w = std::min(width, 1920);
+    int h = std::min(height, 1080);
 
-        // CONSOLE_TRACE("OnPaint: Try to get shm_mutex.lock");
-
-        shm_mutex.lock();
-
-        // CONSOLE_TRACE("OnPaint: Got shm_mutex.lock");
-
-        memcpy(shmp, buffer, w * h * 4);
-
+    if (sharedMemory.writeBrowserData((uint8_t *) buffer, w * h * 4)) {
         if (clearX != 0 && clearY != 0 && clearHeight != width && clearHeight != height) {
-            // CONSOLE_DEBUG("clearX: {}, clearY: {}, clearWidth: {}, clearHeight: {}, width: {}, heigth: {}", clearX, clearY, clearWidth, clearHeight, width, height);
-
             // clear part of the OSD
-            uint32_t* buf = (uint32_t*)shmp;
+            uint32_t* buf = (uint32_t*)sharedMemory.getBrowserData();
             for (auto i = 0; i < clearHeight; ++i) {
                 for (auto j = clearX; j < clearX + clearWidth; ++j) {
                     *(buf + (clearY - 1 + i) * width + j) = 0;
@@ -191,10 +143,8 @@ void OSRHandler::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, c
         }
 
         browserClient->SendToVdrOsd("OSDU", w, h);
-
-        // CONSOLE_TRACE("OnPaint: Send OSDU to VDR");
     } else {
-        CONSOLE_CRITICAL("Shared memory does not exists!");
+        CONSOLE_ERROR("Unable to write OSD data to shared memory");
     }
 }
 
@@ -248,23 +198,8 @@ void OSRHandler::OnAudioStreamError(CefRefPtr<CefBrowser> browser, const CefStri
 }
 
 int OSRHandler::writeVideoToShm(uint8_t *buf, int buf_size) {
-    if (shmp != nullptr) {
-        int i = 0;
-        int maxIteration = 50;
-
-        // wait some time, maximal maxIteration*10 milliseconds
-        while (*(uint8_t*)shmp != 0 && i < maxIteration) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
-            ++i;
-        }
-
-        if (i < maxIteration) {
-            memcpy(shmp + 1, &buf_size, sizeof(int));
-            memcpy(shmp + sizeof(int) + 1, buf, buf_size);
-
-            // trigger VDR update
-            *(uint8_t*)shmp = 1;
-        }
+    if (!sharedMemory.writeBrowserData(buf, buf_size)) {
+        CONSOLE_ERROR("Unable to write video data to shared memory");
     }
 
     return buf_size;

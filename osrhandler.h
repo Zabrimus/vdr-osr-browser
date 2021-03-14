@@ -13,10 +13,6 @@ private:
     int renderWidth;
     int renderHeight;
 
-    int shmid;
-    uint8_t *shmp;
-    std::mutex shm_mutex;
-
     Encoder* encoder = nullptr;
     std::thread* encoderThread;
 
@@ -42,7 +38,6 @@ public:
     void setRenderSize(int width, int height);
     void GetViewRect(CefRefPtr<CefBrowser> browser, CefRect &rect) override;
     void OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList &dirtyRects, const void *buffer, int width, int height) override;
-    void osdProcessed() { shm_mutex.unlock(); };
 
     // audio handler
     bool GetAudioParameters(CefRefPtr<CefBrowser> browser, CefAudioParameters &params) override;

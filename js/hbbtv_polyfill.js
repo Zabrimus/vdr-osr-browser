@@ -293,7 +293,7 @@ class OipfAVControlMapper {
             this.videoElement.src = originalDataAttribute;
         }
 
-        this.mapAvControlToHtml5Video();
+        // this.mapAvControlToHtml5Video();
         this.watchAvControlObjectMutations(this.avControlObject);
         this.registerEmbeddedVideoPlayerEvents(this.avControlObject, this.videoElement);
 
@@ -1207,10 +1207,8 @@ function init() {
     window.cefStopVideo = function() {
         const videoPlayer = document.getElementById("hbbtv-polyfill-video-player");
         if (typeof videoPlayer !== 'undefined' && videoPlayer !== null) {
-            if (typeof videoPlayer.stop !== 'undefined') {
-                videoPlayer.stop();
-            } else {
-                videoPlayer.seek(videoPlayer.duration);
+            if (!videoPlayer.ended) {
+                videoPlayer.currentTime = videoPlayer.duration();
             }
         }
     }

@@ -27,11 +27,7 @@ function init() {
         const videoPlayer = document.getElementById("hbbtv-polyfill-video-player");
         if (typeof videoPlayer !== 'undefined' && videoPlayer !== null) {
             if (!videoPlayer.ended) {
-                if (typeof videoPlayer.stop !== 'undefined') {
-                    videoPlayer.stop();
-                } else {
-                    videoPlayer.seek(videoPlayer.duration);
-                }
+                videoPlayer.currentTime = videoPlayer.duration();
             }
         }
     }

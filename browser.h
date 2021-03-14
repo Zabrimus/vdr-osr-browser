@@ -173,7 +173,6 @@ public:
     void SetHtmlMode() { mode = HTML_MODE; };
     void SetHbbtvMode() { mode = HBBTV_MODE; };
     int  getDisplayMode() { return mode; };
-    void osdProcessed() { if (osrHandler != nullptr) osrHandler->osdProcessed(); };
     void osdClearVideo(int x, int y, int width, int height) { if (osrHandler != nullptr) osrHandler->osdClearVideo(x, y, width, height); };
 
     // transcode functions

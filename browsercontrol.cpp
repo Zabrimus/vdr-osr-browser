@@ -90,10 +90,7 @@ void BrowserControl::Start() {
                 CONSOLE_TRACE("Received command from VDR: {}", buf);
             }
 
-            if (strncmp("OSDU", buf, 4) == 0) {
-                browserClient->osdProcessed();
-            } else if (strncmp("SENDOSD", buf, 7) == 0) {
-                browserClient->osdProcessed();
+            if (strncmp("SENDOSD", buf, 7) == 0) {
                 browser->GetHost()->Invalidate(PET_VIEW);
             } else if (strncmp("URL ", buf, 4) == 0 && bytes >= 5) {
                 CefString url(buf + 4);

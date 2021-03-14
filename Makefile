@@ -31,7 +31,8 @@ CFLAGS = -c -O0 -g -Wall -std=c++11
 LDFLAGS = -pthread -lrt
 
 SOURCES = main.cpp osrhandler.cpp browserclient.cpp browsercontrol.cpp browserpaintupdater.cpp schemehandler.cpp \
-          logger.cpp javascriptlogging.cpp globaldefs.cpp nativejshandler.cpp dashhandler.cpp encoder.cpp
+          logger.cpp javascriptlogging.cpp globaldefs.cpp nativejshandler.cpp dashhandler.cpp encoder.cpp \
+          sharedmemory.cpp
 OBJECTS = $(SOURCES:.cpp=.o)
 
 SOURCES5 = schemehandler.cpp logger.cpp testex/cefsimple/cefsimple_linux.cpp testex/cefsimple/simple_app.cpp \
@@ -41,12 +42,15 @@ OBJECTS5 = $(SOURCES5:.cpp=.o)
 SOURCES4 = testex/cefosrtest/main.cpp
 OBJECTS4 = $(SOURCES4:.cpp=.o)
 
+SOURCES3 = testex/shmp/testshmp.cpp sharedmemory.cpp
+OBJECTS3 = $(SOURCES3:.cpp=.o)
 
 EXECUTABLE  = vdrosrbrowser
 
 # Starten mit z.B. ./cefsimple --url="file://<pfad>/movie.html"
 EXECUTABLE5  = cefsimple
 EXECUTABLE4  = cefosrtest
+EXECUTABLE3  = testshmp
 
 # libcurl
 CFLAGS += $(shell pkg-config --cflags libcurl)
@@ -88,12 +92,12 @@ all:
 	$(MAKE) prepareexe
 	$(MAKE) browser
 
-browser: $(SOURCES) $(EXECUTABLE) $(EXECUTABLE5) $(EXECUTABLE4)
+browser: $(SOURCES) $(EXECUTABLE) $(EXECUTABLE5) $(EXECUTABLE4) $(EXECUTABLE3)
 
 dist:
 	tar -cJf vdr-osr-browser-$(VERSION).tar.xz Release
 
-$(EXECUTABLE): $(OBJECTS) globaldefs.h main.h browser.h nativejshandler.h schemehandler.h javascriptlogging.h
+$(EXECUTABLE): $(OBJECTS) globaldefs.h main.h browser.h nativejshandler.h schemehandler.h javascriptlogging.h sharedmemory.h
 	$(CC) $(OBJECTS) $(NNGCFLAGS) $(LOGCFLAGS) -o $@ $(ASANLDFLAGS) $(LDFLAGS) $(NNGLDFLAGS) $(LOGLDFLAGS)
 	mv $(EXECUTABLE) Release
 	cp -r js Release
@@ -112,6 +116,10 @@ $(EXECUTABLE5): $(OBJECTS5)
 $(EXECUTABLE4): $(OBJECTS4)
 	$(CC) -O3 $(OBJECTS4) $(LOGCFLAGS) $(CEFCFLAGS) -o $@ -pthread $(ASANLDFLAGS) $(LDFLAGS) $(LOGLDFLAGS) $(CEFLDFLAGS)
 	mv $(EXECUTABLE4) Release
+
+$(EXECUTABLE3): $(OBJECTS3)
+	$(CC) -O3 $(OBJECTS3) -o $@ -pthread  $(LDFLAGS)
+	mv $(EXECUTABLE3) Release
 
 extractcef:
 ifneq (exists, $(shell test -e thirdparty/cef/CMakeLists.txt && echo exists))

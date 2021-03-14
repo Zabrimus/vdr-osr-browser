@@ -195,7 +195,7 @@ export class OipfAVControlMapper {
             this.videoElement.src = originalDataAttribute;
         }
 
-        this.mapAvControlToHtml5Video();
+        // this.mapAvControlToHtml5Video();
         this.watchAvControlObjectMutations(this.avControlObject);
         this.registerEmbeddedVideoPlayerEvents(this.avControlObject, this.videoElement);
 
