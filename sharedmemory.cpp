@@ -238,7 +238,7 @@ void SharedMemory::finishedReadVdrCommand() {
 }
 
 uint8_t* SharedMemory::getBrowserData() {
-    return shmp + getOffsetForType(typeData);
+    return shmp + dataOffset;
 }
 
 SharedMemory sharedMemory;
