@@ -1,79 +1,55 @@
-# ! Warnung Warnung Warnung !
-## Dieser Branch ist noch nicht brauchbar und dient dazu etwas zu testen
-## Z.B. wird das Video im OSD des VDR abgespielt... :D
-
-# Informationen, die noch erwähnt werden müssen:
-## liva-vdpau-driver für NVidia Karten 
-https://gitlab.com/aar642/libva-vdpau-driver
-
-VP9 gibt es auch noch:
-https://www.reddit.com/r/linux/comments/eofov7/vp9_hardware_acceleration_now_available_on/
-
-## libffmpeg.so
-https://github.com/wang-bin/avbuild
-https://vivaldi.com/blog/vivaldi-1-14-linux-delayed-autoupdate/
-
-# Chromium und vaapi
-https://www.linuxuprising.com/2018/08/how-to-enable-hardware-accelerated.html
-https://bugs.chromium.org/p/chromium/issues/detail?id=1097029#c28
-
-Stimmt das noch? chrome://gpu zeigt Softwaredecoding, aber Hardwaredecoding funktioniert?
-
---use-gl=desktop --ignore-gpu-blocklist --enable-accelerated-video-decode
-
-
-
-
 # CEF (chrome embedded framework) OSR (offscreen browser) für VDR
 Der Browser wird aktuell für den VDR Plugin vdr-plugin-hbbtv verwendet. Dabei wird eine HbbTV-Seite offscreen gerendert 
 und an das VDR Plugin zur Darstellung gesendet. Verwendet wird dabei libnanomsg und das IPC Protokoll.
 
 Der OSR Browser kann und wird über verschiedene Kommandos gesteuert. Das passiert auch mittels libnanomsg und dem REQ/PUB Protokoll.
 
-## Warnung
-Der OSR Browser ist alles andere als leichtgewichtig. Wenn man bedenkt, das das CEF praktisch fast
-einer Chromium Installation entspricht, düfte dies auch klar sein.
-
 ## Voraussetzungen
-- ffmpeg / ffprobe
-- eine Installation des CEF (siehe unten)
+- libffmpeg.so muss vorhanden sein, falls man Videos sehen möchte. 
+  Im beigefügten CEF wird libffmpeg.so aus rechtlichen Gründen nur dynamisch gelinkt.
+- CEF verwendet nur vaapi zur Hardwarebeschleunigung. Besitzer von NVidia-Karten sollten 
+  einen vaapi-vdpau Wrapper installieren. Leider habe ich keinen vaapi-nvdec Wrapper 
+  oder ähnliches gefunden.
+
+## libffmpeg.so
+Da gibt es verschiedene Möglichkeiten:
+
+### Selbst compilieren
+https://github.com/wang-bin/avbuild bzw.
+https://github.com/wang-bin/avbuild/wiki
+
+### Ein Debian-Package von Ubuntu herunterladen und entpacken
+Die Debian-Pakete findet man z.B. hier https://packages.ubuntu.com/de/bionic/chromium-codecs-ffmpeg-extra
+
+Eine schöne Anleitung zum entpacken dann hier: https://vivaldi.com/blog/vivaldi-1-14-linux-delayed-autoupdate/
+
+## Besitzer von NVidia-Karten
+Sinnvoll ist auf jeden Fall einen Wrapper vaapi -> vdpau installieren. Gefunden habe diese hier
+
+https://gitlab.com/aar642/libva-vdpau-driver und 
+https://github.com/xtknight/vdpau-va-driver-vp9
 
 ## Build
+Der Build wird gestartet mit
 
-### Installation eines automatischen CEF-Builds nur für den vdr-osr-browser
-Dies ist die bevorzugte Variante, da keine Dateien im System installiert werden und 
-auch die einfache Möglichkeit besteht, den Browser schnell und einfach wieder zu löschen.
-Dabei wird der Browser und CEF in ein einziges Verzeichnis Release installiert.
-```
-make prepare_release
-make release
-```
-Das Release Verzeichnis enthält alles um den Browser zu starten.
+make -j 4
 
-### Installation eines automatischen CEF-Builds nach /opt/cef  
-Das Makefile bietet die Möglichkeit, vorkompilierte Binaries des CEF herunterzuladen und in /opt/cef zu installieren
-und die Entwicklungsumgebung vorzubereiten. 
-Die vorkompilierten Binaries finden sich auf http://opensource.spotify.com/cefbuilds/index.html.
-```
-make prepare
-make
-```
-
-### Compilieren von CEF aus den Sourcen
-Eine andere Variante ist das vollständige Neukompilieren des CEF mit den entsprechenden Compile-Flags. Allerdings
-wird dafür ein potenter Rechner, viel Hauptspeicher und Plattenspeicher benötigt und vor allen Dingen eine schnelle 
-Internetverbindung. Es werden ca. 20 GB heruntergeladen (+/- 1 GB). Ein Core i7 mit 4/8 Kernen, 32 GB Ram und einer 
-1Gbit/s Netzanbindung braucht ca 4-5 Stunden für den allerersten Build.
-
-### Debian/Ubuntu-Packages
-Im Ubuntu PPA sind Debian Packages verfügbar. Die Packages befinden sich hier:
-https://launchpad.net/~zabrimus/+archive/ubuntu/vdr-cef
-Der Browser in /opt/vdr-osr-browser installiert.
+Im Unterverzeichnis "/Release" befinden sich nach erfolgreichem Bau die vollständige und lauffähige Umgebung des 
+Browsers.    
 
 ## Starten des Browsers
 Die einfachste Variante zum Start ist
 ```
+cd Release
 ./vdrosrbrowser
+```
+
+Als MPEG-DASH Player kann entweder dash.js (http://cdn.dashjs.org/latest/jsdoc/index.html) oder der shaka-player (https://github.com/google/shaka-player) verwendet werden.
+Beide werden bereits mitgeliefert. Standardmäßig wird dash.js verwendet. Mit folgenden Parametern wird die Auswahl gesteuert:
+```
+--dashplayer=dashjs
+oder
+--dashplayer=shaka
 ```
 
 Ein Remote-Debugging mittels Chrome kann sinnvoll sein. Dazu müssen nur folgende Parameter verwendet werden
@@ -93,18 +69,12 @@ Der Log-Level kann gesteuert werden mit den möglichen Parametern
 ```
 '--trace' ist nicht wirklich für den Produktiveinsatz geeignet, da die Anzahl der Ausgaben immens ist. 
 
-## vdrosrclient
-Dies ist ein sehr einfach gehaltener Client, um Kommandos an den OSR Browser senden zu können. Hauptsächlich wird
-er zum Testen verwendet, kann aber auch sonst sinnvoll sein.
 
-### Parameter
-```
---url <url>     lädt die URL im OSR Browser
---pause         Stoppt das Rendering
---resume        Startet das Rendering
---stream        Liest alle dirtyRecs (Bereiche der Seite, die sich verändert haben) und gibt eine Kurze Info aus.
---js <cmd>      Ein Javascript Kommando im OSR Browser ausführen
---connect       Ein einfacher Connect Test (Ping) an den OSR Browser
---mode          1 = HTML, 2 = HbbTV
-```
+## Weitere nützliche Informationen
+#### Chromium und vaapi
+https://www.linuxuprising.com/2018/08/how-to-enable-hardware-accelerated.html
+https://bugs.chromium.org/p/chromium/issues/detail?id=1097029#c28
 
+Stimmt das noch? chrome://gpu zeigt Softwaredecoding, aber Hardwaredecoding funktioniert?
+
+--use-gl=desktop --ignore-gpu-blocklist --enable-accelerated-video-decode
