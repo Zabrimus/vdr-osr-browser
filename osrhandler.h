@@ -46,9 +46,6 @@ public:
     void OnAudioStreamStopped(CefRefPtr<CefBrowser> browser) override;
     void OnAudioStreamError(CefRefPtr<CefBrowser> browser, const CefString &message) override;
 
-    // video to VDR
-    int writeVideoToShm(uint8_t *buf, int buf_size);
-
     IMPLEMENT_REFCOUNTING(OSRHandler);
 };
 

@@ -77,13 +77,13 @@ bool OSRHandler::enableEncoder() {
     }
 
     // start encoder
-    encoder = new Encoder(this, "movie/streaming");
+    encoder = new Encoder();
     encoderThread = new std::thread(startEncoderThread, encoder);
 
     isVideoStarted = false;
 
     // create encoder as early as possible
-    if (encoder->startEncoder(nullptr) != 0) {
+    if (encoder->startEncoder() != 0) {
         CONSOLE_CRITICAL("Starting the encoder failed.");
         isVideoStarted = false;
     } else {
@@ -196,14 +196,4 @@ void OSRHandler::OnAudioStreamStopped(CefRefPtr<CefBrowser> browser) {
 
 void OSRHandler::OnAudioStreamError(CefRefPtr<CefBrowser> browser, const CefString &message) {
     CONSOLE_DEBUG("OSRVideoHandler::OnAudioStreamError: {}", message.ToString());
-}
-
-int OSRHandler::writeVideoToShm(uint8_t *buf, int buf_size) {
-    if (sharedMemory.waitForWrite(Data) != -1) {
-        sharedMemory.write(buf, buf_size, Data);
-    } else {
-        CONSOLE_ERROR("Unable to write video data to shared memory");
-    }
-
-    return buf_size;
 }

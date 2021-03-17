@@ -32,7 +32,6 @@ typedef struct StreamingContext {
     AVCodecContext *video_avcc;
     AVCodecContext *audio_avcc;
 
-    bool writeToFile;
     char *filename;
 } StreamingContext;
 
@@ -63,12 +62,12 @@ private:
 
 public:
     // Transcode video stream
-    Encoder(OSRHandler *osrHandler, const char* output, bool writeToFile = false);
+    Encoder();
     ~Encoder();
 
     void Start();
 
-    int startEncoder(int (*write_packet)(void *opaque, uint8_t *buf, int buf_size));
+    int startEncoder();
     void stopEncoder();
 
     void setAudioParameters(int channels, int sample_rate);

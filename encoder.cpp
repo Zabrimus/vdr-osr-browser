@@ -18,6 +18,7 @@
 #include "logger.h"
 #include "encoder.h"
 #include "globaldefs.h"
+#include "sharedmemory.h"
 
 #define DEBUG_WRITE_TS_TO_FILE 0
 
@@ -32,7 +33,6 @@
 #define av_ts2timestr(ts, tb) av_ts_make_time_string((char*)__builtin_alloca(AV_TS_MAX_STRING_SIZE), ts, tb)
 
 FILE *fp_output = nullptr;
-OSRHandler *osrHandler = nullptr;
 
 bool isVideoStopping;
 bool isAudioFinished;
@@ -73,11 +73,12 @@ int write_buffer_to_shm(void *opaque, uint8_t *buf, int buf_size) {
         write_buffer_to_file(opaque, buf, buf_size);
     }
 
-    if (osrHandler != nullptr) {
-        return osrHandler->writeVideoToShm(buf, buf_size);
+    if (sharedMemory.waitForWrite(Data) != -1) {
+        sharedMemory.write(buf, buf_size, Data);
+    } else {
+        CONSOLE_ERROR("Unable to write video data to shared memory");
     }
 
-    // discard buffer
     return buf_size;
 }
 
@@ -87,20 +88,17 @@ std::string getbrowserexepath() {
     return std::string(result, static_cast<unsigned long>((count > 0) ? count : 0));
 }
 
-Encoder::Encoder(OSRHandler *osrHndl, const char* out, bool writeToFile) {
-    osrHandler = osrHndl;
+Encoder::Encoder() {
     encoder = (StreamingContext *) calloc(1, sizeof(StreamingContext));
 
     swsCtx = nullptr;
     isVideoStopping = false;
 
-    asprintf(&encoder->filename, "%s.ts", out);
+    asprintf(&encoder->filename, "%s.ts", "video/streaming");
 
-    if (writeToFile || DEBUG_WRITE_TS_TO_FILE) {
+    if (DEBUG_WRITE_TS_TO_FILE) {
         fp_output = fopen(encoder->filename, "wb+");
     }
-
-    encoder->writeToFile = writeToFile;
 
     // TODO: The image size is predefined as 1280 x 720.
     //  If images with another size shall be supported, then
@@ -362,7 +360,7 @@ int Encoder::encode_audio(uint64_t pts, AVFrame *input_frame) {
 void Encoder::Start() {
     // main wait loop
     while (!isVideoStopping) {
-        std::this_thread::sleep_for(std::chrono::microseconds(500));
+        std::this_thread::sleep_for(std::chrono::microseconds(10));
 
         if (decodedPicture.status == 1) {
             processVideoFrame();
@@ -384,16 +382,7 @@ void Encoder::Start() {
     }
 }
 
-int Encoder::startEncoder(int (*write_packet)(void *opaque, uint8_t *buf, int buf_size)) {
-
-    if (encoder->writeToFile) {
-        // use default file writer
-        write_packet = write_buffer_to_file;
-    } else {
-        // socket writer
-        write_packet = write_buffer_to_shm;
-    }
-
+int Encoder::startEncoder() {
     int response = avformat_alloc_output_context2(&encoder->avfc, nullptr, nullptr, encoder->filename);
     if (!encoder->avfc) {
         CONSOLE_ERROR("Error {}: could not allocate memory for output format: {}", response, av_err2str(response));
@@ -416,7 +405,7 @@ int Encoder::startEncoder(int (*write_packet)(void *opaque, uint8_t *buf, int bu
     // int bufferSize = 32712;
     int bufferSize = 1000 * 188;
     outbuffer = (unsigned char *) av_malloc(bufferSize);
-    AVIOContext *avio_out = avio_alloc_context(outbuffer, bufferSize, 1, nullptr, nullptr, write_packet, nullptr);
+    AVIOContext *avio_out = avio_alloc_context(outbuffer, bufferSize, 1, nullptr, nullptr, write_buffer_to_shm, nullptr);
 
     if (avio_out == nullptr) {
         av_free(outbuffer);
@@ -452,7 +441,7 @@ void Encoder::setAudioParameters(int channels, int sample_rate) {
 // add an bgra image
 void Encoder::addVideoFrame(int width, int height, uint8_t *image, uint64_t pts) {
     while (decodedPicture.status != 0 && !isVideoStopping) {
-        std::this_thread::sleep_for(std::chrono::microseconds(100));
+        std::this_thread::sleep_for(std::chrono::microseconds(10));
     }
 
     decodedPicture.height = height;
@@ -537,7 +526,7 @@ void Encoder::processVideoFrame() {
 
 void Encoder::addAudioFrame(const float **data, int frames, uint64_t pts) {
      while (decodedAudio.status != 0 && !isVideoStopping) {
-         std::this_thread::sleep_for(std::chrono::microseconds(100));
+         std::this_thread::sleep_for(std::chrono::microseconds(10));
      }
 
      uint8_t **pcm = (uint8_t **)data;
