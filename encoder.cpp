@@ -3,15 +3,9 @@
  * Especially on https://github.com/leandromoreira/ffmpeg-libav-tutorial/blob/master/3_transcoding.c
  */
 
-#include <stdio.h>
-#include <stdarg.h>
-#include <stdlib.h>
-#include <string.h>
-#include <inttypes.h>
+#include <cstdio>
+#include <cstdlib>
 #include <chrono>
-#include <netinet/in.h>
-#include <strings.h>
-#include <sys/socket.h>
 #include <unistd.h>
 #include <thread>
 #include <fstream>
@@ -37,27 +31,6 @@ FILE *fp_output = nullptr;
 bool isVideoStopping;
 bool isAudioFinished;
 bool isVideoFinished;
-
-typedef struct RawVideoPicture {
-    int status;
-
-    int width;
-    int height;
-    uint8_t* image;
-    uint64_t pts;
-} RawVideoPicture;
-
-typedef struct RawPCMAudio {
-    int status;
-
-    int audioBufferSize;
-    uint64_t pts;
-    uint8_t **pcm;
-} RawPCMAudio;
-
-
-RawVideoPicture decodedPicture;
-RawPCMAudio decodedAudio;
 
 int write_buffer_to_file(void *opaque, uint8_t *buf, int buf_size) {
     if (!feof(fp_output)) {
@@ -91,32 +64,19 @@ std::string getbrowserexepath() {
 Encoder::Encoder() {
     encoder = (StreamingContext *) calloc(1, sizeof(StreamingContext));
 
-    swsCtx = nullptr;
     isVideoStopping = false;
+
+    swsCtx = sws_getContext(1280,
+                            720,
+                            AV_PIX_FMT_BGRA,
+                            1280, 720,
+                            AV_PIX_FMT_YUVA420P,
+                            SWS_BICUBIC, nullptr, nullptr, nullptr);
 
     asprintf(&encoder->filename, "%s.ts", "video/streaming");
 
     if (DEBUG_WRITE_TS_TO_FILE) {
         fp_output = fopen(encoder->filename, "wb+");
-    }
-
-    // TODO: The image size is predefined as 1280 x 720.
-    //  If images with another size shall be supported, then
-    //  these values must be adjusted.
-    decodedPicture.image = (uint8_t *) calloc(1, 1280 * 720 * 4);
-    decodedPicture.width = 0;
-    decodedPicture.height = 0;
-    decodedPicture.pts = 0;
-    decodedPicture.status = 0;
-
-    // TODO: Currently max. 2 channels are supported. If more are
-    //  necessary, then this needs to be adapted
-    decodedAudio.status = 0;
-    decodedAudio.pts = 0;
-    decodedAudio.pcm = (uint8_t **) calloc(1, 8 * sizeof(uint8_t*));
-    decodedAudio.audioBufferSize = av_samples_get_buffer_size(NULL, 1,1024, AV_SAMPLE_FMT_FLTP, 0);
-    for (int i = 0; i < 2; ++i) {
-        decodedAudio.pcm[i] = (uint8_t*) calloc(1, decodedAudio.audioBufferSize);
     }
 
     // TODO: use hardcoded values. More than 2 needs some justifications
@@ -127,6 +87,25 @@ Encoder::Encoder() {
 Encoder::~Encoder() {
     isVideoStopping = true;
 
+    if (video_output_packet != nullptr) {
+        av_packet_unref(video_output_packet);
+        av_packet_free(&video_output_packet);
+    }
+
+    if (audio_output_packet != nullptr) {
+        av_packet_unref(audio_output_packet);
+        av_packet_free(&audio_output_packet);
+    }
+
+    if (audioFrame != nullptr) {
+        av_frame_free(&audioFrame);
+    }
+
+    if (videoFrame != nullptr) {
+        av_freep(&videoFrame->data[0]);
+        av_frame_free(&videoFrame);
+    }
+
     if (encoder->avfc != nullptr) {
         av_write_trailer(encoder->avfc);
         av_free(outbuffer);
@@ -135,13 +114,6 @@ Encoder::~Encoder() {
         avcodec_free_context(&encoder->audio_avcc);
         avformat_free_context(encoder->avfc);
     }
-
-    free(decodedPicture.image);
-
-    for (int i = 0; i < 8; ++i) {
-        free(decodedAudio.pcm[i]);
-    }
-    free(decodedAudio.pcm);
 
     if (swsCtx != nullptr) {
         sws_freeContext(swsCtx);
@@ -197,7 +169,6 @@ void Encoder::loadConfiguration(void *avcc_priv_data) {
     }
 }
 
-
 int Encoder::prepare_video_encoder(int width, int height, AVRational input_framerate) {
     encoder->video_avs = avformat_new_stream(encoder->avfc, nullptr);
     encoder->video_avc = avcodec_find_encoder_by_name("libx264");
@@ -232,6 +203,36 @@ int Encoder::prepare_video_encoder(int width, int height, AVRational input_frame
         return -1;
     }
     avcodec_parameters_from_context(encoder->video_avs->codecpar, encoder->video_avcc);
+
+    // prepare video frame
+    videoFrame = av_frame_alloc();
+
+    if (!videoFrame) {
+        av_log(nullptr, AV_LOG_ERROR, "error creating video frame\n");
+        isVideoFinished = true;
+
+        return -1;
+    }
+
+    videoFrame->width = 1280;
+    videoFrame->height = 720;
+    videoFrame->format = AV_PIX_FMT_YUVA420P;
+
+    int ret = av_image_alloc(videoFrame->data, videoFrame->linesize, videoFrame->width, videoFrame->height, AV_PIX_FMT_YUVA420P, 24);
+    if (ret < 0) {
+        av_log(nullptr, AV_LOG_ERROR, "Could not allocate raw picture buffer: %d, %s\n", ret, av_err2str(ret));
+        isVideoFinished = true;
+
+        return -1;
+    }
+
+    video_output_packet = av_packet_alloc();
+
+    if (!video_output_packet) {
+        CONSOLE_ERROR("could not allocate memory for output packet");
+        return -1;
+    }
+
     return 0;
 }
 
@@ -267,24 +268,36 @@ int Encoder::prepare_audio_encoder(int channels, int sample_rate, AVRational inp
     }
     avcodec_parameters_from_context(encoder->audio_avs->codecpar, encoder->audio_avcc);
 
-    return 0;
-}
+    // prepare the audio frame
+    audioFrame = av_frame_alloc();
 
-int Encoder::encode_video(uint64_t pts, AVFrame *input_frame) {
-    if (input_frame) input_frame->pict_type = AV_PICTURE_TYPE_NONE;
+    if (!audioFrame) {
+        av_log(nullptr, AV_LOG_ERROR, "error creating audio frame\n");
+        isAudioFinished = true;
 
-    AVPacket *output_packet = av_packet_alloc();
-    if (!output_packet) {
+        return -1;
+    }
+
+    audioFrame->nb_samples     = encoder->audio_avcc->frame_size;
+    audioFrame->format         = AV_SAMPLE_FMT_FLTP;
+    audioFrame->channel_layout = AV_CH_LAYOUT_STEREO;
+
+    audio_output_packet = av_packet_alloc();
+    if (!audio_output_packet) {
         CONSOLE_ERROR("could not allocate memory for output packet");
         return -1;
     }
 
-    input_frame->pts = pts;
+    return 0;
+}
+
+int Encoder::encode_video(AVFrame *input_frame) {
+    if (input_frame) input_frame->pict_type = AV_PICTURE_TYPE_NONE;
 
     int response = avcodec_send_frame(encoder->video_avcc, input_frame);
 
     while (response >= 0) {
-        response = avcodec_receive_packet(encoder->video_avcc, output_packet);
+        response = avcodec_receive_packet(encoder->video_avcc, video_output_packet);
         if (response == AVERROR(EAGAIN) || response == AVERROR_EOF) {
             break;
         } else if (response < 0) {
@@ -293,16 +306,18 @@ int Encoder::encode_video(uint64_t pts, AVFrame *input_frame) {
             return -1;
         }
 
-        output_packet->stream_index = 0;
-        output_packet->pts = av_rescale_q(output_packet->pts, (AVRational){1, 1000000}, encoder->video_avs->time_base);
-        output_packet->dts = av_rescale_q(output_packet->dts, (AVRational){1, 1000000}, encoder->video_avs->time_base);
+        video_output_packet->stream_index = 0;
+        video_output_packet->pts = av_rescale_q(video_output_packet->pts, (AVRational){1, 1000000}, encoder->video_avs->time_base);
+        video_output_packet->dts = av_rescale_q(video_output_packet->dts, (AVRational){1, 1000000}, encoder->video_avs->time_base);
 
-        av_packet_rescale_ts(output_packet, (AVRational){1, 90000}, encoder->video_avs->time_base);
+        av_packet_rescale_ts(video_output_packet, (AVRational){1, 90000}, encoder->video_avs->time_base);
 
         // sanity test
-        if (output_packet->dts != AV_NOPTS_VALUE || output_packet->pts != AV_NOPTS_VALUE) {
-            // response = av_interleaved_write_frame(encoder->avfc, output_packet);
-            response = av_write_frame(encoder->avfc, output_packet);
+        if (video_output_packet->dts != AV_NOPTS_VALUE || video_output_packet->pts != AV_NOPTS_VALUE) {
+            response = av_write_frame(encoder->avfc, video_output_packet);
+
+            // INFO: flush as often as possible. The latency is lower but still too high
+            av_write_frame(encoder->avfc, nullptr);
         }
 
         if (response != 0) {
@@ -310,24 +325,15 @@ int Encoder::encode_video(uint64_t pts, AVFrame *input_frame) {
             return -1;
         }
     }
-    av_packet_unref(output_packet);
-    av_packet_free(&output_packet);
+    av_packet_unref(video_output_packet);
     return 0;
 }
 
-int Encoder::encode_audio(uint64_t pts, AVFrame *input_frame) {
-    AVPacket *output_packet = av_packet_alloc();
-    if (!output_packet) {
-        CONSOLE_ERROR("could not allocate memory for output packet");
-        return -1;
-    }
-
-    input_frame->pts = pts;
-
+int Encoder::encode_audio(AVFrame *input_frame) {
     int response = avcodec_send_frame(encoder->audio_avcc, input_frame);
 
     while (response >= 0) {
-        response = avcodec_receive_packet(encoder->audio_avcc, output_packet);
+        response = avcodec_receive_packet(encoder->audio_avcc, audio_output_packet);
         if (response == AVERROR(EAGAIN) || response == AVERROR_EOF) {
             break;
         } else if (response < 0) {
@@ -335,16 +341,15 @@ int Encoder::encode_audio(uint64_t pts, AVFrame *input_frame) {
             return -1;
         }
 
-        output_packet->stream_index = 1;
-        output_packet->pts = av_rescale_q(output_packet->pts, (AVRational){1, 1000000}, encoder->audio_avs->time_base);
-        output_packet->dts = av_rescale_q(output_packet->dts, (AVRational){1, 1000000}, encoder->audio_avs->time_base);
+        audio_output_packet->stream_index = 1;
+        audio_output_packet->pts = av_rescale_q(audio_output_packet->pts, (AVRational){1, 1000000}, encoder->audio_avs->time_base);
+        audio_output_packet->dts = av_rescale_q(audio_output_packet->dts, (AVRational){1, 1000000}, encoder->audio_avs->time_base);
 
-        av_packet_rescale_ts(output_packet, (AVRational){1, 90000}, encoder->audio_avs->time_base);
+        av_packet_rescale_ts(audio_output_packet, (AVRational){1, 90000}, encoder->audio_avs->time_base);
 
         // sanity test
-        if (output_packet->dts != AV_NOPTS_VALUE || output_packet->pts != AV_NOPTS_VALUE) {
-            // response = av_interleaved_write_frame(encoder->avfc, output_packet);
-            response = av_write_frame(encoder->avfc, output_packet);
+        if (audio_output_packet->dts != AV_NOPTS_VALUE || audio_output_packet->pts != AV_NOPTS_VALUE) {
+            response = av_write_frame(encoder->avfc, audio_output_packet);
         }
 
         if (response != 0) {
@@ -352,23 +357,15 @@ int Encoder::encode_audio(uint64_t pts, AVFrame *input_frame) {
             return -1;
         }
     }
-    av_packet_unref(output_packet);
-    av_packet_free(&output_packet);
+
+    av_packet_unref(audio_output_packet);
     return 0;
 }
 
 void Encoder::Start() {
     // main wait loop
     while (!isVideoStopping) {
-        std::this_thread::sleep_for(std::chrono::microseconds(10));
-
-        if (decodedPicture.status == 1) {
-            processVideoFrame();
-        }
-
-        if (decodedAudio.status == 1) {
-            processAudioFrame();
-        }
+        std::this_thread::sleep_for(std::chrono::milliseconds (500));
     }
 
     // wait for the encoder
@@ -425,6 +422,10 @@ int Encoder::startEncoder() {
 
 void Encoder::stopEncoder() {
     isVideoStopping = true;
+
+    /* flush the encoder */
+    encode_audio(nullptr);
+    encode_video(nullptr);
 }
 
 void Encoder::setAudioParameters(int channels, int sample_rate) {
@@ -440,140 +441,39 @@ void Encoder::setAudioParameters(int channels, int sample_rate) {
 
 // add an bgra image
 void Encoder::addVideoFrame(int width, int height, uint8_t *image, uint64_t pts) {
-    while (decodedPicture.status != 0 && !isVideoStopping) {
-        std::this_thread::sleep_for(std::chrono::microseconds(10));
-    }
-
-    decodedPicture.height = height;
-    decodedPicture.width = width;
-    decodedPicture.pts = pts;
-
-    memcpy(decodedPicture.image, image, width * height * 4);
-    decodedPicture.status = 1;
-}
-
-void Encoder::processVideoFrame() {
     if (isVideoStopping) {
         isVideoFinished = true;
         return;
     }
 
-    if (decodedPicture.status == 0) {
-        return;
-    }
-
-    decodedPicture.status = 2;
     isVideoFinished = false;
 
-    AVFrame *videoFrame;
-
-    // get sws context
-    if (swsCtx == nullptr) {
-        swsCtx = sws_getContext(decodedPicture.width,
-                                decodedPicture.height,
-                                AV_PIX_FMT_BGRA,
-                                1280, 720,
-                                AV_PIX_FMT_YUVA420P,
-                                SWS_BICUBIC, nullptr, nullptr, nullptr);
-    } else {
-        swsCtx = sws_getCachedContext(swsCtx,
-                                      decodedPicture.width,
-                                      decodedPicture.height,
-                                      AV_PIX_FMT_BGRA,
-                                     1280, 720,
-                                     AV_PIX_FMT_YUVA420P,
-                                      SWS_BICUBIC, nullptr, nullptr, nullptr);
-    }
-
-    videoFrame = av_frame_alloc();
-
-    if (!videoFrame) {
-        av_log(nullptr, AV_LOG_ERROR, "error creating video frame\n");
-        isVideoFinished = true;
-
-        decodedPicture.status = 0;
-        return;
-    }
-
-    videoFrame->width = 1280;
-    videoFrame->height = 720;
-    videoFrame->format = AV_PIX_FMT_YUVA420P;
-
-    int ret = av_image_alloc(videoFrame->data, videoFrame->linesize, videoFrame->width, videoFrame->height, AV_PIX_FMT_YUVA420P, 24);
-    if (ret < 0) {
-        av_log(nullptr, AV_LOG_ERROR, "Could not allocate raw picture buffer: %d, %s\n", ret, av_err2str(ret));
-        isVideoFinished = true;
-
-        decodedPicture.status = 0;
-
-        return;
-    }
-
-    uint8_t *inData[1] = { decodedPicture.image };
-    int inLinesize[1] = { 4 * decodedPicture.width };
+    uint8_t *inData[1] = { image };
+    int inLinesize[1] = { 4 * width };
 
     // scale and convert to yuv
-    sws_scale(swsCtx, inData, inLinesize, 0, decodedPicture.height, videoFrame->data, videoFrame->linesize);
+    sws_scale(swsCtx, inData, inLinesize, 0, height, videoFrame->data, videoFrame->linesize);
 
-    encode_video(decodedPicture.pts, videoFrame);
-
-    av_freep(&videoFrame->data[0]);
-    av_frame_free(&videoFrame);
+    videoFrame->pts = pts;
+    encode_video(videoFrame);
 
     isVideoFinished = true;
-    decodedPicture.status = 0;
 }
 
 void Encoder::addAudioFrame(const float **data, int frames, uint64_t pts) {
-     while (decodedAudio.status != 0 && !isVideoStopping) {
-         std::this_thread::sleep_for(std::chrono::microseconds(10));
-     }
-
-     uint8_t **pcm = (uint8_t **)data;
-     for (int i = 0; i < std::min(8, channelCount); i++) {
-        memcpy(decodedAudio.pcm[i], pcm[i], decodedAudio.audioBufferSize);
-     }
-
-     decodedAudio.pts = pts;
-     decodedAudio.status = 1;
-}
-
-void Encoder::processAudioFrame() {
     if (isVideoStopping) {
         isAudioFinished = true;
         return;
     }
 
-    if (decodedAudio.status == 0) {
-        return;
-    }
-
-    decodedAudio.status = 2;
     isAudioFinished = false;
 
-    AVFrame *audioFrame;
-
-    audioFrame = av_frame_alloc();
-
-    if (!audioFrame) {
-        av_log(nullptr, AV_LOG_ERROR, "error creating audio frame\n");
-        isAudioFinished = true;
-        decodedAudio.status = 0;
-        return;
-    }
-
-    audioFrame->nb_samples     = encoder->audio_avcc->frame_size;
-    audioFrame->format         = AV_SAMPLE_FMT_FLTP;
-    audioFrame->channel_layout = AV_CH_LAYOUT_STEREO;
-
     for (int i = 0; i < channelCount; i++) {
-        audioFrame->data[i] = decodedAudio.pcm[i];
+        audioFrame->data[i] = (uint8_t *) data[i];
     }
 
-    encode_audio(decodedAudio.pts, audioFrame);
-
-    av_frame_free(&audioFrame);
+    audioFrame->pts = pts;
+    encode_audio(audioFrame);
 
     isAudioFinished = true;
-    decodedAudio.status = 0;
 }

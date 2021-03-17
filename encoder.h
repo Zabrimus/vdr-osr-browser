@@ -48,7 +48,11 @@ private:
 
     unsigned char *outbuffer;
 
-    uint8_t* decodedVideoFrame;
+    AVFrame *videoFrame;
+    AVFrame *audioFrame;
+
+    AVPacket *video_output_packet;
+    AVPacket *audio_output_packet;
 
 private:
     // load x264 configuration
@@ -57,8 +61,8 @@ private:
     // encode
     int prepare_video_encoder(int width, int height, AVRational input_framerate);
     int prepare_audio_encoder(int channels, int sample_rate, AVRational input_framerate);
-    int encode_video(uint64_t pts, AVFrame *input_frame);
-    int encode_audio(uint64_t pts, AVFrame *input_frame);
+    int encode_video(AVFrame *input_frame);
+    int encode_audio(AVFrame *input_frame);
 
 public:
     // Transcode video stream
