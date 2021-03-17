@@ -4,9 +4,9 @@
 #include <cstring>
 #include "sharedmemory.h"
 
-const int sleepTime = 0;
-const int sleepOffset = 0;
-const int loops = 5000;
+const int sleepTime = 10;
+const int sleepOffset = 10;
+const int loops = 500000;
 
 static int type1 = 0;
 static int type2 = 0;
@@ -14,6 +14,13 @@ static int type3 = 0;
 static int type4 = 0;
 static int type5 = 0;
 static int type6 = 0;
+
+static int timeout1 = 0;
+static int timeout2 = 0;
+static int timeout3 = 0;
+static int timeout4 = 0;
+static int timeout5 = 0;
+static int timeout6 = 0;
 
 class TestThread {
 private:
@@ -24,10 +31,12 @@ private:
     uint8_t *buf = nullptr;
     int size;
     char* result;
+    int timeout;
 
 public:
-    TestThread(int type) {
+    TestThread(int type, int timeout) {
         this->type = type;
+        this->timeout = timeout;
     }
 
     void Start() {
@@ -41,124 +50,164 @@ public:
             switch(type) {
                 case 1: // writeBrowserCommand
                     asprintf(&cmd, "writeBrowserCommand %d", loop);
-                    if (!sharedMemory.writeBrowserCommand(cmd)) {
-                        fprintf(stderr, "writeBrowserCommand failed\n");
-                        isRunning = false;
-                    }
-                    free(cmd);
-                    loop++;
 
-                    type1++;
+                    if (sharedMemory.waitForWrite(BrowserCommand, timeout) != -1) {
+                        sharedMemory.write(cmd, BrowserCommand);
+
+                        loop++;
+                        type1++;
+                    } else {
+                        // fprintf(stderr, "Timeout in writeBrowserCommand\n");
+                        timeout1++;
+
+                        isRunning = timeout1 < 40;
+                    }
+
+                    free(cmd);
 
                     // sleep a random time
                     if (sleepTime > 0) {
-                        std::this_thread::sleep_for(std::chrono::milliseconds(rand() % sleepTime + sleepOffset));
+                        std::this_thread::sleep_for(std::chrono::microseconds(rand() % sleepTime + sleepOffset));
                     }
+
+                    // sharedMemory.unlock(BrowserCommand);
 
                     break;
 
                 case 2: // readBrowserCommand
                     asprintf(&cmd, "writeBrowserCommand %d", loop);
-                    result = sharedMemory.readBrowserCommand();
 
-                    if (strcmp(result, cmd) != 0) {
-                        fprintf(stderr, "readBrowserCommand failed\n");
-                        isRunning = false;
+                    if (sharedMemory.waitForRead(BrowserCommand, timeout) != -1) {
+                        result = sharedMemory.readString(BrowserCommand);
+
+                        if (strcmp(result, cmd) != 0) {
+                            fprintf(stderr, "readBrowserCommand failed\n");
+                            isRunning = false;
+                        } else {
+                            loop++;
+                            type2++;
+                        }
+                    } else {
+                        // fprintf(stderr, "Timeout in readBrowserCommand\n");
+                        timeout2++;
+
+                        isRunning = timeout2 < 40;
                     }
-                    loop++;
 
-                    sharedMemory.finishedReadBrowserCommand();
+                    sharedMemory.finishedReading(BrowserCommand);
 
                     free(cmd);
 
-                    type2++;
-
                     // sleep a random time
                     if (sleepTime > 0) {
-                        std::this_thread::sleep_for(std::chrono::milliseconds(rand() % sleepTime + sleepOffset));
+                        std::this_thread::sleep_for(std::chrono::microseconds(rand() % sleepTime + sleepOffset));
                     }
 
                     break;
 
                 case 3: // writeVdrCommand
                     asprintf(&cmd, "writeVdrCommand %d", loop);
-                    if (!sharedMemory.writeVdrCommand(cmd)) {
-                        fprintf(stderr, "writeVdrCommand failed\n");
-                        isRunning = false;
-                    }
-                    free(cmd);
-                    loop++;
 
-                    type3++;
+                    if (sharedMemory.waitForWrite(VdrCommand, timeout) != -1) {
+                        sharedMemory.write(cmd, VdrCommand);
+                        loop++;
+                        type3++;
+                    } else {
+                        // fprintf(stderr, "Timeout in writeVdrCommand\n");
+                        timeout3++;
+
+                        isRunning = timeout3 < 40;
+                    }
+
+                    free(cmd);
 
                     // sleep a random time
                     if (sleepTime > 0) {
-                        std::this_thread::sleep_for(std::chrono::milliseconds(rand() % sleepTime + sleepOffset));
+                        std::this_thread::sleep_for(std::chrono::microseconds(rand() % sleepTime + sleepOffset));
                     }
 
                     break;
 
                 case 4: // readVdrCommand
                     asprintf(&cmd, "writeVdrCommand %d", loop);
-                    result = sharedMemory.readVdrCommand();
 
-                    if (strcmp(result, cmd) != 0) {
-                        fprintf(stderr, "readVdrCommand failed\n");
-                        isRunning = false;
+                    if (sharedMemory.waitForRead(VdrCommand, timeout) != -1) {
+                        result = sharedMemory.readString(VdrCommand);
+
+                        if (strcmp(result, cmd) != 0) {
+                            fprintf(stderr, "readBrowserCommand failed\n");
+                            isRunning = false;
+                        } else {
+                            loop++;
+                            type4++;
+                        }
+                    } else {
+                        // fprintf(stderr, "Timeout in readBrowserCommand\n");
+                        timeout4++;
+
+                        isRunning = timeout4 < 40;
                     }
-                    loop++;
 
-                    sharedMemory.finishedReadVdrCommand();
+                    sharedMemory.finishedReading(VdrCommand);
                     free(cmd);
-
-                    type4++;
 
                     // sleep a random time
                     if (sleepTime > 0) {
-                        std::this_thread::sleep_for(std::chrono::milliseconds(rand() % sleepTime + sleepOffset));
+                        std::this_thread::sleep_for(std::chrono::microseconds(rand() % sleepTime + sleepOffset));
                     }
 
                     break;
 
                 case 5: // writeBrowserData
                     asprintf(&cmd, "writeBrowserData %d", loop);
-                    if (!sharedMemory.writeBrowserData(reinterpret_cast<uint8_t *>(cmd), strlen(cmd) + 1)) {
-                        fprintf(stderr, "writeBrowserData failed\n");
-                        isRunning = false;
-                    }
-                    free(cmd);
-                    loop++;
 
-                    type5++;
+                    if (sharedMemory.waitForWrite(Data, timeout) != -1) {
+                        sharedMemory.write(reinterpret_cast<uint8_t *>(cmd), strlen(cmd) + 1, Data);
+                        loop++;
+                        type5++;
+                    } else {
+                        // fprintf(stderr, "Timeout in writeBrowserdata\n");
+                        timeout5++;
+
+                        isRunning = timeout5 < 40;
+                    }
+
+                    free(cmd);
 
                     // sleep a random time
                     if (sleepTime > 0) {
-                        std::this_thread::sleep_for(std::chrono::milliseconds(rand() % sleepTime + sleepOffset));
+                        std::this_thread::sleep_for(std::chrono::microseconds(rand() % sleepTime + sleepOffset));
                     }
 
                     break;
 
                 case 6: // readBrowserData
                     asprintf(&cmd, "writeBrowserData %d", loop);
-                    if (!sharedMemory.readBrowserData(&buf, &size)) {
-                        fprintf(stderr, "READ Failed\n");
-                        isRunning = false;
+
+                    if (sharedMemory.waitForRead(Data, timeout) != -1) {
+
+                        sharedMemory.read(&buf, &size, Data);
+
+                        if ((buf == nullptr) || ((size - 1 != strlen(reinterpret_cast<const char *>(buf))) || (strcmp(reinterpret_cast<const char *>(buf), cmd) != 0))) {
+                            fprintf(stderr, "readBrowserData failed\n");
+                            isRunning = false;
+                        } else {
+                            loop++;
+                            type6++;
+                        }
+                    } else {
+                        // fprintf(stderr, "Timeout in readBrowserCommand\n");
+                        timeout6++;
+
+                        isRunning = timeout6 < 40;
                     }
 
-                    if ((buf == nullptr) || ((size - 1 != strlen(reinterpret_cast<const char *>(buf))) || (strcmp(reinterpret_cast<const char *>(buf), cmd) != 0))) {
-                        fprintf(stderr, "readBrowserData failed\n");
-                        isRunning = false;
-                    }
                     free(cmd);
-                    sharedMemory.finishedReadBrowserData();
-
-                    loop++;
-
-                    type6++;
+                    sharedMemory.finishedReading(Data);
 
                     // sleep a random time
                     if (sleepTime > 0) {
-                        std::this_thread::sleep_for(std::chrono::milliseconds(rand() % sleepTime + sleepOffset));
+                        std::this_thread::sleep_for(std::chrono::microseconds(rand() % sleepTime + sleepOffset));
                     }
 
                     break;
@@ -179,12 +228,14 @@ void startTestThread(TestThread test) {
 
 int main(int argc, char *argv[]) {
 
-    TestThread testThread1(1);
-    TestThread testThread2(2);
-    TestThread testThread3(3);
-    TestThread testThread4(4);
-    TestThread testThread5(5);
-    TestThread testThread6(6);
+    int timeout = 500;
+
+    TestThread testThread1(1, timeout);
+    TestThread testThread2(2, timeout);
+    TestThread testThread3(3, timeout);
+    TestThread testThread4(4, timeout);
+    TestThread testThread5(5, timeout);
+    TestThread testThread6(6, timeout);
 
     std::thread test1(startTestThread, testThread1);
     std::thread test2(startTestThread, testThread2);
@@ -209,4 +260,6 @@ int main(int argc, char *argv[]) {
     } else {
         fprintf(stderr, "\nSomething is wrong...\n");
     }
+
+    fprintf(stderr, "Timeout: %d %d %d %d %d %d\n", timeout1, timeout2, timeout3, timeout4, timeout5, timeout6);
 }

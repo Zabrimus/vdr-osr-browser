@@ -26,7 +26,7 @@ USE_CEF_DEBUG=0
 
 CC = g++
 
-# CFLAGS = -g -c -O3  -Wall -std=c++11
+#CFLAGS = -g -c -O3  -Wall -std=c++11
 CFLAGS = -c -O0 -g -Wall -std=c++11
 LDFLAGS = -pthread -lrt
 
@@ -56,11 +56,6 @@ EXECUTABLE3  = testshmp
 CFLAGS += $(shell pkg-config --cflags libcurl)
 LDFLAGS += $(shell pkg-config --libs libcurl)
 
-# nng
-NNGVERSION = 1.3.0
-NNGCFLAGS  = -Ithirdparty/nng-$(NNGVERSION)/include/nng/compat
-NNGLDFLAGS = thirdparty/nng-$(NNGVERSION)/build/libnng.a
-
 # spdlog
 LOGCFLAGS = -Ithirdparty/spdlog/buildbin/include -D SPDLOG_COMPILED_LIB
 LOGLDFLAGS = thirdparty/spdlog/buildbin/lib/libspdlog.a
@@ -88,7 +83,6 @@ all:
 	$(MAKE) extractcef
 	$(MAKE) buildspdlog
 	$(MAKE) buildcef
-	$(MAKE) buildnng
 	$(MAKE) prepareexe
 	$(MAKE) browser
 
@@ -98,7 +92,7 @@ dist:
 	tar -cJf vdr-osr-browser-$(VERSION).tar.xz Release
 
 $(EXECUTABLE): $(OBJECTS) globaldefs.h main.h browser.h nativejshandler.h schemehandler.h javascriptlogging.h sharedmemory.h
-	$(CC) $(OBJECTS) $(NNGCFLAGS) $(LOGCFLAGS) -o $@ $(ASANLDFLAGS) $(LDFLAGS) $(NNGLDFLAGS) $(LOGLDFLAGS)
+	$(CC) $(OBJECTS) $(LOGCFLAGS) -o $@ $(ASANLDFLAGS) $(LDFLAGS) $(LOGLDFLAGS)
 	mv $(EXECUTABLE) Release
 	cp -r js Release
 	cp thirdparty/dashjs/dash.all.debug.js Release/js
@@ -161,13 +155,6 @@ else
 endif
 endif
 
-buildnng:
-ifneq (exists, $(shell test -e thirdparty/nng-$(NNGVERSION)/build/libnng.a && echo exists))
-	mkdir -p thirdparty/nng-$(NNGVERSION)/build && \
-	cd thirdparty/nng-$(NNGVERSION)/build && cmake -DCMAKE_BUILD_TYPE=Release .. && \
-	$(MAKE)
-endif
-
 buildspdlog:
 ifneq (exists, $(shell test -e thirdparty/spdlog/buildbin/lib/libspdlog.a && echo exists))
 	mkdir -p thirdparty/spdlog/build && \
@@ -197,10 +184,10 @@ encodetest: encodetest.o encoder.o
 	$(CC) $+ -o $@ $(AVLDFLAGS)
 
 .cpp.o:
-	$(CC) $(ASANCFLAGS) -I. $(CFLAGS) $(NNGCFLAGS) $(LOGCFLAGS) -MMD $< -o $@
+	$(CC) $(ASANCFLAGS) -I. $(CFLAGS) $(LOGCFLAGS) -MMD $< -o $@
 
 .c.o:
-	$(CC) $(ASANCFLAGS) -I. $(CFLAGS) $(NNGCFLAGS) $(LOGCFLAGS) -MMD $< -o $@
+	$(CC) $(ASANCFLAGS) -I. $(CFLAGS) $(LOGCFLAGS) -MMD $< -o $@
 
 DEPS := $(OBJECTS:.o=.d)
 -include $(DEPS)
@@ -209,7 +196,6 @@ clean:
 	rm -f $(OBJECTS) $(EXECUTABLE) $(OBJECTS2) $(EXECUTABLE2) $(OBJECTS3) $(EXECUTABLE3) *.d tests/*.d
 	rm -Rf cef_binary*
 	rm -Rf Release
-	rm -Rf thirdparty/nng-$(NNGVERSION)/build
 	rm -Rf thirdparty/spdlog/build
 	rm -Rf thirdparty/spdlog/buildbin
 	rm -Rf thirdparty/cef

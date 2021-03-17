@@ -17,8 +17,6 @@
 #include <thread>
 #include <csignal>
 #include <sys/stat.h>
-#include <nanomsg/nn.h>
-#include <nanomsg/pipeline.h>
 #include "main.h"
 #include "browser.h"
 #include "schemehandler.h"
@@ -153,31 +151,6 @@ void checkInstallation() {
         exit(1);
     }
     infile1.close();
-
-    // check if sockets can be opened
-    int socketId;
-
-    if ((socketId = nn_socket(AF_SP, NN_PUSH)) < 0) {
-        fprintf(stderr, "Unable to create nanomsg NN_PUSH socket. Aborting...\n");
-        exit(1);
-    }
-
-    if ((nn_bind(socketId, TO_VDR_CHANNEL)) < 0) {
-        exit(1);
-    }
-
-    nn_close(socketId);
-
-    if ((socketId = nn_socket(AF_SP, NN_PULL)) < 0) {
-        fprintf(stderr, "Unable to create nanomsg NN_PULL socket. Aborting...\n");
-        exit(1);
-    }
-
-    if ((nn_connect(socketId, FROM_VDR_CHANNEL)) < 0) {
-        exit(1);
-    }
-
-    nn_close(socketId);
 }
 
 std::string *initUrl = nullptr;

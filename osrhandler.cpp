@@ -131,10 +131,11 @@ void OSRHandler::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, c
     int w = std::min(width, 1920);
     int h = std::min(height, 1080);
 
-    if (sharedMemory.writeBrowserData((uint8_t *) buffer, w * h * 4)) {
+    if (sharedMemory.waitForWrite(Data) != -1) {
+        uint32_t* buf = reinterpret_cast<uint32_t *>(sharedMemory.write((uint8_t *) buffer, w * h * 4, Data) + sizeof(int));
+
         if (clearX != 0 && clearY != 0 && clearHeight != width && clearHeight != height) {
             // clear part of the OSD
-            uint32_t* buf = (uint32_t*)sharedMemory.getBrowserData();
             for (auto i = 0; i < clearHeight; ++i) {
                 for (auto j = clearX; j < clearX + clearWidth; ++j) {
                     *(buf + (clearY - 1 + i) * width + j) = 0;
@@ -144,7 +145,7 @@ void OSRHandler::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, c
 
         browserClient->SendToVdrOsd("OSDU", w, h);
     } else {
-        CONSOLE_ERROR("Unable to write OSD data to shared memory");
+        CONSOLE_ERROR("Unable to write OSD data to shared memory: {}", sharedMemory.getMode(Data));
     }
 }
 
@@ -198,7 +199,9 @@ void OSRHandler::OnAudioStreamError(CefRefPtr<CefBrowser> browser, const CefStri
 }
 
 int OSRHandler::writeVideoToShm(uint8_t *buf, int buf_size) {
-    if (!sharedMemory.writeBrowserData(buf, buf_size)) {
+    if (sharedMemory.waitForWrite(Data) != -1) {
+        sharedMemory.write(buf, buf_size, Data);
+    } else {
         CONSOLE_ERROR("Unable to write video data to shared memory");
     }
 

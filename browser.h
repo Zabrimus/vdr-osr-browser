@@ -111,9 +111,6 @@ private:
     // default HTML mode
     int mode = HTML_MODE;
 
-    // sockets
-    int toVdrSocketId;
-
     // heatbeat thread
     std::thread heartbeat_thread;
     bool heartbeat_running;
@@ -223,8 +220,6 @@ private:
     BrowserClient *browserClient;
 
     bool isRunning;
-
-    int fromVdrSocketId;
 
     std::string url;
 };

@@ -16,11 +16,10 @@
 #include "include/cef_v8.h"
 #include "include/cef_process_message.h"
 #include "include/cef_base.h"
-#include <nanomsg/nn.h>
-#include <nanomsg/pipeline.h>
 #include "globaldefs.h"
 #include "browser.h"
 #include "nativejshandler.h"
+#include "sharedmemory.h"
 
 // #define DEBUG_JS
 
@@ -32,9 +31,6 @@ BrowserControl::BrowserControl(CefRefPtr<CefBrowser> _browser, BrowserClient* cl
 }
 
 BrowserControl::~BrowserControl() {
-    if (fromVdrSocketId > 0) {
-        nn_close(fromVdrSocketId);
-    }
 }
 
 void BrowserControl::LoadURL(const CefString& url) {
@@ -67,26 +63,20 @@ void BrowserControl::BrowserStopLoad() {
 void BrowserControl::Start() {
     isRunning = true;
 
-    // bind socket
-    if ((fromVdrSocketId = nn_socket(AF_SP, NN_PULL)) < 0) {
-        fprintf(stderr, "BrowserControl: unable to create nanomsg socket\n");
-        exit(1);
-    }
-
-    if (nn_bind(fromVdrSocketId, FROM_VDR_CHANNEL) < 0) {
-        fprintf(stderr, "BrowserControl: unable to bind nanomsg socket to %s\n", FROM_VDR_CHANNEL);
-    }
-
     while (isRunning) {
-        char *buf = nullptr;
+        char *buf;
         int bytes;
 
-        if ((bytes = nn_recv(fromVdrSocketId, &buf, NN_MSG, 0)) < 0) {
-            fprintf(stderr, "BrowserControl: unable to read command from socket %d, %d, %s\n", bytes, nn_errno(), nn_strerror(nn_errno()));
+        if (sharedMemory.waitForRead(VdrCommand) == -1) {
+            // got currently no new command
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            continue;
         }
 
-        if (bytes > 0) {
-            if (strncmp("OSDU", buf, 4) != 0 && strncmp("APPURL", buf, 6) != 0) {
+        buf = sharedMemory.readString(VdrCommand);
+
+        if (buf != nullptr && strlen(buf) > 0) {
+            if (strncmp("APPURL", buf, 6) != 0) {
                 CONSOLE_TRACE("Received command from VDR: {}", buf);
             }
 
@@ -172,9 +162,7 @@ void BrowserControl::Start() {
             }
         }
 
-        if (buf != nullptr) {
-            nn_freemsg(buf);
-        }
+        sharedMemory.finishedReading(VdrCommand);
     }
 }
 

@@ -40,15 +40,11 @@ const int dataOffset = browserCommandOffset + commandBufferSize;
 const unsigned int sharedMemoryKey = 0xDEADC0DE;
 const unsigned int sharedMemorySize = dataOffset + dataBufferSize;
 
-const uint16_t shmpCanWrite = 0;
-const uint16_t shmpCanRead  = 1;
-const uint16_t shmpCurrentlyReading  = 2;
-
 const int typeVdrCommand = 1;
 const int typeBrowserCommand = 2;
 const int typeData = 3;
 
-SharedMemory::SharedMemory() {
+SharedMemory::SharedMemory(bool initBrowserMode) {
     // init shared memory
     shmid = -1;
     shmp = nullptr;
@@ -70,9 +66,18 @@ SharedMemory::SharedMemory() {
         return;
     }
 
-    bufferRead(getOffsetForType(typeBrowserCommand));
-    bufferRead(getOffsetForType(typeData));
-    bufferRead(getOffsetForType(typeVdrCommand));
+    segments = new Segment[3];
+
+    segments[0] = Segment(vdrCommandOffset, vdrCommandStatusOffset);
+    segments[1] = Segment(browserCommandOffset, browserCommandStatusOffset);
+    segments[2] = Segment(dataOffset, dataStatusOffset);
+
+    if (initBrowserMode) {
+        setMode(shmpWriteMode, Data);
+        setMode(shmpWriteMode, BrowserCommand);
+    } else {
+        setMode(shmpWriteMode,  VdrCommand);
+    }
 }
 
 SharedMemory::~SharedMemory() {
@@ -86,159 +91,136 @@ SharedMemory::~SharedMemory() {
     }
 }
 
-int SharedMemory::getOffsetForType(int type) {
-    int16_t offset;
-
-    switch (type) {
-        case typeVdrCommand:
-            offset = vdrCommandStatusOffset;
-            break;
-
-        case typeBrowserCommand:
-            offset = browserCommandStatusOffset;
-            break;
-
-        case typeData:
-            offset = dataStatusOffset;
-            break;
-
-        default:
-            // must not happen
-            offset = -1;
-            break;
-    }
-
-    return offset;
+int SharedMemory::waitForRead(AvailableSegments segment, int timeoutMillis) {
+    return segments[segment].waitForRead(timeoutMillis);
 }
 
-bool SharedMemory::canWrite(int offset) {
-    uint16_t currentVal;
-    memcpy(&currentVal, shmp+offset, sizeof(uint16_t));
-
-    return currentVal == shmpCanWrite;
+int SharedMemory::waitForWrite(AvailableSegments segment, int timeoutMillis) {
+    return segments[segment].waitForWrite(timeoutMillis);
 }
 
-bool SharedMemory::canRead(int offset) {
-    uint16_t currentVal;
-    memcpy(&currentVal, shmp+offset, sizeof(uint16_t));
+uint8_t* SharedMemory::write(uint8_t* data, int size, AvailableSegments segment) {
+    return segments[segment].write(data, size);
+}
 
-    bool cr = currentVal == shmpCanRead;
+uint8_t* SharedMemory::write(char* data, AvailableSegments segment) {
+    return segments[segment].write(data);
+}
+
+uint8_t* SharedMemory::read(uint8_t** data, int* size, AvailableSegments segment) {
+    return segments[segment].read(data, size);
+}
+
+char* SharedMemory::readString(AvailableSegments segment) {
+    return segments[segment].readString();
+}
+
+void SharedMemory::finishedReading(AvailableSegments segment) {
+    segments[segment].finishedReading();
+}
+
+uint8_t* SharedMemory::getMemoryPtr(AvailableSegments segment) {
+    return segments[segment].getMemoryPtr();
+}
+
+void SharedMemory::setMode(int mode, AvailableSegments segment) {
+    segments[segment].setMode(mode);
+}
+
+int SharedMemory::getMode(AvailableSegments segment) {
+    return segments[segment].getMode();
+}
+
+bool Segment::canWrite() {
+    return getMode() == shmpWriteMode;
+}
+
+bool Segment::canRead() {
+    bool cr = getMode() == shmpReadMode;
 
     if (cr) {
-        memcpy(shmp + offset, &shmpCurrentlyReading, sizeof(uint16_t));
+        setMode(shmpCurrentlyReading);
     }
 
     return cr;
 }
 
-void SharedMemory::bufferWritten(int offset) {
-    memcpy(shmp + offset, &shmpCanRead, sizeof(uint16_t));
-}
-
-void SharedMemory::bufferRead(int offset) {
-    memcpy(shmp + offset, &shmpCanWrite, sizeof(uint16_t));
-}
-
-bool SharedMemory::waitForRead(int type, int waitMillis, int maxIteration) {
+int Segment::waitForRead(int timeoutMillis) {
     int i = 0;
+    int maxIteration = (timeoutMillis * 1000) / waitUsec;
 
-    int offset = getOffsetForType(type);
+    while (!canRead() && i < maxIteration) {
+        std::this_thread::sleep_for(std::chrono::microseconds(pollingInterval));
+        i++;
+    }
 
-    while (!canRead(offset) && i < maxIteration) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(waitMillis));
+    if (i < maxIteration) {
+        return 1;
+    } else {
+        return -1;
+    }
+}
+
+int Segment::waitForWrite(int timeoutMillis) {
+    int i = 0;
+    int maxIteration = (timeoutMillis * 1000) / waitUsec;
+
+    while (!canWrite() && i < maxIteration) {
+        std::this_thread::sleep_for(std::chrono::microseconds(pollingInterval));
         ++i;
     }
 
-    return i < maxIteration;
-}
-
-bool SharedMemory::waitForWrite(int type, int waitMillis, int maxIteration) {
-    int i = 0;
-
-    int offset = getOffsetForType(type);
-
-    while (!canWrite(offset) && i < maxIteration) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(waitMillis));
-        ++i;
+    if (i < maxIteration) {
+        return 1;
+    } else {
+        return -1;
     }
-
-    return i < maxIteration;
 }
 
-bool SharedMemory::writeBrowserData(uint8_t* data, int size, int waitMillis, int maxIteration) {
-    if (waitForWrite(typeData, waitMillis, maxIteration)) {
-        memcpy(shmp + dataOffset, &size, sizeof(int));
-        memcpy(shmp + sizeof(int) + dataOffset, data, size);
+uint8_t* Segment::write(uint8_t* data, int size) {
+    memcpy(sharedMemory.shmp + dataOffset, &size, sizeof(int));
+    memcpy(sharedMemory.shmp + sizeof(int) + dataOffset, data, size);
 
-        bufferWritten(dataStatusOffset);
-        return true;
-    }
+    setMode(shmpReadMode);
 
-    return false;
+    return sharedMemory.shmp + dataOffset;
 }
 
-bool SharedMemory::readBrowserData(uint8_t** data, int* size, int waitMillis, int maxIteration) {
-    if (waitForRead(typeData, waitMillis, maxIteration)) {
-        memcpy(size, shmp + dataOffset, sizeof(int));
-        *data = shmp + dataOffset + sizeof(int);
-        return true;
-    }
+uint8_t* Segment::write(char* data) {
+    strcpy(reinterpret_cast<char *>(sharedMemory.shmp + dataOffset), data);
 
-    return false;
+    setMode(shmpReadMode);
+
+    return sharedMemory.shmp + dataOffset;
 }
 
-void SharedMemory::finishedReadBrowserData() {
-    bufferRead(dataStatusOffset);
+uint8_t* Segment::read(uint8_t** data, int* size) {
+    memcpy(size, sharedMemory.shmp + dataOffset, sizeof(int));
+    *data = sharedMemory.shmp + dataOffset + sizeof(int);
+
+    return *data;
 }
 
-bool SharedMemory::writeBrowserCommand(char* data, int waitMillis, int maxIteration) {
-    if (waitForWrite(typeBrowserCommand, waitMillis, maxIteration)) {
-        strcpy(reinterpret_cast<char *>(shmp + browserCommandOffset), data);
-
-        bufferWritten(browserCommandStatusOffset);
-        return true;
-    }
-
-    return false;
+char* Segment::readString() {
+    return reinterpret_cast<char *>(sharedMemory.shmp + dataOffset);
 }
 
-char* SharedMemory::readBrowserCommand(int waitMillis, int maxIteration) {
-    if (waitForRead(typeBrowserCommand, waitMillis, maxIteration)) {
-        return reinterpret_cast<char *>(shmp + browserCommandOffset);
-    }
-
-    return nullptr;
+void Segment::finishedReading() {
+    setMode(shmpWriteMode);
 }
 
-void SharedMemory::finishedReadBrowserCommand() {
-    bufferRead(browserCommandStatusOffset);
+uint8_t* Segment::getMemoryPtr() {
+    return sharedMemory.shmp + dataOffset;
 }
 
-bool SharedMemory::writeVdrCommand(char* data, int waitMillis, int maxIteration) {
-    if (waitForWrite(typeVdrCommand, waitMillis, maxIteration)) {
-        strcpy(reinterpret_cast<char *>(shmp + vdrCommandOffset), data);
-
-        bufferWritten(vdrCommandStatusOffset);
-        return true;
-    }
-
-    return false;
+void Segment::setMode(int mode) {
+    volatile auto p = sharedMemory.shmp + statusOffset;
+    *((uint16_t*)p) = mode;
 }
 
-char* SharedMemory::readVdrCommand(int waitMillis, int maxIteration) {
-    if (waitForRead(typeVdrCommand, waitMillis, maxIteration)) {
-        return reinterpret_cast<char *>(shmp + vdrCommandOffset);
-    }
-
-    return nullptr;
+uint16_t Segment::getMode() {
+    volatile auto p = sharedMemory.shmp + statusOffset;
+    return *(uint16_t*)p;
 }
 
-void SharedMemory::finishedReadVdrCommand() {
-    bufferRead(vdrCommandStatusOffset);
-}
-
-uint8_t* SharedMemory::getBrowserData() {
-    return shmp + dataOffset;
-}
-
-SharedMemory sharedMemory;
+SharedMemory sharedMemory(true);

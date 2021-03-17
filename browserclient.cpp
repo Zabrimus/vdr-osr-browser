@@ -16,8 +16,6 @@
 #include <map>
 #include <list>
 #include <regex>
-#include <nanomsg/nn.h>
-#include <nanomsg/pipeline.h>
 #include <curl/curl.h>
 #include "include/wrapper/cef_helpers.h"
 #include "include/cef_cookie.h"
@@ -25,6 +23,7 @@
 #include "browser.h"
 #include "javascriptlogging.h"
 #include "dashhandler.h"
+#include "sharedmemory.h"
 
 #define HEADERSIZE (4 * 1024)
 
@@ -434,15 +433,6 @@ void JavascriptHandler::OnQueryCanceled(CefRefPtr<CefBrowser> browser, CefRefPtr
 BrowserClient::BrowserClient(spdlog::level::level_enum log_level, std::string *dashplayer) {
     logger.set_level(log_level);
 
-    // bind socket
-    if ((toVdrSocketId = nn_socket(AF_SP, NN_PUSH)) < 0) {
-        fprintf(stderr, "BrowserClient: unable to create nanomsg socket\n");
-    }
-
-    if (nn_bind(toVdrSocketId, TO_VDR_CHANNEL) < 0) {
-        fprintf(stderr, "BrowserClient: unable to bind nanomsg socket to %s\n", TO_VDR_CHANNEL);
-    }
-
     browserClient = this;
 
     if (dashplayer != nullptr) {
@@ -497,10 +487,6 @@ BrowserClient::BrowserClient(spdlog::level::level_enum log_level, std::string *d
 
 BrowserClient::~BrowserClient() {
     heartbeat_running = false;
-
-    if (toVdrSocketId > 0) {
-        nn_close(toVdrSocketId);
-    }
 
     if (osrHandler != NULL) {
         delete osrHandler;
@@ -1091,7 +1077,10 @@ void BrowserClient::SendToVdrString(uint8_t messageType, const char* message) {
 
     buffer[0] = messageType;
     strcpy(buffer + 1, message);
-    nn_send(toVdrSocketId, buffer, strlen(message) + 2, 0);
+
+    if (sharedMemory.waitForWrite(BrowserCommand) != -1) {
+        sharedMemory.write((uint8_t *) buffer, strlen(message) + 2, BrowserCommand);
+    }
 
     free(buffer);
 }
@@ -1110,7 +1099,9 @@ void BrowserClient::SendToVdrOsd(const char* message, int width, int height) {
     buffer[0] = CMD_OSD;
     memcpy((void*)(buffer + 1), &osdStruct, sizeof(struct OsdStruct));
 
-    nn_send(toVdrSocketId, buffer, sizeof(struct OsdStruct) + 1, 0);
+    if (sharedMemory.waitForWrite(BrowserCommand) != -1) {
+        sharedMemory.write((uint8_t *) buffer, sizeof(struct OsdStruct) + 1, BrowserCommand);
+    }
 
     delete[] buffer;
 }
