@@ -82,10 +82,14 @@ Encoder::Encoder() {
     // TODO: use hardcoded values. More than 2 needs some justifications
     channelCount = 2;
     sampleRate = 48000;
+
+    startEncoder();
 }
 
 Encoder::~Encoder() {
     isVideoStopping = true;
+
+    stopEncoder();
 
     if (video_output_packet != nullptr) {
         av_packet_unref(video_output_packet);
@@ -362,23 +366,6 @@ int Encoder::encode_audio(AVFrame *input_frame) {
     return 0;
 }
 
-void Encoder::Start() {
-    // main wait loop
-    while (!isVideoStopping) {
-        std::this_thread::sleep_for(std::chrono::milliseconds (500));
-    }
-
-    // wait for the encoder
-    bool isRunning = true;
-    while (isRunning) {
-        if (isVideoFinished && isAudioFinished) {
-            isRunning = false;
-        } else {
-            std::this_thread::sleep_for(std::chrono::microseconds(10));
-        }
-    }
-}
-
 int Encoder::startEncoder() {
     int response = avformat_alloc_output_context2(&encoder->avfc, nullptr, nullptr, encoder->filename);
     if (!encoder->avfc) {
@@ -426,6 +413,16 @@ void Encoder::stopEncoder() {
     /* flush the encoder */
     encode_audio(nullptr);
     encode_video(nullptr);
+
+    // wait for the encoder
+    bool isRunning = true;
+    while (isRunning) {
+        if (isVideoFinished && isAudioFinished) {
+            isRunning = false;
+        } else {
+            std::this_thread::sleep_for(std::chrono::microseconds(10));
+        }
+    }
 }
 
 void Encoder::setAudioParameters(int channels, int sample_rate) {
@@ -476,4 +473,12 @@ void Encoder::addAudioFrame(const float **data, int frames, uint64_t pts) {
     encode_audio(audioFrame);
 
     isAudioFinished = true;
+}
+
+void Encoder::disable() {
+    isVideoStopping = true;
+}
+
+void Encoder::enable() {
+    isVideoStopping = false;
 }

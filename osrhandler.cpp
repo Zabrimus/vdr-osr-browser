@@ -39,14 +39,11 @@ uint64_t startpts = 0;
 
 BrowserClient* OSRHandler::browserClient;
 
-void startEncoderThread(Encoder* encoder) {
-    encoder->Start();
-}
-
 OSRHandler::OSRHandler(BrowserClient *bc, int width, int height) {
     CONSOLE_TRACE("Create OSRHandler and open shared memory");
 
-    encoder = nullptr;
+    // create encoder as early as possible
+    encoder = new Encoder();;
 
     browserClient = bc;
     renderWidth = width;
@@ -57,8 +54,7 @@ OSRHandler::OSRHandler(BrowserClient *bc, int width, int height) {
 
 OSRHandler::~OSRHandler() {
     if (encoder != nullptr) {
-        encoder->stopEncoder();
-        encoderThread->join();
+        encoder->disable();
         delete encoder;
         encoder = nullptr;
     }
@@ -72,37 +68,15 @@ void OSRHandler::osdClearVideo(int x, int y, int width, int height) {
 }
 
 bool OSRHandler::enableEncoder() {
-    if (encoder != nullptr) {
-        return false;
-    }
-
-    // start encoder
-    encoder = new Encoder();
-    encoderThread = new std::thread(startEncoderThread, encoder);
-
-    isVideoStarted = false;
-
-    // create encoder as early as possible
-    if (encoder->startEncoder() != 0) {
-        CONSOLE_CRITICAL("Starting the encoder failed.");
-        isVideoStarted = false;
-    } else {
-        isVideoStarted = true;
-    }
+    encoder->enable();
+    isVideoStarted = true;
 
     return true;
 }
 
 void OSRHandler::disableEncoder() {
     isVideoStarted = false;
-
-    if (encoder != nullptr) {
-        encoder->stopEncoder();
-        encoderThread->join();
-
-        delete encoder;
-        encoder = nullptr;
-    }
+    encoder->disable();
 }
 
 void OSRHandler::setRenderSize(int width, int height) {
@@ -161,12 +135,7 @@ bool OSRHandler::GetAudioParameters(CefRefPtr<CefBrowser> browser, CefAudioParam
 void OSRHandler::OnAudioStreamStarted(CefRefPtr<CefBrowser> browser, const CefAudioParameters &params, int channels) {
     CONSOLE_TRACE("OSRVideoHandler::OnAudioStreamStarted: Sample rate: {}, Channel layout: {}, Frames per buffer: {}, Channels: {} ", params.sample_rate, params.channel_layout, params.frames_per_buffer, channels);
 
-    // sanity check:
-    //   This method can be called before the encoder is ready.
-    //   In this case, create the encoder
-    if (encoder == nullptr) {
-        enableEncoder();
-    }
+    enableEncoder();
 
     encoder->setAudioParameters(channels, params.sample_rate);
 }

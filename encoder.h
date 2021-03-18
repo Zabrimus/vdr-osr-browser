@@ -64,23 +64,20 @@ private:
     int encode_video(AVFrame *input_frame);
     int encode_audio(AVFrame *input_frame);
 
+    int startEncoder();
+    void stopEncoder();
+
 public:
     // Transcode video stream
     Encoder();
     ~Encoder();
 
-    void Start();
-
-    int startEncoder();
-    void stopEncoder();
+    void disable();
+    void enable();
 
     void setAudioParameters(int channels, int sample_rate);
-
     void addVideoFrame(int width, int height, uint8_t* image, uint64_t pts);
-    void processVideoFrame();
-
     void addAudioFrame(const float **data, int frames, uint64_t pts);
-    void processAudioFrame();
 };
 
 #endif //VDR_OSR_BROWSER_ENCODER_H
