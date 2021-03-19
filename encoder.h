@@ -74,6 +74,7 @@ public:
 
     void disable();
     void enable();
+    void flush();
 
     void setAudioParameters(int channels, int sample_rate);
     void addVideoFrame(int width, int height, uint8_t* image, uint64_t pts);

@@ -65,7 +65,6 @@ void BrowserControl::Start() {
 
     while (isRunning) {
         char *buf;
-        int bytes;
 
         if (sharedMemory.waitForRead(VdrCommand) == -1) {
             // got currently no new command
@@ -82,7 +81,7 @@ void BrowserControl::Start() {
 
             if (strncmp("SENDOSD", buf, 7) == 0) {
                 browser->GetHost()->Invalidate(PET_VIEW);
-            } else if (strncmp("URL ", buf, 4) == 0 && bytes >= 5) {
+            } else if (strncmp("URL ", buf, 4) == 0 && strlen(buf) >= 5) {
                 CefString url(buf + 4);
                 LoadURL(url);
             } else if (strncmp("PAUSE", buf, 5) == 0) {
@@ -91,7 +90,7 @@ void BrowserControl::Start() {
                 ResumeRender();
             } else if (strncmp("STOP", buf, 4) == 0) {
                 Stop();
-            } else if (strncmp("SIZE ", buf, 5) == 0 && bytes >= 6)  {
+            } else if (strncmp("SIZE ", buf, 5) == 0 && strlen(buf) >= 6)  {
                 if (browserClient->getDisplayMode() == HBBTV_MODE) {
                     CONSOLE_INFO("Command SIZE in HbbTV mode is not possible.");
 

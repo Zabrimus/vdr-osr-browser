@@ -79,6 +79,10 @@ void OSRHandler::disableEncoder() {
     encoder->disable();
 }
 
+void OSRHandler::flushEncoder() {
+    encoder->flush();
+}
+
 void OSRHandler::setRenderSize(int width, int height) {
     renderWidth = width;
     renderHeight = height;
@@ -89,7 +93,7 @@ void OSRHandler::GetViewRect(CefRefPtr<CefBrowser> browser, CefRect &rect) {
 }
 
 void OSRHandler::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList &dirtyRects, const void *buffer, int width, int height) {
-    // CONSOLE_TRACE("OnPaint called: width: {}, height: {}, dirtyRects: {}, encoderInit: {}, videoStarted: {}", width, height, dirtyRects.size(), isEncoderInitialized, isVideoStarted);
+    // CONSOLE_TRACE("OnPaint called: width: {}, height: {}, dirtyRects: {},  videoStarted: {}", width, height, dirtyRects.size(), isVideoStarted);
 
     if (isVideoStarted) {
         if (!startpts) {
@@ -155,12 +159,7 @@ void OSRHandler::OnAudioStreamPacket(CefRefPtr<CefBrowser> browser, const float 
 
 void OSRHandler::OnAudioStreamStopped(CefRefPtr<CefBrowser> browser) {
     CONSOLE_DEBUG("OSRVideoHandler::OnAudioStreamStopped");
-
-    // this event could be fired before stop video has been received.
-    if (encoder != nullptr) {
-        disableEncoder();
-        browserClient->SendToVdrString(CMD_STATUS, "STOP_VIDEO");
-    }
+    // this event will also be triggered if video paused. => do nothing
 }
 
 void OSRHandler::OnAudioStreamError(CefRefPtr<CefBrowser> browser, const CefString &message) {

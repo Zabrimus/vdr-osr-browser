@@ -358,14 +358,20 @@ bool JavascriptHandler::OnQuery(CefRefPtr<CefBrowser> browser,
         browserClient->SendToVdrString(CMD_STATUS, request.ToString().c_str() + 4);
         return true;
     } else {
-         if (strncmp(request.ToString().c_str(), "PLAY_VIDEO", 10) == 0) {
-            CONSOLE_DEBUG("Start video playing");
+        if (strncmp(request.ToString().c_str(), "PLAY_VIDEO", 10) == 0) {
+             CONSOLE_DEBUG("Start video playing");
 
-            if (browserClient->start_video()) {
-                // if encoder is not already initialized
-                browserClient->SendToVdrString(CMD_STATUS, "PLAY_VIDEO:");
-            }
+             if (browserClient->start_video()) {
+                 // if encoder is not already initialized
+                 browserClient->SendToVdrString(CMD_STATUS, "PLAY_VIDEO:");
+             }
 
+             return true;
+        } else if (strncmp(request.ToString().c_str(), "PAUSE_VIDEO", 11) == 0) {
+            CONSOLE_DEBUG("Pause video playing");
+            return true;
+        } else if (strncmp(request.ToString().c_str(), "SEEK_VIDEO", 10) == 0) {
+            CONSOLE_DEBUG("Seek video to {}", (request.ToString().c_str() + 12));
             return true;
         } else if (strncmp(request.ToString().c_str(), "END_VIDEO", 9) == 0) {
             CONSOLE_DEBUG("Video streaming ended");
@@ -1120,6 +1126,12 @@ void BrowserClient::stop_video() {
     CONSOLE_DEBUG("Stop video");
 
     osrHandler->disableEncoder();
+}
+
+void BrowserClient::flushEncoder() {
+    CONSOLE_DEBUG("Flush encoder");
+
+    osrHandler->flushEncoder();
 }
 
 void BrowserClient::heartbeat() {

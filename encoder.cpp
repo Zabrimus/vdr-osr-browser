@@ -300,8 +300,13 @@ int Encoder::encode_video(AVFrame *input_frame) {
 
     int response = avcodec_send_frame(encoder->video_avcc, input_frame);
 
+    if (response < 0) {
+        CONSOLE_ERROR("Error sending packet to encoder: {} -> {}", response, av_err2str(response));
+    }
+
     while (response >= 0) {
         response = avcodec_receive_packet(encoder->video_avcc, video_output_packet);
+
         if (response == AVERROR(EAGAIN) || response == AVERROR_EOF) {
             break;
         } else if (response < 0) {
@@ -319,9 +324,6 @@ int Encoder::encode_video(AVFrame *input_frame) {
         // sanity test
         if (video_output_packet->dts != AV_NOPTS_VALUE || video_output_packet->pts != AV_NOPTS_VALUE) {
             response = av_write_frame(encoder->avfc, video_output_packet);
-
-            // INFO: flush as often as possible. The latency is lower but still too high
-            av_write_frame(encoder->avfc, nullptr);
         }
 
         if (response != 0) {
@@ -387,7 +389,8 @@ int Encoder::startEncoder() {
         encoder->avfc->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
 
     // int bufferSize = 32712;
-    int bufferSize = 1000 * 188;
+    int bufferSize = 100 * 188;
+
     outbuffer = (unsigned char *) av_malloc(bufferSize);
     AVIOContext *avio_out = avio_alloc_context(outbuffer, bufferSize, 1, nullptr, nullptr, write_buffer_to_shm, nullptr);
 
@@ -398,6 +401,8 @@ int Encoder::startEncoder() {
 
     encoder->avfc->pb = avio_out;
     encoder->avfc->flags = AVFMT_FLAG_CUSTOM_IO;
+    encoder->avfc->flags |= AVFMT_FLAG_NOBUFFER;
+    encoder->avfc->flags |= AVFMT_FLAG_FLUSH_PACKETS;
 
     if (avformat_write_header(encoder->avfc, nullptr) < 0) {
         CONSOLE_ERROR("an error occurred when opening output file");
@@ -410,9 +415,7 @@ int Encoder::startEncoder() {
 void Encoder::stopEncoder() {
     isVideoStopping = true;
 
-    /* flush the encoder */
-    encode_audio(nullptr);
-    encode_video(nullptr);
+    flush();
 
     // wait for the encoder
     bool isRunning = true;
@@ -423,6 +426,12 @@ void Encoder::stopEncoder() {
             std::this_thread::sleep_for(std::chrono::microseconds(10));
         }
     }
+}
+
+void Encoder::flush() {
+    /* flush the encoder */
+    encode_audio(nullptr);
+    encode_video(nullptr);
 }
 
 void Encoder::setAudioParameters(int channels, int sample_rate) {

@@ -30,6 +30,7 @@ public:
     // enable or disable the encoder
     bool enableEncoder();
     void disableEncoder();
+    void flushEncoder();
 
     // clear parts of the OSD
     void osdClearVideo(int x, int y, int width, int height);

@@ -175,6 +175,7 @@ public:
     // transcode functions
     bool start_video();
     void stop_video();
+    void flushEncoder();
 
     //
     void SendToVdrString(uint8_t messageType, const char* message);

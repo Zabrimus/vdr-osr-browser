@@ -134,9 +134,6 @@ function handleDashjsEvents(event) {
     switch (event.type) {
         case 'playbackPlaying':
             window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill-dashjs: PLAYBACK_PLAYING');
-
-            signalCef("PLAY_VIDEO");
-            window.cefVideoSize();
             break;
 
         case 'playbackPaused':
@@ -293,7 +290,7 @@ class OipfAVControlMapper {
             this.videoElement.src = originalDataAttribute;
         }
 
-        // this.mapAvControlToHtml5Video();
+        this.mapAvControlToHtml5Video();
         this.watchAvControlObjectMutations(this.avControlObject);
         this.registerEmbeddedVideoPlayerEvents(this.avControlObject, this.videoElement);
 
@@ -325,6 +322,8 @@ class OipfAVControlMapper {
                 // get current video position
                 let currentTime = this.videoElement.currentTime;
 
+                signalCef("PAUSE_VIDEO");
+
                 setTimeout(() => {
                     this.videoElement.pause();
                     this.avControlObject.speed = 0;
@@ -333,6 +332,9 @@ class OipfAVControlMapper {
             else if (speed > 0) {
                 if (speed === 1) {
                     let currentTime = this.videoElement.currentTime;
+
+                    signalCef("PLAY_VIDEO");
+                    window.cefVideoSize();
                 }
 
                 // delay play as some code may made some initializations beforehand in same event loop
@@ -368,6 +370,8 @@ class OipfAVControlMapper {
             return true;
         };
         this.avControlObject.stop = () => {
+            window._HBBTV_DEBUG_ && console.log("Im Mapping, stop");
+
             signalCef("STOP_VIDEO");
 
             this.videoElement.pause();
@@ -379,6 +383,10 @@ class OipfAVControlMapper {
             return true;
         };
         this.avControlObject.seek = (posInMs) => {
+            window._HBBTV_DEBUG_ && console.log("Im Mapping, seek " + posInMs);
+
+            signalCef("SEEK_VIDEO " + posInMs);
+
             // need seconds HTMLMediaElement.currentTime
             this.videoElement.currentTime = posInMs / 1000;
             this.avControlObject.playPosition = posInMs;
@@ -494,10 +502,6 @@ class OipfAVControlMapper {
                 playerEvent.state = objectElement.playState;
                 objectElement.dispatchEvent(playerEvent);
             }
-
-            signalCef("PLAY_VIDEO");
-
-            window.cefVideoSize();
         }, false);
 
         videoElement && videoElement.addEventListener && videoElement.addEventListener('pause', function () {
@@ -508,9 +512,10 @@ class OipfAVControlMapper {
             // bullet 2)
             objectElement.playState = PLAY_STATES.paused;
             if (objectElement.onPlayStateChange) {
+                window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: dispatchEvent PlayStateChange_1', objectElement.playState);
                 objectElement.onPlayStateChange(objectElement.playState);
             } else {
-                window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: dispatchEvent PlayStateChange', objectElement.playState);
+                window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: dispatchEvent PlayStateChange_2', objectElement.playState);
                 var playerEvent = new Event('PlayStateChange');
                 playerEvent.state = objectElement.playState;
                 objectElement.dispatchEvent(playerEvent);
