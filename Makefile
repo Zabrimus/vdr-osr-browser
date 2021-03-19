@@ -7,10 +7,10 @@
 # make cleanjs		(deletes all not needed files in thirdparty/HybridTvViewer)
 
 # Included CEF version
-# 89.0.6+g6f30454+chromium-89.0.4389.72
+# 89.0.12+g2b76680+chromium-89.0.4389.90
 # branch 4389, based on Chromium 89
 
-CEF_ARCHIVE = cef_binary_89.0.6+g6f30454+chromium-89.0.4389.72_linux64_minimal.tar.bz2
+CEF_ARCHIVE = cef_binary_89.0.12+g2b76680+chromium-89.0.4389.90_linux64_minimal.tar.xz
 
 VERSION = 0.2.0-dev
 
