@@ -126,6 +126,7 @@ prepareexe:
 	mkdir -p Release/font
 	mkdir -p Release/css
 	mkdir -p Release/profile
+	mkdir -p Release/widevine
 	cp thirdparty/TiresiasPCfont/TiresiasPCfont.ttf Release/font
 	cp thirdparty/TiresiasPCfont/TiresiasPCfont.css Release/css
 	echo "resourcepath = ." > Release/vdr-osr-browser.config
@@ -133,6 +134,7 @@ prepareexe:
 	echo "frameworkpath  = ." >> Release/vdr-osr-browser.config
 	cp -a thirdparty/cef/Resources/* Release
 	cp -a thirdparty/cef/Release/* Release
+	cp -a widevine Release
 ifneq (exists, $(shell test -e Release/block_url.config && echo exists))
 	cp block_url.config Release/block_url.config
 endif

@@ -16,6 +16,7 @@
 #include <iostream>
 #include <thread>
 #include <csignal>
+#include "include/cef_web_plugin.h"
 #include <sys/stat.h>
 #include "main.h"
 #include "browser.h"
@@ -23,7 +24,25 @@
 #include "globaldefs.h"
 #include "nativejshandler.h"
 
+
 const auto VERSION = "0.1.0pre1";
+
+class CdmCallback : public CefRegisterCdmCallback {
+    public:
+        CdmCallback() = default;
+
+        void OnCdmRegistrationComplete(cef_cdm_registration_error_t result, const CefString& errorMessage) OVERRIDE {
+            if (result == CEF_CDM_REGISTRATION_ERROR_NONE) {
+                CONSOLE_INFO("CDM registration successful");
+            } else {
+                CONSOLE_INFO("CDM registration failed: {}", errorMessage.ToString());
+            }
+        }
+
+    private:
+        IMPLEMENT_REFCOUNTING(CdmCallback);
+        DISALLOW_COPY_AND_ASSIGN(CdmCallback);
+};
 
 MainApp::MainApp() {
     CefMessageRouterConfig config;
@@ -264,6 +283,11 @@ int main(int argc, char *argv[]) {
         }
     }
     infile.close();
+
+    // try to register widevine
+    std::string widevineCdmPath = "./widevine";
+    CefRegisterWidevineCdm(widevineCdmPath, new CdmCallback());
+
 
     CefInitialize(main_args, settings, app.get(), nullptr);
 

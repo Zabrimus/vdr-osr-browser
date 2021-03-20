@@ -10,3 +10,5 @@ thirdparty/HybridTvViewer/package-lock.json
 /thirdparty/spdlog/buildbin/
 /thirdparty/cef/build/
 
+/widevine/libwidevinecdm.so
+/widevine/manifest.json

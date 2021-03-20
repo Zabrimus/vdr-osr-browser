@@ -1,0 +1,4 @@
+To enable widevine, you need libwidevinecdm.so and manifest.json.
+
+For manifest.json check
+https://bitbucket.org/chromiumembedded/cef/raw/03c9156c803c87b03a10d5b9b7f476597a472a91/include/cef_web_plugin.h
