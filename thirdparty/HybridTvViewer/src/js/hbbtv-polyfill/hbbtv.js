@@ -268,6 +268,8 @@ export const hbbtvFn = function () {
         '<video_profile name=\"MP4_AVC_HD_25_HEAAC\" type=\"video/mp4\"/>' +
         '<video_profile name=\"MP4_AVC_SD_25_HEAAC\" type=\"video/mp4\" transport=\"dash\"/>' +
         '<video_profile name=\"MP4_AVC_HD_25_HEAAC\" type=\"video/mp4\" transport=\"dash\"/>' +
+        '<video_profile name=\"MP4_AVC_SD_25_HEAAC\" type=\"video/mp4\" transport=\"dash\" DRMSystemID=\"urn:dvb:casystemid:19219\"/>' +
+        '<video_profile name=\"MP4_AVC_HD_25_HEAAC\" type=\"video/mp4\" transport=\"dash\" DRMSystemID=\"urn:dvb:casystemid:19219\"/>' +
         '</profilelist>';
     var videoProfiles = currentCapabilities.split('video_profile');
     window.oipfCapabilities.xmlCapabilities = (new window.DOMParser()).parseFromString(currentCapabilities, 'text/xml');
@@ -276,6 +278,7 @@ export const hbbtvFn = function () {
     window.oipfCapabilities.hasCapability = function (capability) {
         return !!~new window.XMLSerializer().serializeToString(window.oipfCapabilities.xmlCapabilities).indexOf(capability.toString() || '??');
     };
+    document.querySelector('[type="application/oipfCapabilities"]').xmlCapabilities = window.oipfCapabilities.xmlCapabilities;
 
     // 7.4.3 The application/oipfDownloadManager embedded object (+DL) -------------
 
