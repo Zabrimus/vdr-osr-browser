@@ -2,6 +2,9 @@ VDR OSR Browser Revision History
 -----------------------------------
 
 2021-xx-xx: version 0.2.0 (unreleased)
+- Bugfixes
+  too  many to mention all
+
 - New
   removed nng and whole network communication.
   communication between browser and VDR only via shared memory
@@ -9,6 +12,8 @@ VDR OSR Browser Revision History
   inject dash.js/shaka-player.js and mux.js into HbbTV pages
   videos are now played by the browser itself and the application encodes video/audio
   special cef distribution included (needs libffmpeg.so which are not included)
+  register widevine CDM if available
+
 
 2020-02-12: Version 0.1.0
 - Bugfixes
