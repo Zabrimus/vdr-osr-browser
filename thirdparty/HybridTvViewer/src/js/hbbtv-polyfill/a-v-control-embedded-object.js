@@ -172,7 +172,7 @@ export class OipfAVControlMapper {
             } else if (window._HBBTV_DASH_PLAYER_ === 'shaka') {
                 shaka.polyfill.installAll();
                 // shaka.log.setLevel(shaka.log.Level.DEBUG);
-                shaka.log.setLevel(shaka.log.Level.V2);
+                // shaka.log.setLevel(shaka.log.Level.V2);
 
                 // Install built-in polyfills to patch browser incompatibilities.
                 const player = new shaka.Player(this.videoElement);
@@ -200,12 +200,14 @@ export class OipfAVControlMapper {
         // this does not work as desired: <object...><video.../></object>
         // it has to be <object/></video>
         if (isDashVideo) {
-            this.avControlObject.parentNode.insertBefore(this.videoElement, this.avControlObject.nextSibling);
-            // this.avControlObject.appendChild(this.videoElement);
+            // this.avControlObject.parentNode.insertBefore(this.videoElement, this.avControlObject.nextSibling);
+            this.avControlObject.appendChild(this.videoElement);
         } else {
             this.avControlObject.parentNode.insertBefore(this.videoElement, this.avControlObject.nextSibling);
             // this.avControlObject.appendChild(this.videoElement);
         }
+
+        window.cefVideoSize();
 
         this.avControlObject.playTime = this.videoElement.duration * 1000;
 

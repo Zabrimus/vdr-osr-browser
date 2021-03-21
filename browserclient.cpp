@@ -118,7 +118,7 @@ public:
             std::string cpath = CefString(cookie.path.str).ToString();
             std::string cdomain = CefString(cookie.domain.str).ToString();
 
-            CONSOLE_TRACE("Cookie {}/{}: Path {}, Domain {}: '{}' = '{}'", count, total, cpath, cdomain, cname, cvalue);
+            // CONSOLE_TRACE("Cookie {}/{}: Path {}, Domain {}: '{}' = '{}'", count, total, cpath, cdomain, cname, cvalue);
         }
 
         cookies.insert(std::pair<std::string, std::string>(cname, cvalue));
@@ -182,6 +182,9 @@ std::string HbbtvCurl::ReadContentType(std::string url, CefRequest::HeaderMap he
     LoadUrl(url, headers, 1L, false);
 
     std::string contentType = response_header["Content-Type"];
+
+    fprintf(stderr, "Content-Type: %s -> %s\n", url.c_str(), contentType.c_str());
+    fprintf(stderr, "content-type: %s -> %s\n", url.c_str(), response_header["content-type"].c_str());
 
     // if a well known content type has been found then return
     if ((contentType.find("inage/") != std::string::npos) ||
@@ -598,6 +601,11 @@ CefRefPtr<CefResourceHandler> BrowserClient::GetResourceHandler(CefRefPtr<CefBro
                       endsWith(url, ".ogm") ||
                       endsWith(url, ".ttf") ||
                       endsWith(url, ".7z");
+
+        // some special URL parts to check
+        if (url.find(".mp4?") != std::string::npos) {
+            handle = true;
+        }
 
         if (handle) {
             // use default handler

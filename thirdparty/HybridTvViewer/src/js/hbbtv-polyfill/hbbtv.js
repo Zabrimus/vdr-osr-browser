@@ -278,7 +278,9 @@ export const hbbtvFn = function () {
     window.oipfCapabilities.hasCapability = function (capability) {
         return !!~new window.XMLSerializer().serializeToString(window.oipfCapabilities.xmlCapabilities).indexOf(capability.toString() || '??');
     };
-    document.querySelector('[type="application/oipfCapabilities"]').xmlCapabilities = window.oipfCapabilities.xmlCapabilities;
+    if (document.querySelector('[type="application/oipfCapabilities"]')) {
+        document.querySelector('[type="application/oipfCapabilities"]').xmlCapabilities = window.oipfCapabilities.xmlCapabilities;
+    }
 
     // 7.4.3 The application/oipfDownloadManager embedded object (+DL) -------------
 

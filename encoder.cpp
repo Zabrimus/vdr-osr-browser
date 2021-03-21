@@ -49,7 +49,17 @@ int write_buffer_to_shm(void *opaque, uint8_t *buf, int buf_size) {
     if (sharedMemory.waitForWrite(Data) != -1) {
         sharedMemory.write(buf, buf_size, Data);
     } else {
-        CONSOLE_ERROR("Unable to write video data to shared memory");
+        std::string modeString;
+        switch (sharedMemory.getMode(Data)) {
+            case shmpWriteMode: modeString = "shmpWriteMode"; break;
+            case shmpReadMode: modeString = "shmpReadMode"; break;
+            case shmpCurrentlyReading: modeString = "shmpCurrentlyReading"; break;
+            default: modeString = "<unknown>";
+        }
+        CONSOLE_ERROR("Unable to write video data to shared memory: Current Status {}, {}", sharedMemory.getMode(Data), modeString);
+
+        // reset mode
+        sharedMemory.setMode(shmpWriteMode, Data);
     }
 
     return buf_size;

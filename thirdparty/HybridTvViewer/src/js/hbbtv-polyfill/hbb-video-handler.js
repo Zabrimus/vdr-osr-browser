@@ -23,6 +23,9 @@ export class VideoHandler {
         // check at first, if the video object is already injected
         var videoexists = document.getElementById('hbbtv-polyfill-video-player');
         if (typeof videoexists !== 'undefined' && videoexists != null) {
+            // FIXME: var x = document.getElementById('hbbtv-polyfill-video-player')
+            //  x.getComputedStyle(x).visibility === 'hidden'
+
             window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: VideoHandler already initialized');
             return;
         }
@@ -44,13 +47,21 @@ export class VideoHandler {
         } 
         mimeType = mimeType.toLowerCase(); // ensure lower case string comparison
 
-        // window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: mimeType is ' + mimeType);
+        // check if node is visible
+        let nodeStyle = window.getComputedStyle(node);
+        if (nodeStyle.visibility === 'hidden') {
+            // node is invisible => no further checks
+            window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: checkNodeTypeAndInjectVideoMethods, node is invisible ...');
+            return;
+        }
 
+        /* */
         if (document.getElementsByTagName('video').length > 0) {
             // video already injected.
             window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: checkNodeTypeAndInjectVideoMethods, video already injected ...');
             return;
         }
+        /* */
 
         let observeNewVideoElement = false;
 
@@ -105,8 +116,6 @@ export class VideoHandler {
                     node.style.top = this.topBeforeFullScreen;
                     node.style.left = this.leftBeforeFullScreen;
                 }
-
-                console.error("====> SetFullscreen in proto to " + full);
             };
 
             node.bindToCurrentChannel = function() {

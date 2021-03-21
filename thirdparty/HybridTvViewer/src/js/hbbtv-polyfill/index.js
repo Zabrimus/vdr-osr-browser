@@ -1,6 +1,7 @@
 import { keyEventInit } from "./keyevent-init.js";
 import { hbbtvFn } from "./hbbtv.js";
 import { VideoHandler } from "./hbb-video-handler.js";
+import {OipfAVControlMapper} from "./a-v-control-embedded-object";
 
 function init() {
     window._HBBTV_DEBUG_ && console.log("hbbtv-polyfill: load");
@@ -23,85 +24,64 @@ function init() {
         signalCef('CHANGE_URL: ' + uri);
     }
 
+    // FIXME: Die Prozedur funktioniert so nicht. Da muss eine andere Lösung her.
+    //  Das Ziel: Wenn der Player im VDR detached wird, dann muss das Video gestoppt werden.
     window.cefStopVideo = function() {
         const videoPlayer = document.getElementById("hbbtv-polyfill-video-player");
         if (typeof videoPlayer !== 'undefined' && videoPlayer !== null) {
             if (!videoPlayer.ended) {
-                videoPlayer.currentTime = videoPlayer.duration();
+                // videoPlayer.currentTime = videoPlayer.duration();
             }
         }
     }
 
     window.cefVideoSize = function() {
-        let broadcastObject;
-
-        // find the existing video container
-        let videoContainer_1 = document.getElementById("vidcontainer");
-        let videoContainer_2 = document.getElementById("videocontainer");
-        let videoContainer_3 = document.getElementsByClassName("video-container");
-
-        let videoContainer = videoContainer_1;
-        if (videoContainer === null || typeof videoContainer === 'undefined') {
-            videoContainer = videoContainer_2;
-        }
-
-        if (videoContainer === null || typeof videoContainer === 'undefined') {
-            if (videoContainer_3.length > 0) {
-                videoContainer = videoContainer_3[0];
-            }
-        }
-
-        // calculate size only if a broadcast player exists, otherwise set video to fullscreen
-        let isBroadcast = false;
-        if (videoContainer !== null && typeof videoContainer !== 'undefined') {
-            let containerChild = videoContainer.childNodes;
-            for (let i = 0; i < containerChild.length; i++) {
-                if (containerChild[i].tagName === 'object' && containerChild[i].getAttribute('type') === 'video/broadcast') {
-                    isBroadcast = true;
-                    broadcastObject = containerChild[i];
+        // search for a video/broadcast object
+        let vbo = document.querySelector("[type='video/broadcast']");
+        if (vbo) {
+            let style = window.getComputedStyle(vbo);
+            if (style.visibility !== 'hidden') {
+                // search for video with id hbbtv-polyfill-broadcast-player
+                let broadcast = document.getElementById('hbbtv-polyfill-broadcast-player');
+                if (broadcast !== null && typeof broadcast !== 'undefined') {
+                    let br = broadcast.getBoundingClientRect();
+                    signalCef("VIDEO_SIZE: " + parseInt(br.width) + "," + parseInt(br.height) + "," + parseInt(br.left) + "," + parseInt(br.top));
+                    return;
                 }
             }
         }
 
-        // try to find the video element
-        let video = document.getElementById("video");
+        // search object element with video type which is visible
+        let objects = document.getElementsByTagName('object');
+        if (objects.length > 0) {
+            // test if objects is visible
+            let i;
+            for (i = 0; i < objects.length; i++) {
+                let objectStyle = window.getComputedStyle(objects[i]);
+                if (objectStyle.visibility !== 'hidden') {
+                    // check if type is a video type
+                    if ((objects[i].type === 'video/mpeg4') ||
+                        (objects[i].type === 'video/mp4') ||
+                        (objects[i].type === 'audio/mp4') ||
+                        (objects[i].type === 'audio/mpeg') ||
+                        (objects[i].type === 'video/mpeg')) {
 
-        if (video === null || typeof video === 'undefined') {
-            let videos = document.getElementsByTagName('video');
-            if (videos.length > 0) {
-                video = videos[0];
+                        let vo = objects[i].nextSibling;
+                        if (vo.nodeName === 'video') {
+                            // copy attributes
+                            vo.style.width = objects[i].style.width;
+                            vo.style.height = objects[i].style.height;
+                            vo.style.left = objects[i].style.left;
+                            vo.style.top = objects[i].style.top;
+                            vo.style.position = objects[i].style.position;
+                        }
+                    }
+                }
             }
         }
 
-        let videoPlayer = document.getElementById("hbbtv-polyfill-video-player");
-
-        if (video !== null && typeof video !== 'undefined' && videoPlayer !== null && typeof videoPlayer !== 'undefined') {
-            // copy size attributes from videocontainer to video
-            videoPlayer.style.width = video.style.width;
-            videoPlayer.style.height = video.style.height;
-            videoPlayer.style.left = video.style.left;
-            videoPlayer.style.top = video.style.top;
-            videoPlayer.style.position = video.style.position;
-        }
-
-        let position;
-
-        // use either the video element or the broadcast object
-        if (video !== null && typeof video !== 'undefined') {
-            position = video.getClientRects()[0];
-        } else if (broadcastObject !== null && typeof broadcastObject !== 'undefined') {
-            position = broadcastObject.getClientRects()[0];
-        }
-
-        if (!isBroadcast) {
-            // no video/broadcast => size is always fullscreen
-            signalCef("VIDEO_SIZE: 1280,720,0,0");
-            return;
-        }
-
-        if (position !== null) {
-            signalCef("VIDEO_SIZE: " + Math.ceil(position.width) + "," + Math.ceil(position.height) + "," + Math.ceil(position.x) + "," + Math.ceil(position.y));
-        }
+        // set to fullscreen
+        signalCef("VIDEO_SIZE: 1280,720,0,0");
     }
 
     // intercept XMLHttpRequest
@@ -139,8 +119,8 @@ function init() {
             });
             */
 
-            // return cefOldXHROpen.call(this, method, url, async, user, password);
-            return cefOldXHROpen.call(this, method, url, true, user, password);
+            return cefOldXHROpen.call(this, method, url, async, user, password);
+            // return cefOldXHROpen.call(this, method, url, true, user, password);
         };
     }
     /* Enable/Disable if ajax module shall be used */

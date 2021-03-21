@@ -142,6 +142,10 @@ void OSRHandler::OnAudioStreamStarted(CefRefPtr<CefBrowser> browser, const CefAu
     enableEncoder();
 
     encoder->setAudioParameters(channels, params.sample_rate);
+
+    // it is possible, that the page bypasses all events regarding video start.
+    // Just to be sure, signal VDR that video playing shall be started
+    browserClient->SendToVdrString(CMD_STATUS, "PLAY_VIDEO:");
 }
 
 void OSRHandler::OnAudioStreamPacket(CefRefPtr<CefBrowser> browser, const float **data, int frames, int64 pts) {
