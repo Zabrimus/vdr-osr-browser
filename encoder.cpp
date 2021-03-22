@@ -32,18 +32,12 @@ bool isVideoStopping;
 bool isAudioFinished;
 bool isVideoFinished;
 
-int write_buffer_to_file(void *opaque, uint8_t *buf, int buf_size) {
-    if (!feof(fp_output)) {
-        int true_size = fwrite(buf,1,buf_size, fp_output);
-        return true_size;
-    } else {
-        return -1;
-    }
-}
-
 int write_buffer_to_shm(void *opaque, uint8_t *buf, int buf_size) {
     if (DEBUG_WRITE_TS_TO_FILE) {
-        write_buffer_to_file(opaque, buf, buf_size);
+        if (fp_output) {
+            fwrite(buf, 1, buf_size, fp_output);
+            fflush(fp_output);
+        }
     }
 
     if (sharedMemory.waitForWrite(Data) != -1) {
@@ -83,10 +77,15 @@ Encoder::Encoder() {
                             AV_PIX_FMT_YUVA420P,
                             SWS_BICUBIC, nullptr, nullptr, nullptr);
 
-    asprintf(&encoder->filename, "%s.ts", "video/streaming");
+    asprintf(&encoder->filename, "%s.ts", "movie/streaming");
 
     if (DEBUG_WRITE_TS_TO_FILE) {
         fp_output = fopen(encoder->filename, "wb+");
+        if (!fp_output) {
+            CONSOLE_ERROR("Cannot open file {}", encoder->filename);
+        } else {
+            CONSOLE_INFO("Write to file {}", encoder->filename);
+        }
     }
 
     // TODO: use hardcoded values. More than 2 needs some justifications
@@ -333,7 +332,7 @@ int Encoder::encode_video(AVFrame *input_frame) {
 
         // sanity test
         if (video_output_packet->dts != AV_NOPTS_VALUE || video_output_packet->pts != AV_NOPTS_VALUE) {
-            response = av_write_frame(encoder->avfc, video_output_packet);
+            response = av_interleaved_write_frame(encoder->avfc, video_output_packet);
         }
 
         if (response != 0) {
@@ -365,7 +364,7 @@ int Encoder::encode_audio(AVFrame *input_frame) {
 
         // sanity test
         if (audio_output_packet->dts != AV_NOPTS_VALUE || audio_output_packet->pts != AV_NOPTS_VALUE) {
-            response = av_write_frame(encoder->avfc, audio_output_packet);
+            response = av_interleaved_write_frame(encoder->avfc, audio_output_packet);
         }
 
         if (response != 0) {
@@ -398,8 +397,7 @@ int Encoder::startEncoder() {
     if (encoder->avfc->oformat->flags & AVFMT_GLOBALHEADER)
         encoder->avfc->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
 
-    // int bufferSize = 32712;
-    int bufferSize = 100 * 188;
+    int bufferSize = 32712;
 
     outbuffer = (unsigned char *) av_malloc(bufferSize);
     AVIOContext *avio_out = avio_alloc_context(outbuffer, bufferSize, 1, nullptr, nullptr, write_buffer_to_shm, nullptr);

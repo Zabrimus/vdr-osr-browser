@@ -8,9 +8,11 @@
 
 # Included CEF version
 # 89.0.12+g2b76680+chromium-89.0.4389.90
-# branch 4389, based on Chromium 89
-
+# branch 4430, based on Chromium 89
 CEF_ARCHIVE = cef_binary_89.0.12+g2b76680+chromium-89.0.4389.90_linux64_minimal.tar.xz
+
+# Mit der Version habe ich eine Menge Bildstörungen. Sehr seltsam.
+# CEF_ARCHIVE = cef_binary_90.0.1+g2e4c475+chromium-90.0.4430.30_linux64_minimal.tar.xz
 
 VERSION = 0.2.0-dev
 
@@ -26,8 +28,8 @@ USE_CEF_DEBUG=0
 
 CC = g++
 
-#CFLAGS = -g -c -O3  -Wall -std=c++11
-CFLAGS = -c -O0 -g -Wall -std=c++11
+CFLAGS = -g -c -O3  -Wall -std=c++11
+#CFLAGS = -c -O0 -g -Wall -std=c++11
 LDFLAGS = -pthread -lrt
 
 SOURCES = main.cpp osrhandler.cpp browserclient.cpp browsercontrol.cpp browserpaintupdater.cpp schemehandler.cpp \

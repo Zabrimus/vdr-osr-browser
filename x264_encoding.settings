@@ -1,11 +1,11 @@
 # Settings 1 (my first test)
-# preset = ultrafast
-# tune = zerolatency
-# keyint = 10
-# min-keyint = 10
-# scenecut = 0
-# force-cfr = 1
-# crf=28
+#preset = superfast
+#tune = zerolatency
+#keyint = 2
+#min-keyint = 2
+#scenecut = 1
+force-cfr = 1
+#crf=28
 
 # Settings 2 (played with the settings below)
 keyint = 2
@@ -17,8 +17,10 @@ partitions = none
 scenecut = 0
 weightp = 0
 sliced-threads = 1
+force-cfr = 1
 aq-mode = 0
-
+subme = 0
+no-deblock = 1
 
 
 # Settings from https://obsproject.com/forum/resources/low-latency-high-performance-x264-options-for-for-most-streaming-services-youtube-facebook.726/
