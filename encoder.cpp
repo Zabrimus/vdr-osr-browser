@@ -43,6 +43,7 @@ int write_buffer_to_shm(void *opaque, uint8_t *buf, int buf_size) {
     if (sharedMemory.waitForWrite(Data) != -1) {
         sharedMemory.write(buf, buf_size, Data);
     } else {
+        /*
         std::string modeString;
         switch (sharedMemory.getMode(Data)) {
             case shmpWriteMode: modeString = "shmpWriteMode"; break;
@@ -53,6 +54,11 @@ int write_buffer_to_shm(void *opaque, uint8_t *buf, int buf_size) {
         CONSOLE_ERROR("Unable to write video data to shared memory: Current Status {}, {}", sharedMemory.getMode(Data), modeString);
 
         // reset mode
+        sharedMemory.setMode(shmpWriteMode, Data);
+        */
+
+        // stop the encoder. VDR is not able to read the data. Possibly stopped.
+        isVideoStopping = true;
         sharedMemory.setMode(shmpWriteMode, Data);
     }
 
@@ -398,6 +404,7 @@ int Encoder::startEncoder() {
         encoder->avfc->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
 
     int bufferSize = 32712;
+    // int bufferSize = 4 * 188;
 
     outbuffer = (unsigned char *) av_malloc(bufferSize);
     AVIOContext *avio_out = avio_alloc_context(outbuffer, bufferSize, 1, nullptr, nullptr, write_buffer_to_shm, nullptr);
@@ -454,10 +461,10 @@ void Encoder::setAudioParameters(int channels, int sample_rate) {
 }
 
 // add an bgra image
-void Encoder::addVideoFrame(int width, int height, uint8_t *image, uint64_t pts) {
+bool Encoder::addVideoFrame(int width, int height, uint8_t *image, uint64_t pts) {
     if (isVideoStopping) {
         isVideoFinished = true;
-        return;
+        return false;
     }
 
     isVideoFinished = false;
@@ -472,12 +479,14 @@ void Encoder::addVideoFrame(int width, int height, uint8_t *image, uint64_t pts)
     encode_video(videoFrame);
 
     isVideoFinished = true;
+
+    return true;
 }
 
-void Encoder::addAudioFrame(const float **data, int frames, uint64_t pts) {
+bool Encoder::addAudioFrame(const float **data, int frames, uint64_t pts) {
     if (isVideoStopping) {
         isAudioFinished = true;
-        return;
+        return false;
     }
 
     isAudioFinished = false;
@@ -490,6 +499,8 @@ void Encoder::addAudioFrame(const float **data, int frames, uint64_t pts) {
     encode_audio(audioFrame);
 
     isAudioFinished = true;
+
+    return true;
 }
 
 void Encoder::disable() {

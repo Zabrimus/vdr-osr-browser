@@ -453,7 +453,6 @@ BrowserClient::BrowserClient(spdlog::level::level_enum log_level, std::string *d
     // start heartbeat_thread
     heartbeat_running = true;
     heartbeat_thread = std::thread(&BrowserClient::heartbeat, this);
-    heartbeat_thread.detach();
 
     osrHandler = new OSRHandler(this, 1280, 720);
     videoRenderHandler = osrHandler;
@@ -496,6 +495,8 @@ BrowserClient::BrowserClient(spdlog::level::level_enum log_level, std::string *d
 
 BrowserClient::~BrowserClient() {
     heartbeat_running = false;
+
+    heartbeat_thread.join();
 
     if (osrHandler != NULL) {
         delete osrHandler;
@@ -1082,7 +1083,7 @@ void BrowserClient::eventCallback(std::string cmd) {
     browserClient->SendToVdrString(CMD_STATUS, cmd.c_str());
 }
 
-void BrowserClient::SendToVdrString(uint8_t messageType, const char* message) {
+bool BrowserClient::SendToVdrString(uint8_t messageType, const char* message) {
     if (messageType != CMD_PING && messageType != CMD_VIDEO) {
         CONSOLE_TRACE("Send String to VDR, Message {}", message);
     }
@@ -1092,11 +1093,16 @@ void BrowserClient::SendToVdrString(uint8_t messageType, const char* message) {
     buffer[0] = messageType;
     strcpy(buffer + 1, message);
 
+    bool sent = false;
+
     if (sharedMemory.waitForWrite(BrowserCommand) != -1) {
         sharedMemory.write((uint8_t *) buffer, strlen(message) + 2, BrowserCommand);
+        sent = true;
     }
 
     free(buffer);
+
+    return sent;
 }
 
 void BrowserClient::SendToVdrOsd(const char* message, int width, int height) {
@@ -1120,8 +1126,8 @@ void BrowserClient::SendToVdrOsd(const char* message, int width, int height) {
     delete[] buffer;
 }
 
-void BrowserClient::SendToVdrPing() {
-    SendToVdrString(CMD_PING, "B");
+bool BrowserClient::SendToVdrPing() {
+    return SendToVdrString(CMD_PING, "B");
 }
 
 bool BrowserClient::start_video() {
@@ -1143,14 +1149,20 @@ void BrowserClient::flushEncoder() {
 }
 
 void BrowserClient::heartbeat() {
+    static bool init = false;
+
     SendToVdrPing();
 
     // request known app urls and channel information
-    SendToVdrString(CMD_STATUS, "SEND_INIT");
+    init = SendToVdrString(CMD_STATUS, "SEND_INIT");
 
     while (heartbeat_running) {
-        std::this_thread::sleep_for (std::chrono::seconds(10));
-        SendToVdrPing();
+        std::this_thread::sleep_for (std::chrono::seconds(1));
+        if (SendToVdrPing() && !init) {
+            init = SendToVdrString(CMD_STATUS, "SEND_INIT");
+        } else {
+            init = false;
+        }
     }
 }
 

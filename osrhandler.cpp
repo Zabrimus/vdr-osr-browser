@@ -100,7 +100,10 @@ void OSRHandler::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, c
             startpts = av_gettime();
         }
 
-        encoder->addVideoFrame(width, height, (uint8_t*)buffer, av_gettime() - startpts);
+        if (!encoder->addVideoFrame(width, height, (uint8_t*)buffer, av_gettime() - startpts)) {
+            // encoder is not running anymore
+            isVideoStarted = false;
+        }
 
         // dont't send OSD update to VDR
         return;
@@ -123,7 +126,8 @@ void OSRHandler::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, c
 
         browserClient->SendToVdrOsd("OSDU", w, h);
     } else {
-        CONSOLE_ERROR("Unable to write OSD data to shared memory: {}", sharedMemory.getMode(Data));
+        // reset
+        sharedMemory.setMode(shmpWriteMode, Data);
     }
 }
 
@@ -157,7 +161,10 @@ void OSRHandler::OnAudioStreamPacket(CefRefPtr<CefBrowser> browser, const float 
         }
 
         // CONSOLE_ERROR("AudioPts: {}", pts * 1000 - startpts);
-        encoder->addAudioFrame(data, frames, pts * 1000 - startpts);
+        if (!encoder->addAudioFrame(data, frames, pts * 1000 - startpts)) {
+            // encoder is not running anymore
+            isVideoStarted = false;
+        }
     }
 }
 

@@ -48,7 +48,7 @@ class Segment {
         int16_t dataOffset = -1;
         int16_t statusOffset = -1;
 
-        int waitUsec = 100;
+        int waitUsec = 10;
         std::chrono::duration<int64_t, std::micro> pollingInterval = std::chrono::microseconds(waitUsec);
 
     public:

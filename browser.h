@@ -178,9 +178,9 @@ public:
     void flushEncoder();
 
     //
-    void SendToVdrString(uint8_t messageType, const char* message);
+    bool SendToVdrString(uint8_t messageType, const char* message);
     void SendToVdrOsd(const char* message, int width, int height);
-    void SendToVdrPing();
+    bool SendToVdrPing();
 
     void setRenderSize(int width, int height) { osrHandler->setRenderSize(width, height); };
     static void eventCallback(std::string cmd);

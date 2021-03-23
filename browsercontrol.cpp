@@ -20,6 +20,7 @@
 #include "browser.h"
 #include "nativejshandler.h"
 #include "sharedmemory.h"
+#include "keycodes.h"
 
 // #define DEBUG_JS
 
@@ -170,48 +171,22 @@ void BrowserControl::Stop() {
 }
 
 void BrowserControl::sendKeyEvent(const char* keyCode) {
-    /*
-    // Test to send the key codes directly
-    bool sendEvent = false;
-    int windows_key_code;
-    int native_key_code;
+    // TODO: Ein paar der Keycodes existieren nur in echten HbbTV-Apps. Für diese KeyEvents muss ich die Javascript-Funktion
+    //  aufrufen. Die normalen Tastencodes können direkt gesendet werden.
+    //  Evt. muss hier noch eine Anpassung erfolgen, falls bestimmte KeyEvents nicht richtig funktionieren.
 
-    if (strncmp(keyCode, "VK_LEFT", 7) == 0) {
-        windows_key_code = 0x25;
-        native_key_code = 0x71;
-        sendEvent = true;
-    } else if (strncmp(keyCode, "VK_RIGHT", 8) == 0) {
-        windows_key_code = 0x27;
-        native_key_code = 0x72;
-        sendEvent = true;
-    } else if (strncmp(keyCode, "VK_UP", 5) == 0) {
-        windows_key_code = 0x26;
-        native_key_code = 0x6F;
-        sendEvent = true;
-    } else if (strncmp(keyCode, "VK_DOWN", 5) == 0) {
-        windows_key_code = 0x28;
-        native_key_code = 0x74;
-        sendEvent = true;
-    }
+    if ((strncmp(keyCode, "VK_BACK", 7) == 0) ||
+            (strncmp(keyCode, "VK_RED", 7) == 0) ||
+            (strncmp(keyCode, "VK_GREEN", 7) == 0) ||
+            (strncmp(keyCode, "VK_YELLOW", 7) == 0) ||
+            (strncmp(keyCode, "VK_BLUE", 7) == 0) ||
+            (strncmp(keyCode, "VK_PLAY", 7) == 0) ||
+            (strncmp(keyCode, "VK_PAUSE", 7) == 0) ||
+            (strncmp(keyCode, "VK_STOP", 7) == 0) ||
+            (strncmp(keyCode, "VK_FAST_FWD", 7) == 0) ||
+            (strncmp(keyCode, "VK_REWIND", 7) == 0)) {
 
-    if (sendEvent) {
-        CefKeyEvent key_event;
-
-        key_event.windows_key_code = windows_key_code;
-        key_event.native_key_code = native_key_code;
-        key_event.modifiers = 0x00;
-
-        key_event.type = KEYEVENT_RAWKEYDOWN;
-        browser->GetHost()->SendKeyEvent(key_event);
-
-        key_event.type = KEYEVENT_CHAR;
-        browser->GetHost()->SendKeyEvent(key_event);
-
-        key_event.type = KEYEVENT_KEYUP;
-        browser->GetHost()->SendKeyEvent(key_event);
-    } else {
-     */
-        // use javascript to send key codes
+        // send key event via Javascript
         std::ostringstream stringStream;
 
         stringStream << "window.cefKeyPress('" << keyCode << "');";
@@ -219,9 +194,24 @@ void BrowserControl::sendKeyEvent(const char* keyCode) {
         auto script = stringStream.str();
         auto frame = browser->GetMainFrame();
         frame->ExecuteJavaScript(script, frame->GetURL(), 0);
-    /*
+    } else {
+        // send key event via code
+        // FIXME: Was ist mit keyCodes, die nicht existieren?
+        int windowsKeyCode = keyCodes[keyCode];
+        CefKeyEvent keyEvent;
+
+        keyEvent.windows_key_code = windowsKeyCode;
+        keyEvent.modifiers = 0x00;
+
+        keyEvent.type = KEYEVENT_RAWKEYDOWN;
+        browser->GetHost()->SendKeyEvent(keyEvent);
+
+        keyEvent.type = KEYEVENT_CHAR;
+        browser->GetHost()->SendKeyEvent(keyEvent);
+
+        keyEvent.type = KEYEVENT_KEYUP;
+        browser->GetHost()->SendKeyEvent(keyEvent);
     }
-    */
 }
 
 void BrowserControl::AddAppUrl(std::string id, std::string url) {
