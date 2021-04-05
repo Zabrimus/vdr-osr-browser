@@ -114,7 +114,7 @@ $(EXECUTABLE): $(OBJECTS) globaldefs.h main.h browser.h nativejshandler.h scheme
 
 $(EXECUTABLE2): buildspdlog $(OBJECTS2)
 	mkdir -p Release
-	$(CC) -O3 $(OBJECTS2) -o $@ -pthread  $(AVLDFLAGS) $(SDL2LDFLAGS) $(LOGLDFLAGS)
+	$(CC) -O3 $(OBJECTS2) -o $@ -pthread  $(AVLDFLAGS) $(SDL2LDFLAGS) $(LOGLDFLAGS) $(ASANLDFLAGS)
 	mv $(EXECUTABLE2) Release
 	cp testex/testplayer/testimage.rgba Release
 

@@ -4,6 +4,8 @@
 #include "videoplayer.h"
 
 int main(int argc, char* argv[]) {
+    printf("LoadImage\n");
+
     std::ifstream fl("testimage.rgba");
     fl.seekg(0, std::ios::end);
     size_t len = fl.tellg();
@@ -12,19 +14,34 @@ int main(int argc, char* argv[]) {
     fl.read(image, len);
     fl.close();
 
+    printf("Create audio\n");
+    const float* audio[2];
+    audio[0] = static_cast<float *>(malloc(1024));
+    audio[1] = static_cast<float *>(malloc(1024));
+
     logger.set_level(spdlog::level::trace);
 
     if (argc > 1 && strncmp(argv[1], "1", 1) == 0) {
+        printf("Create VideoPlayer\n");
+
         VideoPlayer *videoPlayer = new VideoPlayer();
 
-        videoPlayer->addVideoFrame(1280, 720, (uint8_t *) image, 1);
+        videoPlayer->setAudioParameters(2, 48000);
 
-        printf("Wait some time...\n");
+        for (int i = 0; i < 1000; ++i) {
+            fprintf(stderr, "Frame: %d\r", i);
+            videoPlayer->addVideoFrame(1280, 720, (uint8_t *) image, i * 1000);
+            videoPlayer->addAudioFrame(reinterpret_cast<const float **>(&audio[0]), 1024, i * 500);
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+
+        printf("\nWait some time...\n");
         std::this_thread::sleep_for(std::chrono::seconds(5));
 
         videoPlayer->stop();
 
         delete videoPlayer;
+        delete[] image;
     } else {
         SwsContext *swsCtx = sws_getContext(1280, 720,
                                             AV_PIX_FMT_BGRA,
@@ -80,7 +97,7 @@ int main(int argc, char* argv[]) {
 
         frame->pts = 1;
 
-        for (int i = 0; i < 10; ++i) {
+        for (int i = 0; i < 100; ++i) {
             frame->pts++;
 
             // show image
@@ -122,5 +139,6 @@ int main(int argc, char* argv[]) {
         SDL_DestroyWindow(window);
 
         SDL_Quit();
+        delete[] image;
     }
 }

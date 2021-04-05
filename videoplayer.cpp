@@ -35,9 +35,12 @@ VideoPlayer::VideoPlayer() {
     lastAudioPts = 0;
     lastVideoPts = 0;
 
+    initialized = false;
+
     init_mutex = SDL_CreateMutex();
 
     quit = false;
+
     threads.emplace_back(&VideoPlayer::playAudio, this);
     threads.emplace_back(&VideoPlayer::playVideo, this);
 }
@@ -135,6 +138,8 @@ bool VideoPlayer::initSDLVideo() {
 
     SDL_RenderPresent(renderer);
 
+    CONSOLE_TRACE("initSDLVideo finished...");
+
     return true;
 }
 
@@ -215,12 +220,13 @@ void VideoPlayer::playAudio() {
     while (!quit) {
         AVFrame *frame;
         if (audioQueue.try_dequeue(frame)) {
-            fprintf(stderr, "Video PTS: %ld,  Audio PTS: %ld, Difference: %ld\r", lastVideoPts, lastAudioPts, (lastVideoPts - lastAudioPts));
+            // fprintf(stderr, "Video PTS: %10ld,  Audio PTS: %10ld, Difference: %10ld\n", lastVideoPts, lastAudioPts, (int64_t)(lastVideoPts - lastAudioPts));
 
             SDL_QueueAudio(audioDevice, frame->data[0], linesize * channels);
 
             lastAudioPts = frame->pts;
 
+            av_freep(&frame->data[0]);
             av_frame_free(&frame);
         }
 
@@ -246,7 +252,13 @@ void VideoPlayer::playVideo() {
         input();
 
         if (imageQueue.try_dequeue(frame)) {
-            fprintf(stderr, "Video PTS: %ld,  Audio PTS: %ld, Difference: %ld\r", lastVideoPts, lastAudioPts, (lastVideoPts - lastAudioPts));
+            // fprintf(stderr, "Video PTS: %10ld,  Audio PTS: %10ld, Difference: %10ld\n", lastVideoPts, lastAudioPts, (int64_t)(lastVideoPts - lastAudioPts));
+            // fprintf(stderr, "Video PTS Diff: %10ld\n", frame->pts-lastVideoPts);
+
+            // FIXME: Ich habe nicht unbedingt das Gefühl, daß dies so richtig echt richtig ist.
+            if (lastAudioPts != 0 && (int64_t)(lastVideoPts - lastAudioPts) < 0) {
+                std::this_thread::sleep_for(std::chrono::nanoseconds((int64_t) (-lastVideoPts + lastAudioPts)));
+            }
 
             if (SDL_UpdateYUVTexture(
                     texture, nullptr,
@@ -269,6 +281,7 @@ void VideoPlayer::playVideo() {
 
             lastVideoPts = frame->pts;
 
+            av_freep(&frame->data[0]);
             av_frame_free(&frame);
         } else {
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
