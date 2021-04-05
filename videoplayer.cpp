@@ -230,7 +230,7 @@ void VideoPlayer::playAudio() {
             av_frame_free(&frame);
         }
 
-        std::chrono::milliseconds sleep(100);
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 }
 
@@ -284,7 +284,7 @@ void VideoPlayer::playVideo() {
             av_freep(&frame->data[0]);
             av_frame_free(&frame);
         } else {
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            std::this_thread::sleep_for(std::chrono::milliseconds(20));
         }
     }
 }
