@@ -39,11 +39,16 @@ uint64_t startpts = 0;
 
 BrowserClient* OSRHandler::browserClient;
 
-OSRHandler::OSRHandler(BrowserClient *bc, int width, int height) {
+OSRHandler::OSRHandler(BrowserClient *bc, int width, int height, bool showPlayer) {
     CONSOLE_TRACE("Create OSRHandler and open shared memory");
 
-    // create encoder as early as possible
-    encoder = new Encoder();;
+    videoPlayer = nullptr;
+    this->showPlayer = showPlayer;
+
+    if (!showPlayer) {
+        // create encoder as early as possible
+        encoder = new Encoder();
+    }
 
     browserClient = bc;
     renderWidth = width;
@@ -58,6 +63,12 @@ OSRHandler::~OSRHandler() {
         delete encoder;
         encoder = nullptr;
     }
+
+    if (videoPlayer != nullptr) {
+        videoPlayer->stop();
+        delete videoPlayer;
+        videoPlayer = nullptr;
+    }
 }
 
 void OSRHandler::osdClearVideo(int x, int y, int width, int height) {
@@ -68,7 +79,14 @@ void OSRHandler::osdClearVideo(int x, int y, int width, int height) {
 }
 
 bool OSRHandler::enableEncoder() {
-    encoder->enable();
+    if (showPlayer) {
+        if (videoPlayer == nullptr) {
+            videoPlayer = new VideoPlayer();
+        }
+    } else {
+        encoder->enable();
+    }
+
     isVideoStarted = true;
 
     return true;
@@ -76,11 +94,22 @@ bool OSRHandler::enableEncoder() {
 
 void OSRHandler::disableEncoder() {
     isVideoStarted = false;
-    encoder->disable();
+
+    if (showPlayer) {
+        if (videoPlayer != nullptr) {
+            videoPlayer->stop();
+            delete videoPlayer;
+            videoPlayer = nullptr;
+        }
+    } else {
+        encoder->disable();
+    }
 }
 
 void OSRHandler::flushEncoder() {
-    encoder->flush();
+    if (!showPlayer) {
+        encoder->flush();
+    }
 }
 
 void OSRHandler::setRenderSize(int width, int height) {
@@ -100,7 +129,11 @@ void OSRHandler::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, c
             startpts = av_gettime();
         }
 
-        if (!encoder->addVideoFrame(width, height, (uint8_t*)buffer, av_gettime() - startpts)) {
+        if (showPlayer) {
+            if (!videoPlayer->addVideoFrame(width, height, (uint8_t *) buffer, av_gettime() - startpts)) {
+                isVideoStarted = false;
+            }
+        } else if (!encoder->addVideoFrame(width, height, (uint8_t *) buffer, av_gettime() - startpts)) {
             // encoder is not running anymore
             isVideoStarted = false;
         }
@@ -145,7 +178,11 @@ void OSRHandler::OnAudioStreamStarted(CefRefPtr<CefBrowser> browser, const CefAu
 
     enableEncoder();
 
-    encoder->setAudioParameters(channels, params.sample_rate);
+    if (showPlayer) {
+        videoPlayer->setAudioParameters(channels, params.sample_rate);
+    } else {
+        encoder->setAudioParameters(channels, params.sample_rate);
+    }
 
     // it is possible, that the page bypasses all events regarding video start.
     // Just to be sure, signal VDR that video playing shall be started
@@ -161,7 +198,11 @@ void OSRHandler::OnAudioStreamPacket(CefRefPtr<CefBrowser> browser, const float 
         }
 
         // CONSOLE_ERROR("AudioPts: {}", pts * 1000 - startpts);
-        if (!encoder->addAudioFrame(data, frames, pts * 1000 - startpts)) {
+        if (showPlayer) {
+            if (!videoPlayer->addAudioFrame(data, frames, pts * 1000 - startpts)) {
+                isVideoStarted = false;
+            }
+        } else if (!encoder->addAudioFrame(data, frames, pts * 1000 - startpts)) {
             // encoder is not running anymore
             isVideoStarted = false;
         }

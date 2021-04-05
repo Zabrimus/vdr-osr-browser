@@ -3,6 +3,7 @@
 
 #include "include/cef_render_handler.h"
 #include "include/cef_audio_handler.h"
+#include "videoplayer.h"
 
 class BrowserClient;
 class Encoder;
@@ -13,8 +14,10 @@ private:
     int renderWidth;
     int renderHeight;
 
+    bool showPlayer;
+
     Encoder* encoder = nullptr;
-    std::thread* encoderThread;
+    VideoPlayer *videoPlayer = nullptr;
 
     bool isVideoStarted = false;
     bool encoderStopped = false;
@@ -24,7 +27,7 @@ private:
     int clearX, clearY, clearWidth, clearHeight;
 
 public:
-    OSRHandler(BrowserClient *bc, int width, int height);
+    OSRHandler(BrowserClient *bc, int width, int height, bool showPlayer);
     ~OSRHandler() override;
 
     // enable or disable the encoder

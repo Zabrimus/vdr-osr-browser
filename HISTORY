@@ -13,7 +13,7 @@ VDR OSR Browser Revision History
   videos are now played by the browser itself and the application encodes video/audio
   special cef distribution included (needs libffmpeg.so which are not included)
   register widevine CDM if available
-
+  implemented a video player based on SDL2
 
 2020-02-12: Version 0.1.0
 - Bugfixes

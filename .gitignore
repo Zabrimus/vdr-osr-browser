@@ -12,3 +12,4 @@ thirdparty/HybridTvViewer/package-lock.json
 
 /widevine/libwidevinecdm.so
 /widevine/manifest.json
+/analyze/

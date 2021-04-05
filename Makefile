@@ -28,31 +28,35 @@ USE_CEF_DEBUG=0
 
 CC = g++
 
-CFLAGS = -g -c -O3  -Wall -std=c++11
-#CFLAGS = -c -O0 -g -Wall -std=c++11
+#CFLAGS = -g -c -O3  -Wall -std=c++14
+CFLAGS = -c -g -Wall -std=c++14
 LDFLAGS = -pthread -lrt
 
 SOURCES = main.cpp osrhandler.cpp browserclient.cpp browsercontrol.cpp browserpaintupdater.cpp schemehandler.cpp \
           logger.cpp javascriptlogging.cpp globaldefs.cpp nativejshandler.cpp dashhandler.cpp encoder.cpp \
-          sharedmemory.cpp keycodes.cpp
+          sharedmemory.cpp keycodes.cpp videoplayer.cpp
 OBJECTS = $(SOURCES:.cpp=.o)
+
+SOURCES2 = testex/testplayer/testplayer.cpp videoplayer.cpp logger.cpp
+OBJECTS2 = $(SOURCES2:.cpp=.o)
+
+SOURCES3 = testex/shmp/testshmp.cpp sharedmemory.cpp
+OBJECTS3 = $(SOURCES3:.cpp=.o)
+
+SOURCES4 = testex/cefosrtest/main.cpp
+OBJECTS4 = $(SOURCES4:.cpp=.o)
 
 SOURCES5 = schemehandler.cpp logger.cpp testex/cefsimple/cefsimple_linux.cpp testex/cefsimple/simple_app.cpp \
            testex/cefsimple/simple_handler.cpp testex/cefsimple/simple_handler_linux.cpp globaldefs.cpp
 OBJECTS5 = $(SOURCES5:.cpp=.o)
 
-SOURCES4 = testex/cefosrtest/main.cpp
-OBJECTS4 = $(SOURCES4:.cpp=.o)
-
-SOURCES3 = testex/shmp/testshmp.cpp sharedmemory.cpp
-OBJECTS3 = $(SOURCES3:.cpp=.o)
-
-EXECUTABLE  = vdrosrbrowser
-
+EXECUTABLE   = vdrosrbrowser
+EXECUTABLE2  = testplayer
+EXECUTABLE3  = testshmp
+EXECUTABLE3  = testshmp
+EXECUTABLE4  = cefosrtest
 # Starten mit z.B. ./cefsimple --url="file://<pfad>/movie.html"
 EXECUTABLE5  = cefsimple
-EXECUTABLE4  = cefosrtest
-EXECUTABLE3  = testshmp
 
 # libcurl
 CFLAGS += $(shell pkg-config --cflags libcurl)
@@ -63,12 +67,16 @@ LOGCFLAGS = -Ithirdparty/spdlog/buildbin/include -D SPDLOG_COMPILED_LIB
 LOGLDFLAGS = thirdparty/spdlog/buildbin/lib/libspdlog.a
 
 # ffmpeg
-AVCFLAGS += $(shell pkg-config --cflags libavformat libavcodec libavfilter libavdevice libswresample libpostproc libswscale libavutil)
-AVLDFLAGS += $(shell pkg-config --libs libavformat libavcodec libavfilter libavdevice libswresample libpostproc libswscale libavutil)
-# ffnvcodec?
+AVCFLAGS = $(shell pkg-config --cflags libavformat libavcodec libavfilter libavdevice libswresample libpostproc libswscale libavutil)
+AVLDFLAGS = $(shell pkg-config --libs libavformat libavcodec libavfilter libavdevice libswresample libpostproc libswscale libavutil)
 
-CFLAGS += $(AVCFLAGS)
-LDFLAGS += $(AVLDFLAGS)
+# SDL2 / Player
+SDL2CFLAGS = $(shell sdl2-config --cflags)
+# SDL2LDFLAGS = $(shell sdl2-config --static-libs)
+SDL2LDFLAGS = $(shell sdl2-config --libs)
+
+CFLAGS += $(AVCFLAGS) $(SDL2CFLAGS)
+LDFLAGS += $(AVLDFLAGS) $(SDL2LDFLAGS)
 
 # CEF
 CFLAGS += -Ithirdparty/cef/include -Ithirdparty/cef
@@ -88,7 +96,7 @@ all:
 	$(MAKE) prepareexe
 	$(MAKE) browser
 
-browser: $(SOURCES) $(EXECUTABLE) $(EXECUTABLE5) $(EXECUTABLE4) $(EXECUTABLE3)
+browser: $(SOURCES) $(EXECUTABLE) $(EXECUTABLE2) $(EXECUTABLE5) $(EXECUTABLE4) $(EXECUTABLE3)
 
 dist:
 	tar -cJf vdr-osr-browser-$(VERSION).tar.xz Release
@@ -104,18 +112,24 @@ $(EXECUTABLE): $(OBJECTS) globaldefs.h main.h browser.h nativejshandler.h scheme
 	mkdir -p Release/licenses
 	cp thirdparty/License.* Release/licenses
 
-$(EXECUTABLE5): $(OBJECTS5)
-	$(CC) -O3 $(OBJECTS5) $(LOGCFLAGS) $(CEFCFLAGS) -o $@ -pthread $(ASANLDFLAGS) $(LDFLAGS) $(LOGLDFLAGS) $(CEFLDFLAGS)
-	mv $(EXECUTABLE5) Release
-	cp testex/cefsimple/movie.html Release
+$(EXECUTABLE2): buildspdlog $(OBJECTS2)
+	mkdir -p Release
+	$(CC) -O3 $(OBJECTS2) -o $@ -pthread  $(AVLDFLAGS) $(SDL2LDFLAGS) $(LOGLDFLAGS)
+	mv $(EXECUTABLE2) Release
+	cp testex/testplayer/testimage.rgba Release
+
+$(EXECUTABLE3): $(OBJECTS3)
+	$(CC) -O3 $(OBJECTS3) -o $@ -pthread  $(LDFLAGS)
+	mv $(EXECUTABLE3) Release
 
 $(EXECUTABLE4): $(OBJECTS4)
 	$(CC) -O3 $(OBJECTS4) $(LOGCFLAGS) $(CEFCFLAGS) -o $@ -pthread $(ASANLDFLAGS) $(LDFLAGS) $(LOGLDFLAGS) $(CEFLDFLAGS)
 	mv $(EXECUTABLE4) Release
 
-$(EXECUTABLE3): $(OBJECTS3)
-	$(CC) -O3 $(OBJECTS3) -o $@ -pthread  $(LDFLAGS)
-	mv $(EXECUTABLE3) Release
+$(EXECUTABLE5): $(OBJECTS5)
+	$(CC) -O3 $(OBJECTS5) $(LOGCFLAGS) $(CEFCFLAGS) -o $@ -pthread $(ASANLDFLAGS) $(LDFLAGS) $(LOGLDFLAGS) $(CEFLDFLAGS)
+	mv $(EXECUTABLE5) Release
+	cp testex/cefsimple/movie.html Release
 
 extractcef:
 ifneq (exists, $(shell test -e thirdparty/cef/CMakeLists.txt && echo exists))

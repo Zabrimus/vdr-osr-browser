@@ -4,12 +4,17 @@ und an das VDR Plugin zur Darstellung gesendet. Verwendet wird dabei libnanomsg 
 
 Der OSR Browser kann und wird über verschiedene Kommandos gesteuert. Das passiert auch mittels libnanomsg und dem REQ/PUB Protokoll.
 
-## Voraussetzungen
+## Voraussetzungen (Runtime)
 - libffmpeg.so muss vorhanden sein, falls man Videos sehen möchte. 
   Im beigefügten CEF wird libffmpeg.so aus rechtlichen Gründen nur dynamisch gelinkt.
 - CEF verwendet nur vaapi zur Hardwarebeschleunigung. Besitzer von NVidia-Karten sollten 
   einen vaapi-vdpau Wrapper installieren. Leider habe ich keinen vaapi-nvdec Wrapper 
   oder ähnliches gefunden.
+
+## Voraussetzen (Build)
+### Development Libraries
+- ffmpeg
+- SDL2
 
 ## libffmpeg.so
 Da gibt es verschiedene Möglichkeiten:

@@ -454,7 +454,7 @@ BrowserClient::BrowserClient(spdlog::level::level_enum log_level, std::string *d
     heartbeat_running = true;
     heartbeat_thread = std::thread(&BrowserClient::heartbeat, this);
 
-    osrHandler = new OSRHandler(this, 1280, 720);
+    osrHandler = new OSRHandler(this, 1280, 720, true);
     videoRenderHandler = osrHandler;
 
     injectJavascript = true;

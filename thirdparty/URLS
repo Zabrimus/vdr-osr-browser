@@ -1,14 +1,15 @@
+cef:
+URL:      https://bitbucket.org/chromiumembedded/cef/src/master/
+License:  License.cef.txt
+
 cefsimple:
 URL:      https://bitbucket.org/chromiumembedded/cef/src/master/
 License:  License.cef.txt
 
 HybridTvViewer:
 URL:      https://github.com/karl-rousseau/HybridTvViewer
+URL:      https://github.com/smartclip/HybridTvViewer
 License:  Licence.HybridTvViewer.txt
-
-nng:
-URL:      https://github.com/nanomsg/nng
-License:  License.nng.txt
 
 spdlog:
 URL:      https://github.com/gabime/spdlog
@@ -18,6 +19,11 @@ fmt:
 URL:      https://github.com/fmtlib/fmt
 License:  License.fmt.txt
 
-ffmpeg-cpp:
-URL:      https://github.com/ansumsingh/ffmpeg-cpp
-License:  License.ffpmeg-cpp.txt
+dash.js:
+URL:      http://cdn.dashjs.org/latest/jsdoc/index.html
+License:  License.dash.js.md
+
+shaka-player:
+URL:      https://github.com/google/shaka-player
+License:  License.shaka-player.txt
+
