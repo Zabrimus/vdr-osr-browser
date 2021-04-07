@@ -24,6 +24,7 @@
 #include "javascriptlogging.h"
 #include "dashhandler.h"
 #include "sharedmemory.h"
+#include "sendvdr.h"
 
 #define HEADERSIZE (4 * 1024)
 
@@ -41,12 +42,6 @@ std::regex hbbtv_regex_3("type\\s*=\\s*\"oipfCapabilities\"", std::regex::optimi
 struct MemoryStruct {
     char *memory;
     size_t size;
-};
-
-struct OsdStruct {
-    char    message[20];
-    int     width;
-    int     height;
 };
 
 std::map<std::string, std::string> HbbtvCurl::response_header;
@@ -358,7 +353,7 @@ bool JavascriptHandler::OnQuery(CefRefPtr<CefBrowser> browser,
     }
 
     if (strncmp(request.ToString().c_str(), "VDR:", 4) == 0) {
-        browserClient->SendToVdrString(CMD_STATUS, request.ToString().c_str() + 4);
+        SendToVdrString(CMD_STATUS, request.ToString().c_str() + 4);
         return true;
     } else {
         if (strncmp(request.ToString().c_str(), "PLAY_VIDEO", 10) == 0) {
@@ -366,7 +361,7 @@ bool JavascriptHandler::OnQuery(CefRefPtr<CefBrowser> browser,
 
              if (browserClient->start_video()) {
                  // if encoder is not already initialized
-                 browserClient->SendToVdrString(CMD_STATUS, "PLAY_VIDEO:");
+                 SendToVdrString(CMD_STATUS, "PLAY_VIDEO:");
              }
 
              return true;
@@ -380,14 +375,14 @@ bool JavascriptHandler::OnQuery(CefRefPtr<CefBrowser> browser,
             CONSOLE_DEBUG("Video streaming ended");
 
             browserClient->stop_video();
-            browserClient->SendToVdrString(CMD_STATUS, "STOP_VIDEO");
+            SendToVdrString(CMD_STATUS, "STOP_VIDEO");
 
             return true;
         } else if (strncmp(request.ToString().c_str(), "STOP_VIDEO", 10) == 0) {
             CONSOLE_DEBUG("Video streaming stopped");
 
             browserClient->stop_video();
-            browserClient->SendToVdrString(CMD_STATUS, "STOP_VIDEO");
+            SendToVdrString(CMD_STATUS, "STOP_VIDEO");
 
             return true;
         } else if (strncmp(request.ToString().c_str(), "ERROR_VIDEO", 11) == 0) {
@@ -411,7 +406,7 @@ bool JavascriptHandler::OnQuery(CefRefPtr<CefBrowser> browser,
             CONSOLE_TRACE("Destroy application");
 
             // load the last URL of the stack
-            browserClient->SendToVdrString(CMD_STATUS, "STOP_VIDEO");
+            SendToVdrString(CMD_STATUS, "STOP_VIDEO");
             browserClient->stop_video();
 
             // std::string lastUrl = applicationStack.top();
@@ -421,7 +416,7 @@ bool JavascriptHandler::OnQuery(CefRefPtr<CefBrowser> browser,
             // CONSOLE_TRACE("Destroy application: Load new URL {}", lastUrl);
             return true;
         } else if (strncmp(request.ToString().c_str(), "VIDEO_SIZE: ", 12) == 0) {
-             browserClient->SendToVdrString(CMD_STATUS, request.ToString().c_str());
+             SendToVdrString(CMD_STATUS, request.ToString().c_str());
 
              int x, y, w, h;
              int ret = std::sscanf((const char *) request.ToString().c_str() + 12, "%d,%d,%d,%d", &w, &h, &x, &y);
@@ -1080,55 +1075,9 @@ void BrowserClient::initJavascriptCallback() {
 }
 
 void BrowserClient::eventCallback(std::string cmd) {
-    browserClient->SendToVdrString(CMD_STATUS, cmd.c_str());
+    SendToVdrString(CMD_STATUS, cmd.c_str());
 }
 
-bool BrowserClient::SendToVdrString(uint8_t messageType, const char* message) {
-    if (messageType != CMD_PING && messageType != CMD_VIDEO) {
-        CONSOLE_TRACE("Send String to VDR, Message {}", message);
-    }
-
-    char* buffer = (char*)malloc(2 + strlen(message));
-
-    buffer[0] = messageType;
-    strcpy(buffer + 1, message);
-
-    bool sent = false;
-
-    if (sharedMemory.waitForWrite(BrowserCommand) != -1) {
-        sharedMemory.write((uint8_t *) buffer, strlen(message) + 2, BrowserCommand);
-        sent = true;
-    }
-
-    free(buffer);
-
-    return sent;
-}
-
-void BrowserClient::SendToVdrOsd(const char* message, int width, int height) {
-    // CONSOLE_TRACE("Send OSD update to VDR, Message {}, Width {}, Height {}", message, width, height);
-
-    struct OsdStruct osdStruct = {};
-    auto *buffer = new uint8_t[1 + sizeof(struct OsdStruct)];
-
-    osdStruct.width = width;
-    osdStruct.height = height;
-    memset(osdStruct.message, 0, 20);
-    strncpy(osdStruct.message, message, 19);
-
-    buffer[0] = CMD_OSD;
-    memcpy((void*)(buffer + 1), &osdStruct, sizeof(struct OsdStruct));
-
-    if (sharedMemory.waitForWrite(BrowserCommand) != -1) {
-        sharedMemory.write((uint8_t *) buffer, sizeof(struct OsdStruct) + 1, BrowserCommand);
-    }
-
-    delete[] buffer;
-}
-
-bool BrowserClient::SendToVdrPing() {
-    return SendToVdrString(CMD_PING, "B");
-}
 
 bool BrowserClient::start_video() {
     CONSOLE_DEBUG("Start video");

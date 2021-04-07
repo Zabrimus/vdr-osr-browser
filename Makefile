@@ -34,10 +34,10 @@ LDFLAGS = -pthread -lrt
 
 SOURCES = main.cpp osrhandler.cpp browserclient.cpp browsercontrol.cpp browserpaintupdater.cpp schemehandler.cpp \
           logger.cpp javascriptlogging.cpp globaldefs.cpp nativejshandler.cpp dashhandler.cpp encoder.cpp \
-          sharedmemory.cpp keycodes.cpp videoplayer.cpp
+          sharedmemory.cpp keycodes.cpp videoplayer.cpp sendvdr.cpp
 OBJECTS = $(SOURCES:.cpp=.o)
 
-SOURCES2 = testex/testplayer/testplayer.cpp videoplayer.cpp logger.cpp
+SOURCES2 = testex/testplayer/testplayer.cpp videoplayer.cpp logger.cpp keycodes.cpp
 OBJECTS2 = $(SOURCES2:.cpp=.o)
 
 SOURCES3 = testex/shmp/testshmp.cpp sharedmemory.cpp

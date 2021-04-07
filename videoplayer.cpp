@@ -1,5 +1,7 @@
 #include "logger.h"
 #include "videoplayer.h"
+#include "keycodes.h"
+#include "sendvdr.h"
 
 // Fix some compile problems
 #undef av_err2str
@@ -36,6 +38,7 @@ VideoPlayer::VideoPlayer() {
     lastVideoPts = 0;
 
     initialized = false;
+    isFullScreen = false;
 
     init_mutex = SDL_CreateMutex();
 
@@ -102,8 +105,13 @@ bool VideoPlayer::initSDLVideo() {
         return true;
     }
 
+    // TODO: Per Parameter festlegen, ob der VideoPlayer direkt im Fullscreen starten soll.
+    /*
     window = SDL_CreateWindow("videoplayer", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-                              width, height, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
+                              width, height, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_FULLSCREEN_DESKTOP | SDL_WINDOW_ALWAYS_ON_TOP);
+    */
+    window = SDL_CreateWindow("videoplayer", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+                              width, height, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
 
     /*
     SDL_RENDERER_SOFTWARE - The renderer is a software fallback
@@ -298,22 +306,42 @@ void VideoPlayer::stop() {
 }
 
 void VideoPlayer::input() {
-    // FIXME: Die Keyboard-Events müssen auf jeden Fall abgefangen und an den Browser gesendet werden.
-    //  VDR bekommt diese ja nicht mehr.
-    //  Es muss aber auch ein Mapping stattfinden: Z.B. für die Farbtasten (per Tastatur).
-    //  Vielleicht kann man das remote.conf des VDR dafür verwenden.
+    // FIXME: Events... Tastatur, Fernbedienung,...
+
     if (SDL_PollEvent(&event)) {
         switch (event.type) {
+            case SDL_KEYDOWN:
+                break;
+
             case SDL_KEYUP:
-                switch (event.key.keysym.sym) {
-                    case SDLK_ESCAPE:
-                        break;
-                    default:
-                        break;
+                if (keyCodesSDL.count(event.key.keysym.sym) > 0) {
+                    std::string xsymcode = keyCodesSDL[event.key.keysym.sym];
+
+                    char *buffer = nullptr;
+                    asprintf(&buffer, "KEY: %s", xsymcode.c_str());
+                    SendToVdrString(CMD_STATUS, buffer);
+                    free(buffer);
+                } else {
+                    // ignore this key value
+                }
+
+                break;
+
+            case SDL_MOUSEBUTTONDOWN:
+                isFullScreen = !isFullScreen;
+
+                if (isFullScreen) {
+                    SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+                    SDL_ShowCursor(SDL_DISABLE);
+                } else {
+                    SDL_SetWindowFullscreen(window, 0);
+                    SDL_ShowCursor(SDL_ENABLE);
                 }
                 break;
             case SDL_QUIT:
+                stop();
                 break;
+
             default:
                 break;
         }

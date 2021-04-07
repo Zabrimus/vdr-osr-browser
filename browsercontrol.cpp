@@ -21,6 +21,7 @@
 #include "nativejshandler.h"
 #include "sharedmemory.h"
 #include "keycodes.h"
+#include "sendvdr.h"
 
 // #define DEBUG_JS
 
@@ -127,7 +128,7 @@ void BrowserControl::Start() {
                 auto frame = browser->GetMainFrame();
                 frame->ExecuteJavaScript(call, frame->GetURL(), 0);
             } else if (strncmp("PING", buf, 4) == 0) {
-                browserClient->SendToVdrPing();
+                SendToVdrPing();
             } else if (strncmp("KEY ", buf, 4) == 0) {
                 sendKeyEvent(buf + 4);
             } else if (strncmp("MODE ", buf, 5) == 0) {

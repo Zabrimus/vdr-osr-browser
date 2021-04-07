@@ -17,11 +17,6 @@
 class BrowserClient;
 class BrowserControl;
 
-const uint8_t CMD_STATUS = 1;
-const uint8_t CMD_OSD = 2;
-const uint8_t CMD_VIDEO = 3;
-const uint8_t CMD_PING = 5;
-
 const int HTML_MODE = 1;
 const int HBBTV_MODE = 2;
 
@@ -176,11 +171,6 @@ public:
     bool start_video();
     void stop_video();
     void flushEncoder();
-
-    //
-    bool SendToVdrString(uint8_t messageType, const char* message);
-    void SendToVdrOsd(const char* message, int width, int height);
-    bool SendToVdrPing();
 
     void setRenderSize(int width, int height) { osrHandler->setRenderSize(width, height); };
     static void eventCallback(std::string cmd);

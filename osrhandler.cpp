@@ -20,6 +20,7 @@
 #include "browser.h"
 #include "encoder.h"
 #include "sharedmemory.h"
+#include "sendvdr.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -157,7 +158,7 @@ void OSRHandler::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, c
             }
         }
 
-        browserClient->SendToVdrOsd("OSDU", w, h);
+        SendToVdrOsd("OSDU", w, h);
     } else {
         // reset
         sharedMemory.setMode(shmpWriteMode, Data);
@@ -186,7 +187,7 @@ void OSRHandler::OnAudioStreamStarted(CefRefPtr<CefBrowser> browser, const CefAu
 
     // it is possible, that the page bypasses all events regarding video start.
     // Just to be sure, signal VDR that video playing shall be started
-    browserClient->SendToVdrString(CMD_STATUS, "PLAY_VIDEO:");
+    SendToVdrString(CMD_STATUS, "PLAY_VIDEO:");
 }
 
 void OSRHandler::OnAudioStreamPacket(CefRefPtr<CefBrowser> browser, const float **data, int frames, int64 pts) {

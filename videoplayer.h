@@ -43,6 +43,7 @@ class VideoPlayer {
     private:
         bool quit;
         bool initialized;
+        bool isFullScreen;
 
         int sampleRate;
         int channels;
