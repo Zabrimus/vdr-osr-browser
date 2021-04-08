@@ -131,11 +131,6 @@ $(EXECUTABLE5): $(OBJECTS5)
 	mv $(EXECUTABLE5) Release
 	cp testex/cefsimple/movie.html Release
 
-extractcef:
-ifneq (exists, $(shell test -e thirdparty/cef/CMakeLists.txt && echo exists))
-	cd thirdparty && tar -xf $(CEF_ARCHIVE)
-endif
-
 prepareexe:
 	mkdir -p Release
 	mkdir -p Release/cache
@@ -156,6 +151,11 @@ ifneq (exists, $(shell test -e Release/block_url.config && echo exists))
 endif
 ifneq (exists, $(shell test -e Release/x264_encoding.settings && echo exists))
 	cp x264_encoding.settings Release/x264_encoding.settings
+endif
+
+extractcef:
+ifneq (exists, $(shell test -e thirdparty/cef/CMakeLists.txt && echo exists))
+	cd thirdparty && tar -xf $(CEF_ARCHIVE)
 endif
 
 buildcef:
