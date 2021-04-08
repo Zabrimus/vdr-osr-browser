@@ -1,0 +1,1 @@
+./cefsimple --use-gl=desktop --ignore-gpu-blacklist --enable-accelerated-video-decode --url=chrome://gpu

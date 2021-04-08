@@ -131,6 +131,16 @@ void BrowserControl::Start() {
                 SendToVdrPing();
             } else if (strncmp("KEY ", buf, 4) == 0) {
                 sendKeyEvent(buf + 4);
+            } else if (strncmp("VOLUME ", buf, 7) == 0) {
+                int volume;
+                sscanf(buf + 7, "%d", &volume);
+
+                char *cmd;
+                asprintf(&cmd, "window.cefVideoVolume(%d);", volume);
+                CefString call = cmd;
+                auto frame = browser->GetMainFrame();
+                frame->ExecuteJavaScript(call, frame->GetURL(), 0);
+                free(cmd);
             } else if (strncmp("MODE ", buf, 5) == 0) {
                 int mode = -1;
                 sscanf(buf + 4, "%d", &mode);

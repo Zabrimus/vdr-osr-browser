@@ -83,6 +83,9 @@ bool OSRHandler::enableEncoder() {
     if (showPlayer) {
         if (videoPlayer == nullptr) {
             videoPlayer = new VideoPlayer();
+
+            // get VDR volume
+            SendToVdrString(CMD_STATUS, "VOLUME");
         }
     } else {
         encoder->enable();

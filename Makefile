@@ -37,7 +37,7 @@ SOURCES = main.cpp osrhandler.cpp browserclient.cpp browsercontrol.cpp browserpa
           sharedmemory.cpp keycodes.cpp videoplayer.cpp sendvdr.cpp
 OBJECTS = $(SOURCES:.cpp=.o)
 
-SOURCES2 = testex/testplayer/testplayer.cpp videoplayer.cpp logger.cpp keycodes.cpp
+SOURCES2 = testex/testplayer/testplayer.cpp videoplayer.cpp logger.cpp keycodes.cpp sendvdr.cpp sharedmemory.cpp
 OBJECTS2 = $(SOURCES2:.cpp=.o)
 
 SOURCES3 = testex/shmp/testshmp.cpp sharedmemory.cpp

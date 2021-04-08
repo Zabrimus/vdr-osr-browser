@@ -35,6 +35,25 @@ function init() {
         }
     }
 
+    window.cefVideoVolume = function(volume) {
+        let vVolume = 0.0;
+
+        if (volume === 0) {
+            vVolume = 0.0;
+        } else if (volume === 255) {
+            vVolume = 1.0;
+        } else {
+            vVolume = volume / 255.0;
+        }
+
+        let videos = document.getElementsByTagName('video');
+        if (videos.length > 0) {
+            for (let i = 0; i < videos.length; i++) {
+                videos[i].volume = vVolume;
+            }
+        }
+    }
+
     window.cefVideoSize = function() {
         // search for a video/broadcast object
         let vbo = document.querySelector("[type='video/broadcast']");
