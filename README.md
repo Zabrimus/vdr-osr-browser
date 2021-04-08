@@ -41,7 +41,22 @@ Der Build wird gestartet mit
 make -j 4
 
 Im Unterverzeichnis "/Release" befinden sich nach erfolgreichem Bau die vollständige und lauffähige Umgebung des 
-Browsers.    
+Browsers.
+
+Im Unterverzeichnis "lxc-build" befinden sich 2 Scripte, die zeigen, wie ein Build in einem frischen LXC Container 
+gestartet werden kann und welche Abhängigkeiten zu erfüllen sind:
+
+```
+build-browser.sh
+```
+Haupt-Script, welches den Container startet und das eigentliche Build-Script in den Container kopiert.
+
+```
+build-browser-debian.sh
+```
+Das eigentliche Buildscript installiert erst einmal alle notwendigen Pakete und eine libffmpeg.so 
+und startet dann den Build im Container.
+Aber vorsichtig: Das Script macht nochmal ein git clone im Container.
 
 ## Starten des Browsers
 Die einfachste Variante zum Start ist
