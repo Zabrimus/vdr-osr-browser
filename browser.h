@@ -118,7 +118,7 @@ private:
     }
 
 public:
-    explicit BrowserClient(spdlog::level::level_enum log_level, std::string *dashplayer);
+    explicit BrowserClient(spdlog::level::level_enum log_level, std::string *dashplayer, bool fullscreen);
     ~BrowserClient() override;
 
     void setBrowserControl(BrowserControl *ctl) { this->handler->SetBrowserControl(ctl); }

@@ -24,7 +24,7 @@ int main(int argc, char* argv[]) {
     if (argc > 1 && strncmp(argv[1], "1", 1) == 0) {
         printf("Create VideoPlayer\n");
 
-        VideoPlayer *videoPlayer = new VideoPlayer();
+        VideoPlayer *videoPlayer = new VideoPlayer(false);
 
         videoPlayer->setAudioParameters(2, 48000);
 

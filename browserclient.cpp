@@ -434,7 +434,7 @@ void JavascriptHandler::OnQueryCanceled(CefRefPtr<CefBrowser> browser, CefRefPtr
     // TODO: cancel our async query task...
 }
 
-BrowserClient::BrowserClient(spdlog::level::level_enum log_level, std::string *dashplayer) {
+BrowserClient::BrowserClient(spdlog::level::level_enum log_level, std::string *dashplayer, bool fullscreen) {
     logger.set_level(log_level);
 
     browserClient = this;
@@ -449,7 +449,7 @@ BrowserClient::BrowserClient(spdlog::level::level_enum log_level, std::string *d
     heartbeat_running = true;
     heartbeat_thread = std::thread(&BrowserClient::heartbeat, this);
 
-    osrHandler = new OSRHandler(this, 1280, 720, true);
+    osrHandler = new OSRHandler(this, 1280, 720, true, fullscreen);
     videoRenderHandler = osrHandler;
 
     injectJavascript = true;

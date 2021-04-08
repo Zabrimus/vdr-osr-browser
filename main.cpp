@@ -175,6 +175,7 @@ void checkInstallation() {
 std::string *initUrl = nullptr;
 std::string *logFile = nullptr;
 std::string *dashplayer = nullptr;
+bool fullscreen = false;
 
 // Entry point function for all processes.
 int main(int argc, char *argv[]) {
@@ -201,6 +202,8 @@ int main(int argc, char *argv[]) {
             logFile = new std::string(argv[i] + 10);
         } else if (strncmp(argv[i], "--dashplayer=", 13) == 0) {
             dashplayer = new std::string(argv[i] + 13);
+        } else if (strncmp(argv[i], "--fullscreen", 12) == 0) {
+            fullscreen = true;
         }
     }
 
@@ -308,7 +311,7 @@ int main(int argc, char *argv[]) {
     //  Der Thread, der regelmäßig SendExternalBeginFrame aufrufen soll, befindet sich im BrowserPaintUpdater.
     //  window_info.external_begin_frame_enabled = true;
 
-    CefRefPtr<BrowserClient> browserClient = new BrowserClient(log_level, dashplayer);
+    CefRefPtr<BrowserClient> browserClient = new BrowserClient(log_level, dashplayer, fullscreen);
     browser = CefBrowserHost::CreateBrowserSync(window_info, browserClient.get(), initUrl ? initUrl->c_str() : "", browserSettings, nullptr, nullptr);
 
     browser->GetHost()->WasHidden(true);

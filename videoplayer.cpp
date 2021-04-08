@@ -13,7 +13,7 @@
 #undef av_ts2timestr
 #define av_ts2timestr(ts, tb) av_ts_make_time_string((char*)__builtin_alloca(AV_TS_MAX_STRING_SIZE), ts, tb)
 
-VideoPlayer::VideoPlayer() {
+VideoPlayer::VideoPlayer(bool fullscreen) {
     audioQueue = ReaderWriterQueue<AVFrame*>(5);
     imageQueue = ReaderWriterQueue<AVFrame*>(5);
 
@@ -38,7 +38,7 @@ VideoPlayer::VideoPlayer() {
     lastVideoPts = 0;
 
     initialized = false;
-    isFullScreen = false;
+    isFullScreen = fullscreen;
 
     init_mutex = SDL_CreateMutex();
 
@@ -105,13 +105,16 @@ bool VideoPlayer::initSDLVideo() {
         return true;
     }
 
-    // TODO: Per Parameter festlegen, ob der VideoPlayer direkt im Fullscreen starten soll.
-    /*
-    window = SDL_CreateWindow("videoplayer", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-                              width, height, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_FULLSCREEN_DESKTOP | SDL_WINDOW_ALWAYS_ON_TOP);
-    */
-    window = SDL_CreateWindow("videoplayer", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-                              width, height, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
+    if (isFullScreen) {
+        window = SDL_CreateWindow("videoplayer", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+                                  width, height, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI |
+                                                 SDL_WINDOW_FULLSCREEN_DESKTOP | SDL_WINDOW_ALWAYS_ON_TOP);
+        SDL_ShowCursor(SDL_DISABLE);
+    } else {
+        window = SDL_CreateWindow("videoplayer", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+                                  width, height, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
+        SDL_ShowCursor(SDL_ENABLE);
+    }
 
     /*
     SDL_RENDERER_SOFTWARE - The renderer is a software fallback

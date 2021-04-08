@@ -15,6 +15,7 @@ private:
     int renderHeight;
 
     bool showPlayer;
+    bool fullscreen;
 
     Encoder* encoder = nullptr;
     VideoPlayer *videoPlayer = nullptr;
@@ -27,7 +28,7 @@ private:
     int clearX, clearY, clearWidth, clearHeight;
 
 public:
-    OSRHandler(BrowserClient *bc, int width, int height, bool showPlayer);
+    OSRHandler(BrowserClient *bc, int width, int height, bool showPlayer, bool fullscreen);
     ~OSRHandler() override;
 
     // enable or disable the encoder

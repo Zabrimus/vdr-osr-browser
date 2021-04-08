@@ -29,7 +29,7 @@ using namespace moodycamel;
 
 class VideoPlayer {
     public:
-        VideoPlayer();
+        VideoPlayer(bool fullscreen);
         ~VideoPlayer();
 
         void setAudioParameters(int channels_, int sample_rate);

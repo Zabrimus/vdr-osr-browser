@@ -40,11 +40,12 @@ uint64_t startpts = 0;
 
 BrowserClient* OSRHandler::browserClient;
 
-OSRHandler::OSRHandler(BrowserClient *bc, int width, int height, bool showPlayer) {
+OSRHandler::OSRHandler(BrowserClient *bc, int width, int height, bool showPlayer, bool fullscreen) {
     CONSOLE_TRACE("Create OSRHandler and open shared memory");
 
     videoPlayer = nullptr;
     this->showPlayer = showPlayer;
+    this->fullscreen = fullscreen;
 
     if (!showPlayer) {
         // create encoder as early as possible
@@ -82,7 +83,7 @@ void OSRHandler::osdClearVideo(int x, int y, int width, int height) {
 bool OSRHandler::enableEncoder() {
     if (showPlayer) {
         if (videoPlayer == nullptr) {
-            videoPlayer = new VideoPlayer();
+            videoPlayer = new VideoPlayer(fullscreen);
 
             // get VDR volume
             SendToVdrString(CMD_STATUS, "VOLUME");
