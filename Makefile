@@ -182,6 +182,7 @@ ifneq (exists, $(shell test -e thirdparty/spdlog/buildbin/lib/libspdlog.a && ech
 	cd thirdparty/spdlog/buildbin/ && if [ -d lib64 ]; then ln -s lib64 lib; fi
 endif
 
+
 preparejs:
 	cd thirdparty/HybridTvViewer && npm i
 
@@ -227,3 +228,7 @@ distclean: clean
 
 debugremote: all
 	cd Release && gdbserver localhost:2345  ./vdrosrbrowser --debug --autoplay --remote-debugging-port=9222 --user-data-dir=remote-profile
+
+
+.PHONY: all dist extractcef prepareexe buildcef buildspdlog
+.PHONY: preparejs buildjs cleanjs clean distclean debugremote

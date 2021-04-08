@@ -60,7 +60,7 @@ oder
 
 Ein Remote-Debugging mittels Chrome kann sinnvoll sein. Dazu müssen nur folgende Parameter verwendet werden
 ```
-/vdrosrbrowser --remote-debugging-port=9222 --user-data-dir=remote-profile
+./vdrosrbrowser --remote-debugging-port=9222 --user-data-dir=remote-profile
 ```
 Und im Chrome die Seite http://localhost:9222 aufrufen. Man kann dann die Seite sehen, die gerendert wird und alle
 Möglichkeiten nutzen, die Chrome bietet.
@@ -75,6 +75,14 @@ Der Log-Level kann gesteuert werden mit den möglichen Parametern
 ```
 '--trace' ist nicht wirklich für den Produktiveinsatz geeignet, da die Anzahl der Ausgaben immens ist. 
 
+Weitere nützliche Parameter sind
+```
+--logfile=<logfile>            Die Ausgaben werden in das <logfile> geschrieben.
+--fullscreen                   Der Videoplayer wird per Default im Fullscreen-Modus gestartet
+--remote-debugging-port=<port> Remote-Debugging Port für den Chrome Debugger
+```
+Desweiteren gibt es noch eine Reihe von anderen Parametern, die von Chromium abstammen. Viele der Parameter müssten 
+auch mir dem Browser funktionieren. 
 
 ## Weitere nützliche Informationen
 #### Chromium und vaapi
