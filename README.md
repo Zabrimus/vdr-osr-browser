@@ -10,7 +10,6 @@ Der OSR Browser kann und wird über verschiedene Kommandos gesteuert. Das passie
 - CEF verwendet nur vaapi zur Hardwarebeschleunigung. Besitzer von NVidia-Karten sollten 
   einen vaapi-vdpau Wrapper installieren. Leider habe ich keinen vaapi-nvdec Wrapper 
   oder ähnliches gefunden.
-- Installation von xdotool (bis eine andere Lösung gefunden wird)  
 
 ## Voraussetzen (Build)
 ### Development Libraries
