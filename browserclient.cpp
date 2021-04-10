@@ -1107,11 +1107,22 @@ void BrowserClient::heartbeat() {
 
     while (heartbeat_running) {
         std::this_thread::sleep_for (std::chrono::seconds(1));
-        if (SendToVdrPing() && !init) {
+
+        if (SendToVdrPing()) {
+            if (!init) {
+                init = SendToVdrString(CMD_STATUS, "SEND_INIT");
+            }
+        } else {
+            init = false;
+        }
+
+        /*
+        if (!init && SendToVdrPing()) {
             init = SendToVdrString(CMD_STATUS, "SEND_INIT");
         } else {
             init = false;
         }
+        */
     }
 }
 
