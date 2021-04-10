@@ -4,7 +4,21 @@ ARD: Der blaue Button funktioniert oder eben nicht. Und wenn es nicht funktionie
      Es sieht so aus, als ob das Fenster immer wieder neu erstellt wird. In der Konsole gibt es aber keine Video-Events,
      die so etwas provozieren können.
 
+Sat1/Pro7/RTL (und andere Sender aus der Gruppe):
+     DRM Videos werden nach der Werbung nicht abgespielt:
+        Shaka Error DRM.REQUESTED_KEY_SYSTEM_CONFIG_UNAVAILABLE ()
+        at new shaka.util.Error (client://js/shaka-player.compiled.debug.js:88:473)
+        at client://js/shaka-player.compiled.debug.js:221:263
+     Ganz so allgemein nervt die Werbung ziemlich. Und ich muss sie jedesmal sehen, wenn ich den Wechsel Werbung <-> Video
+     untersuchen will.
 
+Servus TV: "Could not enter Mediathek!"
+     Das sollte untersucht werden.
+
+1-2-3 TV: "Uncaught SyntaxError: Failed to set the 'innerHTML' property on 'Element': The provided markup is invalid XML, and therefore cannot be inserted into an XML document.", source: http://pk153-tv123.tvapp-server.de/HbbTVClient/Common/Libs/jquery-min-1.7.1.js?unq=504195861 (6)
+    Invalides XML kommt mir bekannt vor, ich weiß nur nicht mehr, welcher Sender sowas sendet.
+
+Sonnenklar-TV: Das Video(TV) überlagert die Seite.
 
 
 
