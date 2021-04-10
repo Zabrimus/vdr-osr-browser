@@ -687,18 +687,27 @@ class VideoHandler {
         mimeType = mimeType.toLowerCase(); // ensure lower case string comparison
 
         // check if node is visible
-        let nodeStyle = window.getComputedStyle(node);
-        if (nodeStyle.visibility === 'hidden') {
-            // node is invisible => no further checks
-            window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: checkNodeTypeAndInjectVideoMethods, node is invisible ...');
-            return;
+        // dont't do this check on arte. The player is hidden, but we need to insert a video tag
+        if (window.location.host !== 'www.arte.tv') {
+            let nodeStyle = window.getComputedStyle(node);
+            if (nodeStyle.visibility === 'hidden') {
+                // node is invisible => no further checks
+                window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: checkNodeTypeAndInjectVideoMethods, node is invisible ...');
+                return;
+            }
         }
 
         /* */
         if (document.getElementsByTagName('video').length > 0) {
             // video already injected.
-            window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: checkNodeTypeAndInjectVideoMethods, video already injected ...');
-            return;
+
+            // on Arte remove the existing video tag, it will be reinserted
+            if (window.location.host === 'www.arte.tv') {
+                document.getElementsByTagName('video')[0].remove();
+            } else {
+                window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: checkNodeTypeAndInjectVideoMethods, video already injected ...');
+                return;
+            }
         }
         /* */
 
@@ -1679,7 +1688,8 @@ class OipfVideoBroadcastMapper {
             this.videoTag.setAttribute('id', 'hbbtv-polyfill-broadcast-player');
             this.videoTag.setAttribute('autoplay', ''); // note: call to bindToCurrentChannel() or play() is doing it
             this.videoTag.setAttribute('loop', '');
-            this.videoTag.setAttribute('style', 'top:0px; left:0px; width:100%; height:100%;background-color: rgb(254, 46, 154) !important;');
+            // this.videoTag.setAttribute('style', 'top:0px; left:0px; width:100%; height:100%;background-color: rgb(254, 46, 154) !important;');
+            this.videoTag.setAttribute('style', 'top:0px; left:0px; width:100%; height:100%;');
 
             // this does not work as desired: <object...><video.../></object>
             // it has to be <object/></video>

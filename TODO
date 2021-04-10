@@ -1,3 +1,15 @@
+Probleme in der Version 0.2.0 (prerelease):
+-------------------------------------------
+ARD: Der blaue Button funktioniert oder eben nicht. Und wenn es nicht funktioniert, verhält sich Videoplayer seltsam.
+     Es sieht so aus, als ob das Fenster immer wieder neu erstellt wird. In der Konsole gibt es aber keine Video-Events,
+     die so etwas provozieren können.
+
+
+
+
+
+Prüfen, ob diese Probleme/Wünsche noch existieren:
+--------------------------------------------------
 Generelle Probleme/Wünsche
     Zurück-Taste auf der Fernbedienung um eine Seite zurückzuspringen.
 
@@ -20,20 +32,11 @@ Generelle Probleme/Wünsche
     Die Bookmark-Konfiguration gehört gewaltig überarbeitet. Lesbarer und die Channelinformation gehören auch da rein.
     Vielleicht wäre ein Shortcut, um Bookmarks zu speichern auch schön. Immer zum Sender zu wechseln und dann über Red-Button zu gehen ist schon lästig.
 
-    Manchmal reagiert der Browser nicht mehr. Es scheint, also ob irgendein Mutex die weitere Verarbeitung blockiert.
-       Mein Verdacht fällt auf OSDU und dessen Mutex. Aber sicher bin ich nicht.
-       Es hilft nur ein Neustart des Browsers über das OSD-Menu.
-       => Testen und herausfinden, ob es reproduzierbar ist.
-
     Konfiguration eines Proxys für bestimmte Seiten/URLs/Kanäle. Stichwort Geo-Lokation.
 
 Sender-Probleme:
     n-tv:
         Navigation funktioniert. Aber bei der Auswahl passiert häufig nichts.
-
-    Tagesschau:
-        Keine Navigation möglich. Es scheint als müsste der CE-HTML Code gepatcht werden.
-        Hinweise auf eine bestehende Lösung hat 900H dazu geliefert. Siehe Github-Ticket.
 
     Anixe:
         Prüfen, ob der Browser noch crasht und die Seite funktioniert
@@ -72,11 +75,6 @@ Sender-Probleme:
         Sonnenklar     263 (Video liegt über dem Menu)
         n-tv           383
 
-Make:
-    https://www.vdr-portal.de/forum/index.php?thread/133615-announce-hbbtv-plugin-offscreen-browser-v0-0-6/&postID=1327497#post1327497
-    Testen, ob ein paralles Make (make -j x) funktioniert.
-
-
 Ajax:
     Noch suche ich einen Ajax-Proxy, der mir erlaubt, den Request und den Response zu verändern (sowohl Header, als auch Body).
     (Siehe xmlhttprequest_quirks.js, index.js, browserclient.cpp)
@@ -101,6 +99,3 @@ Sonstige interessante Links:
     https://trifinite.org/hbbtv/trifinite_hbbtv_channel_list.html
     http://urju.de/hbbtv/
 
-DRM:
-    https://pypi.org/project/python-ffmpeg-video-streaming/#encryptiondrm
-    https://shaka-player-demo.appspot.com/docs/api/tutorial-drm-config.html
