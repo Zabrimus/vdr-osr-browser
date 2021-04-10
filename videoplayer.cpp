@@ -105,16 +105,11 @@ bool VideoPlayer::initSDLVideo() {
         return true;
     }
 
-    if (isFullScreen) {
-        window = SDL_CreateWindow("videoplayer", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-                                  width, height, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI |
-                                                 SDL_WINDOW_FULLSCREEN_DESKTOP | SDL_WINDOW_ALWAYS_ON_TOP);
-        SDL_ShowCursor(SDL_DISABLE);
-    } else {
-        window = SDL_CreateWindow("videoplayer", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-                                  width, height, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
-        SDL_ShowCursor(SDL_ENABLE);
-    }
+    window = SDL_CreateWindow("videoplayer", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+                              width, height, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
+    SDL_ShowCursor(SDL_ENABLE);
+
+    setFullScreen(isFullScreen);
 
     /*
     SDL_RENDERER_SOFTWARE - The renderer is a software fallback
@@ -331,15 +326,7 @@ void VideoPlayer::input() {
                 break;
 
             case SDL_MOUSEBUTTONDOWN:
-                isFullScreen = !isFullScreen;
-
-                if (isFullScreen) {
-                    SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
-                    SDL_ShowCursor(SDL_DISABLE);
-                } else {
-                    SDL_SetWindowFullscreen(window, 0);
-                    SDL_ShowCursor(SDL_ENABLE);
-                }
+                toggleFullScreen();
                 break;
             case SDL_QUIT:
                 stop();
@@ -348,5 +335,20 @@ void VideoPlayer::input() {
             default:
                 break;
         }
+    }
+}
+
+void VideoPlayer::toggleFullScreen() {
+    isFullScreen = !isFullScreen;
+    setFullScreen(isFullScreen);
+}
+
+void VideoPlayer::setFullScreen(bool full) {
+    if (full) {
+        SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+        SDL_ShowCursor(SDL_DISABLE);
+    } else {
+        SDL_SetWindowFullscreen(window, 0);
+        SDL_ShowCursor(SDL_ENABLE);
     }
 }

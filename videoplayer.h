@@ -74,6 +74,9 @@ class VideoPlayer {
         void playAudio();
 
         void input();
+
+        void toggleFullScreen();
+        void setFullScreen(bool full);
 };
 
 #endif //VDR_OSR_BROWSER_VIDEOPLAYER_H
