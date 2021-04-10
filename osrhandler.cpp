@@ -162,6 +162,13 @@ void OSRHandler::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, c
             }
         }
 
+        // delete parts of the OSD where a video shall be visible
+        for (uint32_t i = 0; i < (uint32_t)(width * height); ++i) {
+            if (buf[i] == 0xfffe2e9a) {
+                buf[i] = 0x00fe2e9a;
+            }
+        }
+
         SendToVdrOsd("OSDU", w, h);
     } else {
         // reset

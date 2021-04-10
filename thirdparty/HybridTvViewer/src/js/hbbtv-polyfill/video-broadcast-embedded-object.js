@@ -26,7 +26,7 @@ export class OipfVideoBroadcastMapper {
             this.videoTag.setAttribute('id', 'hbbtv-polyfill-broadcast-player');
             this.videoTag.setAttribute('autoplay', ''); // note: call to bindToCurrentChannel() or play() is doing it
             this.videoTag.setAttribute('loop', '');
-            this.videoTag.setAttribute('style', 'top:0px; left:0px; width:100%; height:100%;');
+            this.videoTag.setAttribute('style', 'top:0px; left:0px; width:100%; height:100%;background-color: rgb(254, 46, 154) !important;');
 
             // this does not work as desired: <object...><video.../></object>
             // it has to be <object/></video>
