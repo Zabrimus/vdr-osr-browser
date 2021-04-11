@@ -16209,6 +16209,7 @@ var _streamingVoMetricsHTTPRequest = _dereq_(255);
  *          manifestUpdateRetryInterval: 100,
  *          stallThreshold: 0.5,
  *          filterUnsupportedEssentialProperties: true,
+ *          eventControllerRefreshDelay: 100,
  *          utcSynchronization: {
  *              backgroundAttempts: 2,
  *              timeBetweenSyncAttempts: 30,
@@ -16247,6 +16248,7 @@ var _streamingVoMetricsHTTPRequest = _dereq_(255);
  *              IndexSegment: 1000,
  *              MediaSegment: 1000,
  *              BitstreamSwitchingSegment: 1000,
+ *              FragmentInfoSegment: 1000,
  *              other: 1000,
  *              lowLatencyReductionFactor: 10
  *          },
@@ -16257,6 +16259,7 @@ var _streamingVoMetricsHTTPRequest = _dereq_(255);
  *              IndexSegment: 3,
  *              MediaSegment: 3,
  *              BitstreamSwitchingSegment: 3,
+ *              FragmentInfoSegment: 3,
  *              other: 3,
  *              lowLatencyMultiplyFactor: 5
  *          },
@@ -16281,7 +16284,8 @@ var _streamingVoMetricsHTTPRequest = _dereq_(255);
  *              sid: null,
  *              cid: null,
  *              rtp: null,
- *              rtpSafetyFactor: 5
+ *              rtpSafetyFactor: 5,
+ *              mode: Constants.CMCD_MODE_QUERY
  *          }
  *      }
  * }
@@ -16490,6 +16494,8 @@ var _streamingVoMetricsHTTPRequest = _dereq_(255);
  * Stall threshold used in BufferController.js to determine whether a track should still be changed and which buffer range to prune.
  * @property {boolean} [filterUnsupportedEssentialProperties=true]
  * Enable to filter all the AdaptationSets and Representations which contain an unsupported \<EssentialProperty\> element.
+ * @property {number} [eventControllerRefreshDelay=100]
+ * Defines the delay in milliseconds between two consecutive checks for events to be fired.
  * @property {module:Settings~UtcSynchronizationSettings} utcSynchronization Settings related to UTC clock synchronization
  * @property {module:Settings~LiveCatchupSettings} liveCatchup  Settings related to live catchup.
  * @property {module:Settings~CachingInfoSettings} [lastBitrateCachingInfo={enabled: true, ttl: 360000}]
@@ -16524,6 +16530,9 @@ var _streamingVoMetricsHTTPRequest = _dereq_(255);
  *
  * - Constants.TRACK_SELECTION_MODE_HIGHEST_BITRATE
  * This mode makes the player select the track with a highest bitrate. This mode is a default mode.
+ *
+ * - Constants.TRACK_SELECTION_MODE_FIRST_TRACK
+ * This mode makes the player select the first track found in the manifest.
  *
  * - Constants.TRACK_SELECTION_MODE_HIGHEST_EFFICIENCY
  * This mode makes the player select the track with the lowest bitrate per pixel average.
@@ -16582,6 +16591,8 @@ var _streamingVoMetricsHTTPRequest = _dereq_(255);
  * Request to retrieve a media segment (video/audio/image/text chunk).
  * @property {number} [BitstreamSwitchingSegment]
  * Bitrate stream switching type of request.
+ * @property {number} [FragmentInfoSegment]
+ * Request to retrieve a FragmentInfo segment (specific to Smooth Streaming live streams).
  * @property {number} [other]
  * Other type of request.
  * @property {number} [lowLatencyReductionFactor]
@@ -16616,6 +16627,10 @@ var _streamingVoMetricsHTTPRequest = _dereq_(255);
  * This value is used as a factor for the rtp value calculation: rtp = minBandwidth * rtpSafetyFactor
  *
  * If not specified this value defaults to 5. Note that this value is only used when no static rtp value is defined.
+ * @property {number} [mode]
+ * The method to use to attach cmcd metrics to the requests. 'query' to use query parameters, 'header' to use http headers.
+ *
+ * If not specified this value defaults to 'query'.
  */
 
 /**
@@ -16754,6 +16769,7 @@ function Settings() {
             manifestUpdateRetryInterval: 100,
             stallThreshold: 0.5,
             filterUnsupportedEssentialProperties: true,
+            eventControllerRefreshDelay: 100,
             utcSynchronization: {
                 backgroundAttempts: 2,
                 timeBetweenSyncAttempts: 30,
@@ -16785,8 +16801,8 @@ function Settings() {
             },
             selectionModeForInitialTrack: _streamingConstantsConstants2['default'].TRACK_SELECTION_MODE_HIGHEST_BITRATE,
             fragmentRequestTimeout: 0,
-            retryIntervals: (_retryIntervals = {}, _defineProperty(_retryIntervals, _streamingVoMetricsHTTPRequest.HTTPRequest.MPD_TYPE, 500), _defineProperty(_retryIntervals, _streamingVoMetricsHTTPRequest.HTTPRequest.XLINK_EXPANSION_TYPE, 500), _defineProperty(_retryIntervals, _streamingVoMetricsHTTPRequest.HTTPRequest.MEDIA_SEGMENT_TYPE, 1000), _defineProperty(_retryIntervals, _streamingVoMetricsHTTPRequest.HTTPRequest.INIT_SEGMENT_TYPE, 1000), _defineProperty(_retryIntervals, _streamingVoMetricsHTTPRequest.HTTPRequest.BITSTREAM_SWITCHING_SEGMENT_TYPE, 1000), _defineProperty(_retryIntervals, _streamingVoMetricsHTTPRequest.HTTPRequest.INDEX_SEGMENT_TYPE, 1000), _defineProperty(_retryIntervals, _streamingVoMetricsHTTPRequest.HTTPRequest.OTHER_TYPE, 1000), _defineProperty(_retryIntervals, 'lowLatencyReductionFactor', 10), _retryIntervals),
-            retryAttempts: (_retryAttempts = {}, _defineProperty(_retryAttempts, _streamingVoMetricsHTTPRequest.HTTPRequest.MPD_TYPE, 3), _defineProperty(_retryAttempts, _streamingVoMetricsHTTPRequest.HTTPRequest.XLINK_EXPANSION_TYPE, 1), _defineProperty(_retryAttempts, _streamingVoMetricsHTTPRequest.HTTPRequest.MEDIA_SEGMENT_TYPE, 3), _defineProperty(_retryAttempts, _streamingVoMetricsHTTPRequest.HTTPRequest.INIT_SEGMENT_TYPE, 3), _defineProperty(_retryAttempts, _streamingVoMetricsHTTPRequest.HTTPRequest.BITSTREAM_SWITCHING_SEGMENT_TYPE, 3), _defineProperty(_retryAttempts, _streamingVoMetricsHTTPRequest.HTTPRequest.INDEX_SEGMENT_TYPE, 3), _defineProperty(_retryAttempts, _streamingVoMetricsHTTPRequest.HTTPRequest.OTHER_TYPE, 3), _defineProperty(_retryAttempts, 'lowLatencyMultiplyFactor', 5), _retryAttempts),
+            retryIntervals: (_retryIntervals = {}, _defineProperty(_retryIntervals, _streamingVoMetricsHTTPRequest.HTTPRequest.MPD_TYPE, 500), _defineProperty(_retryIntervals, _streamingVoMetricsHTTPRequest.HTTPRequest.XLINK_EXPANSION_TYPE, 500), _defineProperty(_retryIntervals, _streamingVoMetricsHTTPRequest.HTTPRequest.MEDIA_SEGMENT_TYPE, 1000), _defineProperty(_retryIntervals, _streamingVoMetricsHTTPRequest.HTTPRequest.INIT_SEGMENT_TYPE, 1000), _defineProperty(_retryIntervals, _streamingVoMetricsHTTPRequest.HTTPRequest.BITSTREAM_SWITCHING_SEGMENT_TYPE, 1000), _defineProperty(_retryIntervals, _streamingVoMetricsHTTPRequest.HTTPRequest.INDEX_SEGMENT_TYPE, 1000), _defineProperty(_retryIntervals, _streamingVoMetricsHTTPRequest.HTTPRequest.MSS_FRAGMENT_INFO_SEGMENT_TYPE, 1000), _defineProperty(_retryIntervals, _streamingVoMetricsHTTPRequest.HTTPRequest.OTHER_TYPE, 1000), _defineProperty(_retryIntervals, 'lowLatencyReductionFactor', 10), _retryIntervals),
+            retryAttempts: (_retryAttempts = {}, _defineProperty(_retryAttempts, _streamingVoMetricsHTTPRequest.HTTPRequest.MPD_TYPE, 3), _defineProperty(_retryAttempts, _streamingVoMetricsHTTPRequest.HTTPRequest.XLINK_EXPANSION_TYPE, 1), _defineProperty(_retryAttempts, _streamingVoMetricsHTTPRequest.HTTPRequest.MEDIA_SEGMENT_TYPE, 3), _defineProperty(_retryAttempts, _streamingVoMetricsHTTPRequest.HTTPRequest.INIT_SEGMENT_TYPE, 3), _defineProperty(_retryAttempts, _streamingVoMetricsHTTPRequest.HTTPRequest.BITSTREAM_SWITCHING_SEGMENT_TYPE, 3), _defineProperty(_retryAttempts, _streamingVoMetricsHTTPRequest.HTTPRequest.INDEX_SEGMENT_TYPE, 3), _defineProperty(_retryAttempts, _streamingVoMetricsHTTPRequest.HTTPRequest.MSS_FRAGMENT_INFO_SEGMENT_TYPE, 3), _defineProperty(_retryAttempts, _streamingVoMetricsHTTPRequest.HTTPRequest.OTHER_TYPE, 3), _defineProperty(_retryAttempts, 'lowLatencyMultiplyFactor', 5), _retryAttempts),
             abr: {
                 movingAverageMethod: _streamingConstantsConstants2['default'].MOVING_AVERAGE_SLIDING_WINDOW,
                 ABRStrategy: _streamingConstantsConstants2['default'].ABR_STRATEGY_DYNAMIC,
@@ -16808,7 +16824,8 @@ function Settings() {
                 sid: null,
                 cid: null,
                 rtp: null,
-                rtpSafetyFactor: 5
+                rtpSafetyFactor: 5,
+                mode: _streamingConstantsConstants2['default'].CMCD_MODE_QUERY
             }
         }
     };
@@ -17065,7 +17082,7 @@ Object.defineProperty(exports, '__esModule', {
     value: true
 });
 exports.getVersionString = getVersionString;
-var VERSION = '3.2.1';
+var VERSION = '3.2.2';
 
 function getVersionString() {
     return VERSION;
@@ -26742,6 +26759,10 @@ function ManifestLoader(config) {
     function reset() {
         eventBus.off(_coreEventsEvents2['default'].XLINK_READY, onXlinkReady, instance);
 
+        if (mssHandler) {
+            mssHandler.reset();
+        }
+
         if (xlinkController) {
             xlinkController.reset();
             xlinkController = null;
@@ -26750,10 +26771,6 @@ function ManifestLoader(config) {
         if (urlLoader) {
             urlLoader.abort();
             urlLoader = null;
-        }
-
-        if (mssHandler) {
-            mssHandler.reset();
         }
     }
 
@@ -28805,6 +28822,9 @@ function MediaPlayer() {
      * Constants.TRACK_SELECTION_MODE_HIGHEST_BITRATE
      * This mode makes the player select the track with a highest bitrate. This mode is a default mode.
      *
+     * Constants.TRACK_SELECTION_MODE_FIRST_TRACK
+     * This mode makes the player select the select the first track found in the manifest.
+     *
      * Constants.TRACK_SELECTION_MODE_HIGHEST_EFFICIENCY
      * This mode makes the player select the track with the lowest bitrate per pixel average.
      *
@@ -29378,7 +29398,8 @@ function MediaPlayer() {
                 events: _coreEventsEvents2['default'],
                 BASE64: _externalsBase642['default'],
                 constants: _constantsConstants2['default'],
-                cmcdModel: cmcdModel
+                cmcdModel: cmcdModel,
+                settings: settings
             });
             if (protectionController) {
                 protectionController.setLicenseRequestFilters(licenseRequestFilters);
@@ -31995,6 +32016,7 @@ function StreamProcessor(config) {
         eventBus.on(_coreEventsEvents2['default'].BUFFER_LEVEL_UPDATED, onBufferLevelUpdated, instance);
         eventBus.on(_coreEventsEvents2['default'].BUFFER_LEVEL_STATE_CHANGED, onBufferLevelStateChanged, instance);
         eventBus.on(_coreEventsEvents2['default'].BUFFER_CLEARED, onBufferCleared, instance);
+        eventBus.on(_coreEventsEvents2['default'].QUOTA_EXCEEDED, onQuotaExceeded, instance);
         eventBus.on(_coreEventsEvents2['default'].SEEK_TARGET, onSeekTarget, instance);
     }
 
@@ -32179,6 +32201,11 @@ function StreamProcessor(config) {
             bufferingTime = e.from;
             bufferPruned = true;
         }
+    }
+
+    function onQuotaExceeded(e) {
+        bufferingTime = e.quotaExceededTime;
+        bufferPruned = true;
     }
 
     function addDVRMetric() {
@@ -33114,6 +33141,13 @@ var Constants = (function () {
       this.TRACK_SWITCH_MODE_NEVER_REPLACE = 'neverReplace';
 
       /**
+       *  @constant {string} TRACK_SELECTION_MODE_FIRST_TRACK makes the player select the first track found in the manifest.
+       *  @memberof Constants#
+       *  @static
+       */
+      this.TRACK_SELECTION_MODE_FIRST_TRACK = 'firstTrack';
+
+      /**
        *  @constant {string} TRACK_SELECTION_MODE_HIGHEST_BITRATE makes the player select the track with a highest bitrate. This mode is a default mode.
        *  @memberof Constants#
        *  @static
@@ -33133,6 +33167,20 @@ var Constants = (function () {
        *  @static
        */
       this.TRACK_SELECTION_MODE_WIDEST_RANGE = 'widestRange';
+
+      /**
+       *  @constant {string} CMCD_MODE_QUERY specifies to attach CMCD metrics as query parameters.
+       *  @memberof Constants#
+       *  @static
+       */
+      this.CMCD_MODE_QUERY = 'query';
+
+      /**
+       *  @constant {string} CMCD_MODE_HEADER specifies to attach CMCD metrics as HTTP headers.
+       *  @memberof Constants#
+       *  @static
+       */
+      this.CMCD_MODE_HEADER = 'header';
 
       this.LOCATION = 'Location';
       this.INITIALIZE = 'initialize';
@@ -34699,7 +34747,10 @@ function BufferController(config) {
             if (e.error.code === QUOTA_EXCEEDED_ERROR_CODE || !hasEnoughSpaceToAppend()) {
                 logger.warn('Clearing playback buffer to overcome quota exceed situation');
                 // Notify Schedulecontroller to stop scheduling until buffer has been pruned
-                triggerEvent(_coreEventsEvents2['default'].QUOTA_EXCEEDED, { criticalBufferLevel: criticalBufferLevel });
+                triggerEvent(_coreEventsEvents2['default'].QUOTA_EXCEEDED, {
+                    criticalBufferLevel: criticalBufferLevel,
+                    quotaExceededTime: e.chunk.start
+                });
                 clearBuffers(getClearRanges());
             }
             return;
@@ -34786,6 +34837,7 @@ function BufferController(config) {
     // START Buffer Level, State & Sufficiency Handling.
     //**********************************************************************
     function onPlaybackSeeking(e) {
+        if (!buffer) return;
         seekTarget = e.seekTime;
         if (isBufferingCompleted) {
             seekClearedBufferingCompleted = true;
@@ -34807,6 +34859,7 @@ function BufferController(config) {
 
     // Prune full buffer but what is around current time position
     function pruneAllSafely() {
+        if (!buffer) return;
         buffer.waitForUpdateEnd(function () {
             var ranges = getAllRangesWithSafetyFactor();
             if (!ranges || ranges.length === 0) {
@@ -34818,6 +34871,7 @@ function BufferController(config) {
 
     // Get all buffer ranges but a range around current time position
     function getAllRangesWithSafetyFactor() {
+        if (!buffer) return;
         var clearRanges = [];
         var ranges = buffer.getAllBufferRanges();
         if (!ranges || ranges.length === 0) {
@@ -35416,7 +35470,6 @@ function EventController() {
     var MPD_CALLBACK_SCHEME = 'urn:mpeg:dash:event:callback:2015';
     var MPD_CALLBACK_VALUE = 1;
 
-    var REFRESH_DELAY = 100;
     var REMAINING_EVENTS_THRESHOLD = 300;
 
     var EVENT_HANDLED_STATES = {
@@ -35439,6 +35492,7 @@ function EventController() {
     lastEventTimerCall = undefined,
         manifestUpdater = undefined,
         playbackController = undefined,
+        settings = undefined,
         eventHandlingInProgress = undefined,
         isStarted = undefined;
 
@@ -35494,9 +35548,10 @@ function EventController() {
         try {
             checkConfig();
             logger.debug('Start Event Controller');
-            if (!isStarted && !isNaN(REFRESH_DELAY)) {
+            var refreshDelay = settings.get().streaming.eventControllerRefreshDelay;
+            if (!isStarted && !isNaN(refreshDelay)) {
                 isStarted = true;
-                eventInterval = setInterval(_onEventTimer, REFRESH_DELAY);
+                eventInterval = setInterval(_onEventTimer, refreshDelay);
             }
         } catch (e) {
             throw e;
@@ -35872,13 +35927,14 @@ function EventController() {
             if (!config) {
                 return;
             }
-
             if (config.manifestUpdater) {
                 manifestUpdater = config.manifestUpdater;
             }
-
             if (config.playbackController) {
                 playbackController = config.playbackController;
+            }
+            if (config.settings) {
+                settings = config.settings;
             }
         } catch (e) {
             throw e;
@@ -36502,7 +36558,7 @@ function MediaController() {
 
     var validTrackSwitchModes = [_constantsConstants2['default'].TRACK_SWITCH_MODE_ALWAYS_REPLACE, _constantsConstants2['default'].TRACK_SWITCH_MODE_NEVER_REPLACE];
 
-    var validTrackSelectionModes = [_constantsConstants2['default'].TRACK_SELECTION_MODE_HIGHEST_BITRATE, _constantsConstants2['default'].TRACK_SELECTION_MODE_HIGHEST_EFFICIENCY, _constantsConstants2['default'].TRACK_SELECTION_MODE_WIDEST_RANGE];
+    var validTrackSelectionModes = [_constantsConstants2['default'].TRACK_SELECTION_MODE_HIGHEST_BITRATE, _constantsConstants2['default'].TRACK_SELECTION_MODE_FIRST_TRACK, _constantsConstants2['default'].TRACK_SELECTION_MODE_HIGHEST_EFFICIENCY, _constantsConstants2['default'].TRACK_SELECTION_MODE_WIDEST_RANGE];
 
     function setup() {
         logger = (0, _coreDebug2['default'])(context).getInstance().getLogger(instance);
@@ -36927,6 +36983,9 @@ function MediaController() {
                 if (tmpArr.length > 1) {
                     tmpArr = getTracksWithWidestRange(tmpArr);
                 }
+                break;
+            case _constantsConstants2['default'].TRACK_SELECTION_MODE_FIRST_TRACK:
+                tmpArr.push(tracks[0]);
                 break;
             case _constantsConstants2['default'].TRACK_SELECTION_MODE_HIGHEST_EFFICIENCY:
                 tmpArr = getTracksWithHighestEfficiency(tracks);
@@ -37584,8 +37643,8 @@ function PlaybackController() {
         return startTime;
     }
 
-    function getActualPresentationTime(currentTime) {
-        var DVRMetrics = dashMetrics.getCurrentDVRInfo();
+    function getActualPresentationTime(currentTime, mediatype) {
+        var DVRMetrics = dashMetrics.getCurrentDVRInfo(mediatype);
         var DVRWindow = DVRMetrics ? DVRMetrics.range : null;
         var actualTime = undefined;
 
@@ -37627,12 +37686,12 @@ function PlaybackController() {
         wallclockTimeIntervalId = null;
     }
 
-    function updateCurrentTime() {
+    function updateCurrentTime(mediaType) {
         if (isPaused() || !isDynamic || videoModel.getReadyState() === 0) return;
         var currentTime = getNormalizedTime();
-        var actualTime = getActualPresentationTime(currentTime);
+        var actualTime = getActualPresentationTime(currentTime, mediaType);
         var timeChanged = !isNaN(actualTime) && actualTime !== currentTime;
-        if (timeChanged) {
+        if (timeChanged && !isSeeking()) {
             logger.debug('UpdateCurrentTime: Seek to actual time: ' + actualTime + ' from currentTime: ' + currentTime);
             seek(actualTime);
         }
@@ -37739,7 +37798,9 @@ function PlaybackController() {
         logger.info('Native video element event: ended');
         pause();
         stopUpdatingWallclockTime();
-        eventBus.trigger(_coreEventsEvents2['default'].PLAYBACK_ENDED, { 'isLast': streamController.getActiveStreamInfo().isLast });
+        var streamInfo = streamController ? streamController.getActiveStreamInfo() : null;
+        if (!streamInfo) return;
+        eventBus.trigger(_coreEventsEvents2['default'].PLAYBACK_ENDED, { 'isLast': streamInfo.isLast });
     }
 
     // Handle DASH PLAYBACK_ENDED event
@@ -38166,6 +38227,7 @@ function PlaybackController() {
         isSeeking: isSeeking,
         getStreamEndTime: getStreamEndTime,
         seek: seek,
+        updateCurrentTime: updateCurrentTime,
         reset: reset
     };
 
@@ -38261,7 +38323,6 @@ function ScheduleController(config) {
     var abrController = config.abrController;
     var playbackController = config.playbackController;
     var textController = config.textController;
-    var streamInfo = config.streamInfo;
     var type = config.type;
     var mimeType = config.mimeType;
     var mediaController = config.mediaController;
@@ -38269,6 +38330,7 @@ function ScheduleController(config) {
     var settings = config.settings;
 
     var instance = undefined,
+        streamInfo = undefined,
         logger = undefined,
         currentRepresentationInfo = undefined,
         initialRequest = undefined,
@@ -38292,6 +38354,7 @@ function ScheduleController(config) {
     function setup() {
         logger = (0, _coreDebug2['default'])(context).getInstance().getLogger(instance);
         resetInitialSettings();
+        streamInfo = config.streamInfo;
     }
 
     function initialize(_hasVideoTrack) {
@@ -38338,6 +38401,7 @@ function ScheduleController(config) {
     }
 
     function start() {
+        if (!streamInfo) return;
         if (isStarted()) return;
         if (!currentRepresentationInfo || bufferController.getIsBufferingCompleted()) return;
 
@@ -38374,6 +38438,7 @@ function ScheduleController(config) {
     }
 
     function schedule() {
+        if (!streamInfo) return;
         if (isStopped || isFragmentProcessingInProgress || playbackController.isPaused() && !settings.get().streaming.scheduleWhilePaused || (type === _constantsConstants2['default'].FRAGMENTED_TEXT || type === _constantsConstants2['default'].TEXT) && !textController.isTextEnabled() || bufferController.getIsBufferingCompleted()) {
             stop();
             return;
@@ -38424,6 +38489,7 @@ function ScheduleController(config) {
     }
 
     function validateExecutedFragmentRequest() {
+        if (!isNaN(seekTarget)) return;
         // Validate that the fragment request executed and appended into the source buffer is as
         // good of quality as the current quality and is the correct media track.
         var time = playbackController.getTime();
@@ -38640,6 +38706,7 @@ function ScheduleController(config) {
     }
 
     function onPlaybackSeeking(e) {
+        if (!streamInfo) return;
         setSeekTarget(e.seekTime);
         setTimeToLoadDelay(0);
 
@@ -38647,7 +38714,7 @@ function ScheduleController(config) {
             start();
         }
 
-        var latency = currentRepresentationInfo.DVRWindow && playbackController ? currentRepresentationInfo.DVRWindow.end - playbackController.getTime() : NaN;
+        var latency = currentRepresentationInfo && currentRepresentationInfo.DVRWindow && playbackController ? currentRepresentationInfo.DVRWindow.end - playbackController.getTime() : NaN;
         dashMetrics.updateManifestUpdateInfo({
             latency: latency
         });
@@ -38721,6 +38788,7 @@ function ScheduleController(config) {
         stop();
         completeQualityChange(false);
         resetInitialSettings();
+        streamInfo = null;
     }
 
     function getPlaybackController() {
@@ -38947,7 +39015,8 @@ function StreamController() {
         eventController = (0, _EventController2['default'])(context).getInstance();
         eventController.setConfig({
             manifestUpdater: manifestUpdater,
-            playbackController: playbackController
+            playbackController: playbackController,
+            settings: settings
         });
         eventController.start();
 
@@ -43897,6 +43966,67 @@ function CmcdModel() {
         }
     }
 
+    function _copyParameters(data, parameterNames) {
+        var copiedData = {};
+        var _iteratorNormalCompletion = true;
+        var _didIteratorError = false;
+        var _iteratorError = undefined;
+
+        try {
+            for (var _iterator = parameterNames[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+                var _name = _step.value;
+
+                if (data[_name]) {
+                    copiedData[_name] = data[_name];
+                }
+            }
+        } catch (err) {
+            _didIteratorError = true;
+            _iteratorError = err;
+        } finally {
+            try {
+                if (!_iteratorNormalCompletion && _iterator['return']) {
+                    _iterator['return']();
+                }
+            } finally {
+                if (_didIteratorError) {
+                    throw _iteratorError;
+                }
+            }
+        }
+
+        return copiedData;
+    }
+
+    function getHeaderParameters(request) {
+        try {
+            if (settings.get().streaming.cmcd && settings.get().streaming.cmcd.enabled) {
+                var cmcdData = _getCmcdData(request);
+                var cmcdObjectHeader = _copyParameters(cmcdData, ['br', 'd', 'ot', 'tb']);
+                var cmcdRequestHeader = _copyParameters(cmcdData, ['bl', 'dl', 'mtp', 'nor', 'nrr', 'su']);
+                var cmcdStatusHeader = _copyParameters(cmcdData, ['bs', 'rtp']);
+                var cmcdSessionHeader = _copyParameters(cmcdData, ['cid', 'pr', 'sf', 'sid', 'st', 'v']);
+                var headers = {
+                    'CMCD-Object': _buildFinalString(cmcdObjectHeader),
+                    'CMCD-Request': _buildFinalString(cmcdRequestHeader),
+                    'CMCD-Status': _buildFinalString(cmcdStatusHeader),
+                    'CMCD-Session': _buildFinalString(cmcdSessionHeader)
+                };
+
+                eventBus.trigger(_metricsMetricsReportingEvents2['default'].CMCD_DATA_GENERATED, {
+                    url: request.url,
+                    mediaType: request.mediaType,
+                    cmcdData: cmcdData
+                });
+                return headers;
+            }
+
+            return null;
+        } catch (e) {
+            return null;
+        }
+    }
+
     function _getCmcdData(request) {
         try {
             var cmcdData = null;
@@ -44236,29 +44366,29 @@ function CmcdModel() {
 
     function _probeNextRequest(mediaType) {
         if (!streamProcessors || streamProcessors.length === 0) return;
-        var _iteratorNormalCompletion = true;
-        var _didIteratorError = false;
-        var _iteratorError = undefined;
+        var _iteratorNormalCompletion2 = true;
+        var _didIteratorError2 = false;
+        var _iteratorError2 = undefined;
 
         try {
-            for (var _iterator = streamProcessors[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-                var streamProcessor = _step.value;
+            for (var _iterator2 = streamProcessors[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
+                var streamProcessor = _step2.value;
 
                 if (streamProcessor.getType() === mediaType) {
                     return streamProcessor.probeNextRequest();
                 }
             }
         } catch (err) {
-            _didIteratorError = true;
-            _iteratorError = err;
+            _didIteratorError2 = true;
+            _iteratorError2 = err;
         } finally {
             try {
-                if (!_iteratorNormalCompletion && _iterator['return']) {
-                    _iterator['return']();
+                if (!_iteratorNormalCompletion2 && _iterator2['return']) {
+                    _iterator2['return']();
                 }
             } finally {
-                if (_didIteratorError) {
-                    throw _iteratorError;
+                if (_didIteratorError2) {
+                    throw _iteratorError2;
                 }
             }
         }
@@ -44300,6 +44430,7 @@ function CmcdModel() {
 
     instance = {
         getQueryParameter: getQueryParameter,
+        getHeaderParameters: getHeaderParameters,
         setConfig: setConfig,
         reset: reset,
         initialize: initialize
@@ -46133,6 +46264,15 @@ function FetchLoader(cfg) {
             headers.append('Range', 'bytes=' + request.range);
         }
 
+        if (httpRequest.headers) {
+            for (var header in httpRequest.headers) {
+                var value = httpRequest.headers[header];
+                if (value) {
+                    headers.append(header, value);
+                }
+            }
+        }
+
         if (!request.requestStartDate) {
             request.requestStartDate = requestStartTime;
         }
@@ -46541,6 +46681,10 @@ var _coreSettings = _dereq_(48);
 
 var _coreSettings2 = _interopRequireDefault(_coreSettings);
 
+var _constantsConstants = _dereq_(112);
+
+var _constantsConstants2 = _interopRequireDefault(_constantsConstants);
+
 /**
  * @module HTTPLoader
  * @ignore
@@ -46650,6 +46794,10 @@ function HTTPLoader(cfg) {
                         }, mediaPlayerModel.getRetryIntervalsForType(request.type));
                     })();
                 } else {
+                    if (request.type === _voMetricsHTTPRequest.HTTPRequest.MSS_FRAGMENT_INFO_SEGMENT_TYPE) {
+                        return;
+                    }
+
                     errHandler.error(new _voDashJSError2['default'](downloadErrorToRequestTypeMap[request.type], request.url + ' is not available', {
                         request: request,
                         response: httpRequest.response
@@ -46740,9 +46888,17 @@ function HTTPLoader(cfg) {
             });
         }
 
+        var headers = null;
         var modifiedUrl = requestModifier.modifyRequestURL(request.url);
-        var additionalQueryParameter = _getAdditionalQueryParameter(request);
-        modifiedUrl = _coreUtils2['default'].addAditionalQueryParameterToUrl(modifiedUrl, additionalQueryParameter);
+        if (settings.get().streaming.cmcd && settings.get().streaming.cmcd.enabled) {
+            var cmcdMode = settings.get().streaming.cmcd.mode;
+            if (cmcdMode === _constantsConstants2['default'].CMCD_MODE_QUERY) {
+                var additionalQueryParameter = _getAdditionalQueryParameter(request);
+                modifiedUrl = _coreUtils2['default'].addAditionalQueryParameterToUrl(modifiedUrl, additionalQueryParameter);
+            } else if (cmcdMode === _constantsConstants2['default'].CMCD_MODE_HEADER) {
+                headers = cmcdModel.getHeaderParameters(request);
+            }
+        }
         var verb = request.checkExistenceOnly ? _voMetricsHTTPRequest.HTTPRequest.HEAD : _voMetricsHTTPRequest.HTTPRequest.GET;
         var withCredentials = mediaPlayerModel.getXHRWithCredentialsForType(request.type);
 
@@ -46758,7 +46914,8 @@ function HTTPLoader(cfg) {
             onabort: onabort,
             ontimeout: ontimeout,
             loader: loader,
-            timeout: requestTimeout
+            timeout: requestTimeout,
+            headers: headers
         };
 
         // Adds the ability to delay single fragment loading time to control buffer.
@@ -46843,6 +47000,11 @@ function HTTPLoader(cfg) {
         delayedRequests = [];
 
         requests.forEach(function (x) {
+            // MSS patch: ignore FragmentInfo requests
+            if (x.request.type === _voMetricsHTTPRequest.HTTPRequest.MSS_FRAGMENT_INFO_SEGMENT_TYPE) {
+                return;
+            }
+
             // abort will trigger onloadend which we don't want
             // when deliberately aborting inflight requests -
             // set them to undefined so they are not called
@@ -46868,7 +47030,7 @@ var factory = _coreFactoryMaker2['default'].getClassFactory(HTTPLoader);
 exports['default'] = factory;
 module.exports = exports['default'];
 
-},{"153":153,"160":160,"164":164,"239":239,"255":255,"45":45,"46":46,"47":47,"48":48,"49":49,"54":54}],162:[function(_dereq_,module,exports){
+},{"112":112,"153":153,"160":160,"164":164,"239":239,"255":255,"45":45,"46":46,"47":47,"48":48,"49":49,"54":54}],162:[function(_dereq_,module,exports){
 /**
  * The copyright in this software is being made available under the BSD License,
  * included below. This software may be subject to other third party and contributor
@@ -47159,6 +47321,15 @@ function XHRLoader(cfg) {
 
         if (requestModifier) {
             xhr = requestModifier.modifyRequestHeader(xhr);
+        }
+
+        if (httpRequest.headers) {
+            for (var header in httpRequest.headers) {
+                var value = httpRequest.headers[header];
+                if (value) {
+                    xhr.setRequestHeader(header, value);
+                }
+            }
         }
 
         xhr.withCredentials = httpRequest.withCredentials;
@@ -47602,7 +47773,8 @@ function Protection() {
                 events: config.events,
                 BASE64: config.BASE64,
                 constants: config.constants,
-                cmcdModel: config.cmcdModel
+                cmcdModel: config.cmcdModel,
+                settings: config.settings
             });
             config.capabilities.setEncryptedMediaSupported(true);
         }
@@ -47949,6 +48121,10 @@ var _coreUtils = _dereq_(49);
 
 var _coreUtils2 = _interopRequireDefault(_coreUtils);
 
+var _constantsConstants = _dereq_(112);
+
+var _constantsConstants2 = _interopRequireDefault(_constantsConstants);
+
 var NEEDKEY_BEFORE_INITIALIZE_RETRIES = 5;
 var NEEDKEY_BEFORE_INITIALIZE_TIMEOUT = 500;
 
@@ -47982,6 +48158,7 @@ function ProtectionController(config) {
     var constants = config.constants;
     var needkeyRetries = [];
     var cmcdModel = config.cmcdModel;
+    var settings = config.settings;
 
     var instance = undefined,
         logger = undefined,
@@ -48692,13 +48869,18 @@ function ProtectionController(config) {
     function doLicenseRequest(request, retriesCount, timeout, onLoad, onAbort, onError) {
         var xhr = new XMLHttpRequest();
 
-        var cmcdParams = cmcdModel.getQueryParameter({
-            url: request.url,
-            type: _voMetricsHTTPRequest.HTTPRequest.LICENSE
-        });
+        if (settings.get().streaming.cmcd && settings.get().streaming.cmcd.enabled) {
+            var cmcdMode = settings.get().streaming.cmcd.mode;
+            if (cmcdMode === _constantsConstants2['default'].CMCD_MODE_QUERY) {
+                var cmcdParams = cmcdModel.getQueryParameter({
+                    url: request.url,
+                    type: _voMetricsHTTPRequest.HTTPRequest.LICENSE
+                });
 
-        if (cmcdParams) {
-            request.url = _coreUtils2['default'].addAditionalQueryParameterToUrl(request.url, [cmcdParams]);
+                if (cmcdParams) {
+                    request.url = _coreUtils2['default'].addAditionalQueryParameterToUrl(request.url, [cmcdParams]);
+                }
+            }
         }
 
         xhr.open(request.method, request.url, true);
@@ -48709,6 +48891,25 @@ function ProtectionController(config) {
         }
         for (var key in request.headers) {
             xhr.setRequestHeader(key, request.headers[key]);
+        }
+
+        if (settings.get().streaming.cmcd && settings.get().streaming.cmcd.enabled) {
+            var cmcdMode = settings.get().streaming.cmcd.mode;
+            if (cmcdMode === _constantsConstants2['default'].CMCD_MODE_HEADER) {
+                var cmcdHeaders = cmcdModel.getHeaderParameters({
+                    url: request.url,
+                    type: _voMetricsHTTPRequest.HTTPRequest.LICENSE
+                });
+
+                if (cmcdHeaders) {
+                    for (var header in cmcdHeaders) {
+                        var value = cmcdHeaders[header];
+                        if (value) {
+                            xhr.setRequestHeader(header, value);
+                        }
+                    }
+                }
+            }
         }
 
         var retryRequest = function retryRequest() {
@@ -48858,7 +49059,7 @@ exports['default'] = dashjs.FactoryMaker.getClassFactory(ProtectionController);
 /* jshint ignore:line */
 module.exports = exports['default'];
 
-},{"165":165,"174":174,"186":186,"187":187,"188":188,"189":189,"239":239,"255":255,"49":49}],169:[function(_dereq_,module,exports){
+},{"112":112,"165":165,"174":174,"186":186,"187":187,"188":188,"189":189,"239":239,"255":255,"49":49}],169:[function(_dereq_,module,exports){
 /**
  * The copyright in this software is being made available under the BSD License,
  * included below. This software may be subject to other third party and contributor
@@ -64776,6 +64977,7 @@ HTTPRequest.INIT_SEGMENT_TYPE = 'InitializationSegment';
 HTTPRequest.INDEX_SEGMENT_TYPE = 'IndexSegment';
 HTTPRequest.MEDIA_SEGMENT_TYPE = 'MediaSegment';
 HTTPRequest.BITSTREAM_SWITCHING_SEGMENT_TYPE = 'BitstreamSwitchingSegment';
+HTTPRequest.MSS_FRAGMENT_INFO_SEGMENT_TYPE = 'FragmentInfoSegment';
 HTTPRequest.LICENSE = 'license';
 HTTPRequest.OTHER_TYPE = 'other';
 
