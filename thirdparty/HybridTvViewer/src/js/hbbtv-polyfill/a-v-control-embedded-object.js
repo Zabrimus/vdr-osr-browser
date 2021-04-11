@@ -174,6 +174,8 @@ export class OipfAVControlMapper {
                 // shaka.log.setLevel(shaka.log.Level.DEBUG);
                 // shaka.log.setLevel(shaka.log.Level.V2);
 
+                this.videoElement.src = originalDataAttribute;
+
                 // Install built-in polyfills to patch browser incompatibilities.
                 const player = new shaka.Player(this.videoElement);
                 window.player = player;

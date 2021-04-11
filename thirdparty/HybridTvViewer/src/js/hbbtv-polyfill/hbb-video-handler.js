@@ -58,7 +58,6 @@ export class VideoHandler {
             }
         }
 
-        /* */
         if (document.getElementsByTagName('video').length > 0) {
             // video already injected.
 
@@ -66,11 +65,10 @@ export class VideoHandler {
             if (window.location.host === 'www.arte.tv') {
                 document.getElementsByTagName('video')[0].remove();
             } else {
-                window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: checkNodeTypeAndInjectVideoMethods, video already injected ...');
-                return;
+               window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: checkNodeTypeAndInjectVideoMethods, video already injected ...');
+               return;
             }
         }
-        /* */
 
         let observeNewVideoElement = false;
 

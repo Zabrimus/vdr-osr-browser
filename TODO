@@ -17,8 +17,13 @@ Servus TV: "Could not enter Mediathek!"
 
 1-2-3 TV: "Uncaught SyntaxError: Failed to set the 'innerHTML' property on 'Element': The provided markup is invalid XML, and therefore cannot be inserted into an XML document.", source: http://pk153-tv123.tvapp-server.de/HbbTVClient/Common/Libs/jquery-min-1.7.1.js?unq=504195861 (6)
     Invalides XML kommt mir bekannt vor, ich weiß nur nicht mehr, welcher Sender sowas sendet.
+    => Siehe Sonnenklar-TV
+
+    Die Seite hat schon ein paar Fehler und die Daten, die nachgeladen werden.... Ob es eine Möglichkeit gibt, das zu fixen?
+    Entweder geht oder geht nicht. Das scheint von den Angeboten abzuhängen o.O
 
 Sonnenklar-TV: Das Video(TV) überlagert die Seite.
+        Uncaught SyntaxError: Failed to set the 'innerHTML' property on 'Element': The provided markup is invalid XML, and therefore cannot be inserted into an XML document.
 
 
 
@@ -66,13 +71,6 @@ Sender-Probleme:
     SRF1:
         Beide Seiten scheinen Probleme zu haben, aber zur Untersuchung muss ich erst an die Channelinformation und URLs kommen.
         "Failed to execute 'observe' on 'MutationObserver': parameter 1 is not of type 'Node'."
-
-    Sonnenklar TV:
-        Uncaught SyntaxError: Failed to set the 'innerHTML' property on 'Element': The provided markup is invalid XML, and therefore cannot be inserted into an XML document.
-
-    1-2-3:
-        Die Seite hat schon ein paar Fehler und die Daten, die nachgeladen werden.... Ob es eine Möglichkeit gibt, das zu fixen?
-        Entweder geht oder geht nicht. Das scheint von den Angeboten abzuhängen o.O
 
     Juwelo:
         TV wird nicht im Video angezeigt. Es scheint, als ob der Videocontainer später erst in die Seite eingebunden wird: Zu spät für die Quirks.

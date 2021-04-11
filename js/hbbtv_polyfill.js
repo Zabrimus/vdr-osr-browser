@@ -269,8 +269,10 @@ class OipfAVControlMapper {
                  this.dashPlayer.on(dashjs.MediaPlayer.events['PLAYBACK_STARTED'], handleDashjsEvents);
             } else if (window._HBBTV_DASH_PLAYER_ === 'shaka') {
                 shaka.polyfill.installAll();
-                // shaka.log.setLevel(shaka.log.Level.DEBUG);
+                shaka.log.setLevel(shaka.log.Level.DEBUG);
                 // shaka.log.setLevel(shaka.log.Level.V2);
+
+                this.videoElement.src = originalDataAttribute;
 
                 // Install built-in polyfills to patch browser incompatibilities.
                 const player = new shaka.Player(this.videoElement);
@@ -697,7 +699,6 @@ class VideoHandler {
             }
         }
 
-        /* */
         if (document.getElementsByTagName('video').length > 0) {
             // video already injected.
 
@@ -705,11 +706,10 @@ class VideoHandler {
             if (window.location.host === 'www.arte.tv') {
                 document.getElementsByTagName('video')[0].remove();
             } else {
-                window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: checkNodeTypeAndInjectVideoMethods, video already injected ...');
-                return;
+               window._HBBTV_DEBUG_ && console.log('hbbtv-polyfill: checkNodeTypeAndInjectVideoMethods, video already injected ...');
+               return;
             }
         }
-        /* */
 
         let observeNewVideoElement = false;
 
