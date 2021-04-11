@@ -4,13 +4,10 @@ ARD: Der blaue Button funktioniert oder eben nicht. Und wenn es nicht funktionie
      Es sieht so aus, als ob das Fenster immer wieder neu erstellt wird. In der Konsole gibt es aber keine Video-Events,
      die so etwas provozieren können.
 
-Sat1/Pro7/RTL (und andere Sender aus der Gruppe):
-     DRM Videos werden nach der Werbung nicht abgespielt:
-        Shaka Error DRM.REQUESTED_KEY_SYSTEM_CONFIG_UNAVAILABLE ()
-        at new shaka.util.Error (client://js/shaka-player.compiled.debug.js:88:473)
-        at client://js/shaka-player.compiled.debug.js:221:263
-     Ganz so allgemein nervt die Werbung ziemlich. Und ich muss sie jedesmal sehen, wenn ich den Wechsel Werbung <-> Video
-     untersuchen will.
+ARD: Teletext wird nicht angezeigt
+    "Uncaught TypeError: Cannot read property 'appendChild' of null", source: http://itv2.ard.de/index.html (1)
+    "Uncaught TypeError: Cannot read property 'style' of null", source: http://itv2.ard.de/index.html (1)
+
 
 Servus TV: "Could not enter Mediathek!"
      Das sollte untersucht werden.
@@ -26,6 +23,23 @@ Sonnenklar-TV: Das Video(TV) überlagert die Seite.
         Uncaught SyntaxError: Failed to set the 'innerHTML' property on 'Element': The provided markup is invalid XML, and therefore cannot be inserted into an XML document.
 
 
+Keine Lösung für folgende Probleme:
+------------------------------------
+Sat1/Pro7/RTL (und andere Sender aus der Gruppe):
+    Diese Sender nutzen Microsoft PlayReady DRM und damit sind verschiedene Angebote aus der Mediathek außen vor und können
+    nicht abgespielt werden.
+
+
+Erledigt(?):
+------------
+Manche Kanäle (z.B. Alpha, Das Erste, ORF, ...) brauchen die aktuellen Programminformationen,
+    damit diese dargestellt werden können. Diese müssen vom VDR zum Browser gesendet werden.
+    Siehe video-broadcast-embedded-object.js:
+           oipfPluginObject.programmes = [];
+           oipfPluginObject.programmes.push({ name: 'Event 1, umlaut \u00e4', channelId: 'ccid:dvbt.0', duration: 600, startTime: Date.now() / 1000, description: 'EIT present event is under construction' });
+           oipfPluginObject.programmes.push({ name: 'Event 2, umlaut \u00f6', channelId: 'ccid:dvbt.0', duration: 300, startTime: Date.now() / 1000 + 600, description: 'EIT following event is under construction' });
+    Lösung: Nachdem die ganze Konfiguration oipfPluginObject.programmes entfernt wurde, werden die EPG Daten aus dem Netz geladen. Zufallsfund....
+
 
 Prüfen, ob diese Probleme/Wünsche noch existieren:
 --------------------------------------------------
@@ -34,13 +48,6 @@ Generelle Probleme/Wünsche
 
     Startseite (Red Button) bei Kanalwechsel automatisch anzeigen lassen.
         => Kollision mit VDR Funktionalität. Sowohl OSD, als auch Fernbedienung.
-
-    Manche Kanäle (z.B. Alpha, Das Erste, ORF, ...) brauchen die aktuellen Programminformationen,
-    damit diese dargestellt werden können. Diese müssen vom VDR zum Browser gesendet werden.
-    Siehe video-broadcast-embedded-object.js:
-           oipfPluginObject.programmes = [];
-           oipfPluginObject.programmes.push({ name: 'Event 1, umlaut \u00e4', channelId: 'ccid:dvbt.0', duration: 600, startTime: Date.now() / 1000, description: 'EIT present event is under construction' });
-           oipfPluginObject.programmes.push({ name: 'Event 2, umlaut \u00f6', channelId: 'ccid:dvbt.0', duration: 300, startTime: Date.now() / 1000 + 600, description: 'EIT following event is under construction' });
 
     Videos im Fenster überdecken evt. Popups. Das wurde jetzt geändert, aber z.B. Sonnenklar-TV hat noch Probleme.
 
