@@ -73,6 +73,9 @@ void tryToFixPage(std::string &source) {
     replaceAll(source, "<script type=\"text/javascript\">", "</script>", "<script type=\"text/javascript\">\n/* <![CDATA[ */\n", "\n/* ]]> */\n</script>");
     replaceAll(source, "<script>", "</script>", "<script>\n/* <![CDATA[ */\n", "\n/* ]]> */\n</script>");
 
+    // fix doctype
+    replaceAll(source, "<!doctype html>", "<!DOCTYPE html>");
+
     // fix wrong meta-tag in header
     // printf("VOR FIX-META:\n%s\n\n", source.c_str());
 
@@ -859,6 +862,8 @@ bool BrowserClient::ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr<CefC
             for (auto itrb = responseHeader.begin(); itrb != responseHeader.end(); itrb++) {
                 CONSOLE_TRACE("   {}: {}", itrb->first, itrb->second);
             }
+
+            CONSOLE_CRITICAL("Response: \n{}", responseContent);
         }
     }
 

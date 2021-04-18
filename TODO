@@ -4,14 +4,6 @@ ARD: Der blaue Button funktioniert oder eben nicht. Und wenn es nicht funktionie
      Es sieht so aus, als ob das Fenster immer wieder neu erstellt wird. In der Konsole gibt es aber keine Video-Events,
      die so etwas provozieren können.
 
-ARD: Teletext wird nicht angezeigt
-    "Uncaught TypeError: Cannot read property 'appendChild' of null", source: http://itv2.ard.de/index.html (1)
-    "Uncaught TypeError: Cannot read property 'style' of null", source: http://itv2.ard.de/index.html (1)
-
-
-Servus TV: "Could not enter Mediathek!"
-     Das sollte untersucht werden.
-
 1-2-3 TV: "Uncaught SyntaxError: Failed to set the 'innerHTML' property on 'Element': The provided markup is invalid XML, and therefore cannot be inserted into an XML document.", source: http://pk153-tv123.tvapp-server.de/HbbTVClient/Common/Libs/jquery-min-1.7.1.js?unq=504195861 (6)
     Invalides XML kommt mir bekannt vor, ich weiß nur nicht mehr, welcher Sender sowas sendet.
     => Siehe Sonnenklar-TV
@@ -23,11 +15,21 @@ Sonnenklar-TV: Das Video(TV) überlagert die Seite.
         Uncaught SyntaxError: Failed to set the 'innerHTML' property on 'Element': The provided markup is invalid XML, and therefore cannot be inserted into an XML document.
 
 
+
 Keine Lösung für folgende Probleme:
 ------------------------------------
 Sat1/Pro7/RTL (und andere Sender aus der Gruppe):
     Diese Sender nutzen Microsoft PlayReady DRM und damit sind verschiedene Angebote aus der Mediathek außen vor und können
     nicht abgespielt werden.
+
+
+
+Nicht reproduzierbar:
+---------------------
+ARD: Teletext wird nicht angezeigt
+    "Uncaught TypeError: Cannot read property 'appendChild' of null", source: http://itv2.ard.de/index.html (1)
+    "Uncaught TypeError: Cannot read property 'style' of null", source: http://itv2.ard.de/index.html (1)
+
 
 
 Erledigt(?):
@@ -39,6 +41,11 @@ Manche Kanäle (z.B. Alpha, Das Erste, ORF, ...) brauchen die aktuellen Programm
            oipfPluginObject.programmes.push({ name: 'Event 1, umlaut \u00e4', channelId: 'ccid:dvbt.0', duration: 600, startTime: Date.now() / 1000, description: 'EIT present event is under construction' });
            oipfPluginObject.programmes.push({ name: 'Event 2, umlaut \u00f6', channelId: 'ccid:dvbt.0', duration: 300, startTime: Date.now() / 1000 + 600, description: 'EIT following event is under construction' });
     Lösung: Nachdem die ganze Konfiguration oipfPluginObject.programmes entfernt wurde, werden die EPG Daten aus dem Netz geladen. Zufallsfund....
+
+Servus TV: "Could not enter Mediathek!"
+     Das sollte untersucht werden.
+     => Es wird versucht etwas zu laden: http://tvrs.redtech.redbull.com/1/tracking.js?....
+        Aber der Server kann nicht aufgelöst werden (DNS)
 
 
 Prüfen, ob diese Probleme/Wünsche noch existieren:

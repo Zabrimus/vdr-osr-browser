@@ -38,9 +38,15 @@ BrowserControl::~BrowserControl() {
 void BrowserControl::LoadURL(const CefString& url) {
     CONSOLE_TRACE("Current URL: {}, New URL: {}", browser->GetMainFrame()->GetURL().ToString(), url.ToString());
 
+    // FIXME: URL rewrite shall not be hardcoded
+    std::string myurl = url.ToString();
+    if ((myurl.find("redtech.redbull.com") != std::string::npos)) {
+        replaceAll(myurl, "?stvde-", "?stvat-");
+    }
+
     //if (browser->GetMainFrame()->GetURL().compare(url)) {
         browser->StopLoad();
-        browser->GetMainFrame()->LoadURL(url);
+        browser->GetMainFrame()->LoadURL(myurl);
     //} else {
     //    browser->GetHost()->Invalidate(PET_VIEW);
     //}
