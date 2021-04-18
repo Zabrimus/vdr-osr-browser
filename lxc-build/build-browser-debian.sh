@@ -19,17 +19,6 @@ git checkout encoding
 # starts build
 make -j 4
 
-#
-# HACK:
-# Jetzt wird es echt seltsam. Aus irgendwelchen Gründen schlägt der Build oben fehl.
-# Das Verzeichnis thirdparty/cef/Release wird gelöscht.
-# Der jetzt folgende Build funktioniert dann aber wieder.
-#
-# Warum zum Geier passiert das? Und warum nur in diesem Script?
-#
-rm -Rf thirdparty/cef
-make -j 4
-
 # create archive
 mv Release vdr-osr-browser-encoding
 tar -cJf ../vdr-osr-browser-encoding.tar.bz2 vdr-osr-browser-encoding
