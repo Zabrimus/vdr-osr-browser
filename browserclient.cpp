@@ -863,7 +863,7 @@ bool BrowserClient::ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr<CefC
                 CONSOLE_TRACE("   {}: {}", itrb->first, itrb->second);
             }
 
-            CONSOLE_CRITICAL("Response: \n{}", responseContent);
+            // CONSOLE_CRITICAL("Response: \n{}", responseContent);
         }
     }
 
