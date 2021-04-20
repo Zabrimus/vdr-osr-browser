@@ -226,8 +226,6 @@ void VideoPlayer::playAudio() {
     while (!quit) {
         AVFrame *frame;
         if (audioQueue.try_dequeue(frame)) {
-            // fprintf(stderr, "Video PTS: %10ld,  Audio PTS: %10ld, Difference: %10ld\n", lastVideoPts, lastAudioPts, (int64_t)(lastVideoPts - lastAudioPts));
-
             SDL_QueueAudio(audioDevice, frame->data[0], linesize * channels);
 
             lastAudioPts = frame->pts;
@@ -260,11 +258,14 @@ void VideoPlayer::playVideo() {
         if (imageQueue.try_dequeue(frame)) {
             // fprintf(stderr, "Video PTS: %10ld,  Audio PTS: %10ld, Difference: %10ld\n", lastVideoPts, lastAudioPts, (int64_t)(lastVideoPts - lastAudioPts));
             // fprintf(stderr, "Video PTS Diff: %10ld\n", frame->pts-lastVideoPts);
+            // fprintf(stderr, "Video PTS: %10ld,  Audio PTS: %10ld, Difference: %10ld\n", lastVideoPts / 1000, lastAudioPts / 1000 , (int64_t)(lastVideoPts - lastAudioPts) / 1000);
 
             // FIXME: Ich habe nicht unbedingt das Gefühl, daß dies so richtig echt richtig ist.
+            /*
             if (lastAudioPts != 0 && (int64_t)(lastVideoPts - lastAudioPts) < 0) {
                 std::this_thread::sleep_for(std::chrono::nanoseconds((int64_t) (-lastVideoPts + lastAudioPts)));
             }
+            */
 
             if (SDL_UpdateYUVTexture(
                     texture, nullptr,
