@@ -176,6 +176,8 @@ std::string *initUrl = nullptr;
 std::string *logFile = nullptr;
 std::string *dashplayer = nullptr;
 bool fullscreen = false;
+std::string cachedir;
+std::string profiledir;
 
 // Entry point function for all processes.
 int main(int argc, char *argv[]) {
@@ -183,6 +185,8 @@ int main(int argc, char *argv[]) {
 
     // FIXME: Dies ist nur ein Test!
     signal(SIGPIPE, SIG_IGN);
+
+    fprintf(stderr, "2\n");
 
     // try to find some parameters
     for (int i = 0; i < argc; ++i) {
@@ -204,8 +208,14 @@ int main(int argc, char *argv[]) {
             dashplayer = new std::string(argv[i] + 13);
         } else if (strncmp(argv[i], "--fullscreen", 12) == 0) {
             fullscreen = true;
+        } else if (strncmp(argv[i], "--cachedir=", 11) == 0) {
+            cachedir = std::string(argv[i] + 11);
+        } else if (strncmp(argv[i], "--profiledir=", 13) == 0) {
+            profiledir = std::string(argv[i] + 13);
         }
     }
+
+    fprintf(stderr, "1\n");
 
     if (logFile != nullptr) {
         logger.switchToFileLogger(*logFile);
@@ -241,8 +251,20 @@ int main(int argc, char *argv[]) {
     std::string exepath = getexepath();
     std::string path = exepath.substr(0, exepath.find_last_of('/'));
     std::string localespath = exepath.substr(0, exepath.find_last_of('/')) + "/locales";
-    std::string cache_path = exepath.substr(0, exepath.find_last_of('/')) + "/cache";
-    std::string profile_path = exepath.substr(0, exepath.find_last_of('/')) + "/profile";
+
+    std::string cache_path;
+    if (!cachedir.empty()) {
+        cache_path = cachedir;
+    } else {
+        cache_path = exepath.substr(0, exepath.find_last_of('/')) + "/cache";
+    }
+
+    std::string profile_path;
+    if (!profiledir.empty()) {
+        profile_path = profiledir;
+    } else {
+        profile_path = exepath.substr(0, exepath.find_last_of('/')) + "/profile";
+    }
 
     CefString(&settings.cache_path).FromASCII(cache_path.c_str());
     CefString(&settings.user_data_path).FromASCII(profile_path.c_str());

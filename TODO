@@ -14,7 +14,10 @@ ARD: Der blaue Button funktioniert oder eben nicht. Und wenn es nicht funktionie
 Sonnenklar-TV: Das Video(TV) überlagert die Seite.
         Uncaught SyntaxError: Failed to set the 'innerHTML' property on 'Element': The provided markup is invalid XML, and therefore cannot be inserted into an XML document.
 
-
+Seite: http://start-ctv.npo.nl/hbbtv/nl1/index.html
+    => Es wird auf appMgr.getOwnerApplication direkt am Anfang des Body zugegriffen, aber der init von hbbtv hat noch gar nicht stattgefunden.
+       Ob das die Ursache ist? Aber wie kann man das Problem lösen? Der init kann erst laufen,
+       wenn das Dokument geladen ist, aber dann ist es schon zu spät für den obigen Aufruf.
 
 Keine Lösung für folgende Probleme:
 ------------------------------------

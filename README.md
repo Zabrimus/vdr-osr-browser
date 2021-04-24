@@ -94,6 +94,8 @@ Weitere nützliche Parameter sind
 --logfile=<logfile>            Die Ausgaben werden in das <logfile> geschrieben.
 --fullscreen                   Der Videoplayer wird per Default im Fullscreen-Modus gestartet
 --remote-debugging-port=<port> Remote-Debugging Port für den Chrome Debugger
+--cachedir=<path>              Verzeichnis in dem der Browser seine Cache-Daten ablegen soll (Default: <browserpath>/cache)
+--profiledir=<path>            Verzeichnis in dem der Browser seine Profile-Daten ablegen soll.  (Default: <browserpath>/profile)
 ```
 Desweiteren gibt es noch eine Reihe von anderen Parametern, die von Chromium abstammen. Viele der Parameter müssten 
 auch mir dem Browser funktionieren. 
