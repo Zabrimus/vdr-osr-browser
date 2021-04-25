@@ -105,7 +105,7 @@ bool VideoPlayer::initSDLVideo() {
         return true;
     }
 
-    window = SDL_CreateWindow("videoplayer", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+    window = SDL_CreateWindow("videoplayer", 0, 0,
                               width, height, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
     SDL_ShowCursor(SDL_ENABLE);
 
@@ -197,6 +197,9 @@ bool VideoPlayer::addVideoFrame(int width, int height, uint8_t* image, uint64_t 
 
     frame->pts = pts;
 
+    // FIXME: Delete this. Simulate a lower CPU processor
+    // std::this_thread::sleep_for(std::chrono::milliseconds(35));
+
     imageQueue.enqueue(std::move(frame));
 
     return true;
@@ -258,9 +261,12 @@ void VideoPlayer::playVideo() {
         if (imageQueue.try_dequeue(frame)) {
             // fprintf(stderr, "Video PTS: %10ld,  Audio PTS: %10ld, Difference: %10ld\n", lastVideoPts, lastAudioPts, (int64_t)(lastVideoPts - lastAudioPts));
             // fprintf(stderr, "Video PTS Diff: %10ld\n", frame->pts-lastVideoPts);
+
             // fprintf(stderr, "Video PTS: %10ld,  Audio PTS: %10ld, Difference: %10ld\n", lastVideoPts / 1000, lastAudioPts / 1000 , (int64_t)(lastVideoPts - lastAudioPts) / 1000);
+            // fprintf(stderr, "Queue size: Audio %ld, Vidoe %ld\n", audioQueue.size_approx(), imageQueue.size_approx());
 
             // FIXME: Ich habe nicht unbedingt das Gefühl, daß dies so richtig echt richtig ist.
+            //  Das Video zu bremsen ist Unsinn. Das Video hat eine niedrigere PTS als Audio
             /*
             if (lastAudioPts != 0 && (int64_t)(lastVideoPts - lastAudioPts) < 0) {
                 std::this_thread::sleep_for(std::chrono::nanoseconds((int64_t) (-lastVideoPts + lastAudioPts)));
