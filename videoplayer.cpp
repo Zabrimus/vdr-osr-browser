@@ -181,7 +181,6 @@ bool VideoPlayer::addVideoFrame(int width, int height, uint8_t* image, uint64_t 
     }
 
     // convert to YUV and add to Queue
-
     AVFrame* frame = av_frame_alloc();
 
     int ret = av_image_alloc(frame->data, frame->linesize, width, height, AV_PIX_FMT_YUV420P, 32);
@@ -197,9 +196,6 @@ bool VideoPlayer::addVideoFrame(int width, int height, uint8_t* image, uint64_t 
 
     frame->pts = pts;
 
-    // FIXME: Delete this. Simulate a lower CPU processor
-    // std::this_thread::sleep_for(std::chrono::milliseconds(35));
-
     imageQueue.enqueue(std::move(frame));
 
     return true;
@@ -214,6 +210,7 @@ bool VideoPlayer::addAudioFrame(const float **data, int frames, uint64_t pts) {
 
     if (av_samples_alloc(&frame->data[0], nullptr, channels, 1024, AV_SAMPLE_FMT_FLT, 0) >= 0) {
         swr_convert(swrCtx, &frame->data[0], 1024, reinterpret_cast<const uint8_t **>(data), 1024);
+
         frame->pts = pts;
 
         audioQueue.enqueue(frame);
@@ -237,7 +234,7 @@ void VideoPlayer::playAudio() {
             av_frame_free(&frame);
         }
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        std::this_thread::sleep_for(std::chrono::microseconds(10));
     }
 }
 
@@ -265,13 +262,9 @@ void VideoPlayer::playVideo() {
             // fprintf(stderr, "Video PTS: %10ld,  Audio PTS: %10ld, Difference: %10ld\n", lastVideoPts / 1000, lastAudioPts / 1000 , (int64_t)(lastVideoPts - lastAudioPts) / 1000);
             // fprintf(stderr, "Queue size: Audio %ld, Vidoe %ld\n", audioQueue.size_approx(), imageQueue.size_approx());
 
-            // FIXME: Ich habe nicht unbedingt das Gefühl, daß dies so richtig echt richtig ist.
-            //  Das Video zu bremsen ist Unsinn. Das Video hat eine niedrigere PTS als Audio
-            /*
-            if (lastAudioPts != 0 && (int64_t)(lastVideoPts - lastAudioPts) < 0) {
-                std::this_thread::sleep_for(std::chrono::nanoseconds((int64_t) (-lastVideoPts + lastAudioPts)));
-            }
-            */
+            // fprintf(stderr, "Play: Video %ld, Audio %ld, Diff %ld\n", frame->pts, lastAudioPts, frame->pts-lastAudioPts);
+
+            std::this_thread::sleep_for(std::chrono::nanoseconds(lastAudioPts - frame->pts));
 
             if (SDL_UpdateYUVTexture(
                     texture, nullptr,
@@ -297,7 +290,7 @@ void VideoPlayer::playVideo() {
             av_freep(&frame->data[0]);
             av_frame_free(&frame);
         } else {
-            std::this_thread::sleep_for(std::chrono::milliseconds(20));
+            std::this_thread::sleep_for(std::chrono::microseconds(10));
         }
     }
 }

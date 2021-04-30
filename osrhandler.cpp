@@ -36,7 +36,7 @@ extern "C" {
 #define OSD_BUF_SIZE (1920 * 1080 * 4)
 #define OSD_KEY 0xDEADC0DE
 
-uint64_t startpts = 0;
+uint64_t adrift = 0;
 
 BrowserClient* OSRHandler::browserClient;
 
@@ -130,15 +130,11 @@ void OSRHandler::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, c
     // CONSOLE_TRACE("OnPaint called: width: {}, height: {}, dirtyRects: {},  videoStarted: {}", width, height, dirtyRects.size(), isVideoStarted);
 
     if (isVideoStarted) {
-        if (!startpts) {
-            startpts = av_gettime();
-        }
-
         if (showPlayer) {
-            if (!videoPlayer->addVideoFrame(width, height, (uint8_t *) buffer, av_gettime() - startpts)) {
+            if (!videoPlayer->addVideoFrame(width, height, (uint8_t *) buffer, av_gettime() + adrift)) {
                 isVideoStarted = false;
             }
-        } else if (!encoder->addVideoFrame(width, height, (uint8_t *) buffer, av_gettime() - startpts)) {
+        } else if (!encoder->addVideoFrame(width, height, (uint8_t *) buffer, av_gettime() + adrift)) {
             // encoder is not running anymore
             isVideoStarted = false;
         }
@@ -205,18 +201,13 @@ void OSRHandler::OnAudioStreamStarted(CefRefPtr<CefBrowser> browser, const CefAu
 
 void OSRHandler::OnAudioStreamPacket(CefRefPtr<CefBrowser> browser, const float **data, int frames, int64 pts) {
     if (isVideoStarted) {
-        if (!startpts) {
-            startpts = av_gettime();
+        adrift = pts * 1000 - av_gettime() - 21333;
 
-            // CONSOLE_ERROR("StartPts in Audio: {}", startpts);
-        }
-
-        // CONSOLE_ERROR("AudioPts: {}", pts * 1000 - startpts);
         if (showPlayer) {
-            if (!videoPlayer->addAudioFrame(data, frames, pts * 1000 - startpts)) {
+            if (!videoPlayer->addAudioFrame(data, frames, pts * 1000)) {
                 isVideoStarted = false;
             }
-        } else if (!encoder->addAudioFrame(data, frames, pts * 1000 - startpts)) {
+        } else if (!encoder->addAudioFrame(data, frames, pts * 1000)) {
             // encoder is not running anymore
             isVideoStarted = false;
         }
